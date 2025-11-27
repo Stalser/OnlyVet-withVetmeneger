@@ -12,6 +12,7 @@ export function DoctorCard({ doctor, showProfileButton = false }: DoctorCardProp
     <article
       className="
         group
+        h-full
         bg-white 
         rounded-2xl 
         border border-slate-200/80 
@@ -26,7 +27,6 @@ export function DoctorCard({ doctor, showProfileButton = false }: DoctorCardProp
         hover:shadow-[0_18px_40px_rgba(15,23,42,0.10)]
         cursor-pointer
       "
-      // TODO: в будущем обернём в <Link href={`/doctors/${doctor.id}`}>...</Link>
     >
       {/* Верх: аватар + имя + краткое позиционирование */}
       <div className="flex gap-3 mb-2">
@@ -35,7 +35,7 @@ export function DoctorCard({ doctor, showProfileButton = false }: DoctorCardProp
         </div>
         <div className="flex-1">
           <div className="text-[14px] font-semibold">{doctor.name}</div>
-          {/* doctor.role — уже без слов «ветеринарный врач» в данных */}
+          {/* В role НЕ пишем 'ветеринарный врач', только суть: 'эксперт по...', 'диагност', 'терапия' и т.п. */}
           <div className="text-[12px] text-slate-500">{doctor.role}</div>
         </div>
       </div>
@@ -62,10 +62,11 @@ export function DoctorCard({ doctor, showProfileButton = false }: DoctorCardProp
         ))}
       </div>
 
-      {/* Доп. информация — аккуратно, без перегруза */}
+      {/* Доп. информация — внизу, но не мешает кнопке */}
       <div className="mt-auto text-[11px] text-slate-500 space-y-0.5">
-        <div className="font-medium text-slate-600">{doctor.experienceLabel}</div>
-        {/* Формат и пациенты можно убрать из данных, но если оставишь — они будут в одной строке */}
+        <div className="font-medium text-slate-600">
+          {doctor.experienceLabel}
+        </div>
         {!!doctor.format?.length && (
           <div>
             <span className="text-slate-400">Формат: </span>
