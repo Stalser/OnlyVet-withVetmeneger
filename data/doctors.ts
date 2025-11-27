@@ -1,10 +1,13 @@
 // data/doctors.ts
 
+export type DoctorSpecialization = "эксперт" | "терапия" | "диагностика" | "онкология";
+
 export type Doctor = {
   id: string;
   initials: string;
   name: string;
   role: string;           // кратко, без "ветеринарный врач"
+  specialization: DoctorSpecialization; // для фильтров
   servicesShort: string;  // фокус врача 1–2 строки
   servicesFull: string[]; // список типичных запросов
   tags: string[];
@@ -17,6 +20,7 @@ export const doctors: Doctor[] = [
     initials: "ЭМ",
     name: "Эльвин Мазагирович",
     role: "Эксперт по сложным случаям, онкология",
+    specialization: "эксперт",
     servicesShort:
       "Сложные и неясные случаи, онкологические пациенты, выбор тактики лечения.",
     servicesFull: [
@@ -32,6 +36,7 @@ export const doctors: Doctor[] = [
     initials: "ДЧ",
     name: "Диана Чемерилова",
     role: "Терапия кошек и собак, второе мнение",
+    specialization: "терапия",
     servicesShort:
       "Терапия, коррекция назначений при хронике, второе мнение по диагнозам.",
     servicesFull: [
@@ -47,6 +52,7 @@ export const doctors: Doctor[] = [
     initials: "ОВ",
     name: "Олег Врач",
     role: "Диагностика: УЗИ и анализы",
+    specialization: "диагностика",
     servicesShort:
       "Интерпретация лабораторных анализов и УЗИ, контроль динамики на фоне лечения.",
     servicesFull: [
