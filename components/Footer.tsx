@@ -1,3 +1,5 @@
+// components/Footer.tsx
+
 export function Footer() {
   return (
     <footer className="mt-auto bg-onlyvet-navy text-white text-xs py-6">
@@ -72,12 +74,20 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="flex flex-wrap justify-between items-center gap-2 border-t border-slate-700 pt-3 text-[11px] text-slate-300">
-          <div>© OnlyVet, 2025. Все права защищены.</div>
-          <div className="text-right">
-            Онлайн-консультации не заменяют очный прием. В экстренных
-            ситуациях немедленно обращайтесь в ближайшую круглосуточную
-            ветеринарную клинику.
+        {/* Нижняя строка + дисклеймер */}
+        <div className="flex flex-col gap-2 border-t border-slate-700 pt-3 text-[11px] text-slate-300">
+          <div className="flex flex-wrap justify-between items-center gap-2">
+            <div>© OnlyVet, 2025. Все права защищены.</div>
+            <div className="text-right">
+              Онлайн-консультации не заменяют очный прием. В экстренных
+              ситуациях немедленно обращайтесь в ближайшую круглосуточную
+              ветеринарную клинику.
+            </div>
+          </div>
+          <div className="text-[10px] text-slate-400">
+            * Instagram принадлежит компании Meta Platforms Inc., деятельность
+            которой запрещена на территории Российской Федерации как
+            экстремистская организация.
           </div>
         </div>
       </div>
