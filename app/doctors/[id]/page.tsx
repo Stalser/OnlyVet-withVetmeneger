@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { doctors } from "@/data/doctors";
+import { slots } from "@/data/slots";
 
 type PageProps = {
   params: { id: string };
@@ -18,10 +19,26 @@ export default function DoctorPage({ params }: PageProps) {
     notFound();
   }
 
-  const { initials, name, role, servicesShort, servicesFull, tags, experienceLabel } =
-    doctor!;
+  const {
+    id,
+    initials,
+    name,
+    role,
+    servicesShort,
+    servicesFull,
+    tags,
+    experienceLabel,
+  } = doctor!;
 
   const firstName = name.split(" ")[0] ?? "врачу";
+
+  const doctorSlots = slots
+    .filter((s) => s.doctorId === id && s.status === "free")
+    .sort(
+      (a, b) =>
+        new Date(a.start).getTime() - new Date(b.start).getTime()
+    )
+    .slice(0, 6); // ограничимся первыми 6
 
   return (
     <>
@@ -40,7 +57,7 @@ export default function DoctorPage({ params }: PageProps) {
             / <span className="text-slate-700">{name}</span>
           </nav>
 
-          {/* Шапка врача */}
+          {/* Шапка врача + запись */}
           <section className="grid gap-6 md:grid-cols-[1.4fr,1fr] items-start">
             {/* Основной блок про врача */}
             <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 flex flex-col gap-4">
@@ -66,6 +83,16 @@ export default function DoctorPage({ params }: PageProps) {
                 {servicesShort}
               </div>
 
+              <div className="flex flex-wrap gap-1">
+                {tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="px-2 py-[2px] rounded-full text-[11px] bg-slate-100 text-slate-700"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
             </div>
 
             {/* Боковой блок записи */}
@@ -74,38 +101,19 @@ export default function DoctorPage({ params }: PageProps) {
                 Записаться к {firstName}
               </h2>
               <p className="text-[13px] text-slate-600">
-                Оставьте контакты и кратко опишите ситуацию — администратор
-                подберёт ближайшее доступное время и уточнит детали.
+                Выберите удобный слот или оставьте заявку на ближайшее доступное
+                время. Администратор свяжется с вами для подтверждения.
               </p>
 
-              {/* Псевдо-расписание (заглушка под Vetmanager) */}
-              <div className="bg-onlyvet-bg rounded-2xl border border-dashed border-slate-300 p-3 text-[12px] text-slate-600 space-y-1">
-                <div className="font-medium text-slate-700 mb-1">
-                  Ближайшие слоты (онлайн)
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <span className="px-2 py-1 rounded-full bg-white border border-slate-200">
-                    Сегодня · 18:30
-                  </span>
-                  <span className="px-2 py-1 rounded-full bg-white border border-slate-200">
-                    Завтра · 11:00
-                  </span>
-                  <span className="px-2 py-1 rounded-full bg-white border border-slate-200">
-                    Завтра · 19:00
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-500">
-                  В реальной системе здесь будут показываться слоты из
-                  расписания Vetmanager.
-                </p>
-              </div>
+              {/* Слоты */}
+              <DoctorSlots doctorId={id} />
 
-              <button
-                type="button"
-                className="mt-1 w-full px-4 py-2.5 rounded-full bg-onlyvet-coral text-white text-[13px] font-medium shadow-[0_12px_32px_rgba(247,118,92,0.6)] hover:brightness-105 transition"
+              <Link
+                href={`/booking?doctorId=${id}`}
+                className="mt-1 w-full px-4 py-2.5 rounded-full bg-onlyvet-coral text-white text-[13px] font-medium shadow-[0_12px_32px_rgba(247,118,92,0.6)] hover:brightness-105 transition text-center block"
               >
                 Записаться к {firstName}
-              </button>
+              </Link>
 
               <p className="text-[11px] text-slate-500">
                 В экстренных состояниях (угроза жизни, тяжёлое состояние,
@@ -125,9 +133,9 @@ export default function DoctorPage({ params }: PageProps) {
                   С какими запросами обычно обращаются
                 </h2>
                 <div className="text-[13px] text-slate-700 leading-relaxed">
-                  {doctor.servicesFull && doctor.servicesFull.length > 0 ? (
+                  {servicesFull && servicesFull.length > 0 ? (
                     <ul className="list-disc pl-4 space-y-1">
-                      {doctor.servicesFull.map((item) => (
+                      {servicesFull.map((item) => (
                         <li key={item}>{item}</li>
                       ))}
                     </ul>
@@ -147,18 +155,13 @@ export default function DoctorPage({ params }: PageProps) {
                 <p className="text-[13px] text-slate-700 leading-relaxed">
                   На приёме врач последовательно собирает анамнез, анализирует
                   предоставленные исследования, задаёт уточняющие вопросы и
-                  формирует картину заболевания. Важный акцент делается на
-                  безопасность, реалистичность и понятность плана для владельца.
-                </p>
-                <p className="text-[13px] text-slate-700 leading-relaxed mt-2">
-                  По итогам вы получаете структурированное заключение, список
-                  первоочередных шагов и варианты дальнейших действий в
-                  зависимости от ответа организма на лечение.
+                  формирует картину заболевания. Акцент — на безопасности,
+                  реалистичности и понятности плана для владельца.
                 </p>
               </div>
             </div>
 
-            {/* Теги + место под образование/кейсы */}
+            {/* Правая колонка */}
             <div className="space-y-4">
               <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm">
                 <h3 className="text-[15px] font-semibold mb-2">
@@ -174,11 +177,6 @@ export default function DoctorPage({ params }: PageProps) {
                     </span>
                   ))}
                 </div>
-                <p className="text-[12px] text-slate-600">
-                  Эти теги отражают темы, с которыми врачу чаще всего
-                  обращаются. Они не ограничивают его компетенции, но помогают
-                  быстрее сориентироваться.
-                </p>
               </div>
 
               <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm">
@@ -187,9 +185,7 @@ export default function DoctorPage({ params }: PageProps) {
                 </h3>
                 <p className="text-[13px] text-slate-700 leading-relaxed">
                   Здесь в дальнейшем можно будет разместить информацию об
-                  образовании, дополнительных курсах, конференциях и опыте
-                  работы врача. Сейчас это служебная заглушка, чтобы задать
-                  структуру страницы.
+                  образовании, дополнительных курсах и опыте работы врача.
                 </p>
               </div>
             </div>
@@ -198,6 +194,63 @@ export default function DoctorPage({ params }: PageProps) {
       </main>
       <Footer />
     </>
+  );
+}
+
+function DoctorSlots({ doctorId }: { doctorId: string }) {
+  const doctorSlots = slots
+    .filter((s) => s.doctorId === doctorId && s.status === "free")
+    .sort(
+      (a, b) =>
+        new Date(a.start).getTime() - new Date(b.start).getTime()
+    )
+    .slice(0, 6);
+
+  if (doctorSlots.length === 0) {
+    return (
+      <div className="bg-onlyvet-bg rounded-2xl border border-dashed border-slate-300 p-3 text-[12px] text-slate-600">
+        На ближайшее время свободных слотов нет. Оставьте заявку — администратор
+        предложит доступные варианты.
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-onlyvet-bg rounded-2xl border border-slate-200 p-3 text-[12px] text-slate-600 space-y-2">
+      <div className="font-medium text-slate-700">
+        Ближайшие свободные слоты
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {doctorSlots.map((slot) => {
+          const dt = new Date(slot.start);
+          const dateLabel = dt.toLocaleDateString("ru-RU", {
+            day: "2-digit",
+            month: "short",
+          });
+          const timeLabel = dt.toLocaleTimeString("ru-RU", {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+
+          return (
+            <Link
+              key={slot.id}
+              href={`/booking?doctorId=${doctorId}&slotId=${slot.id}`}
+              className="
+                px-2 py-1 rounded-full bg-white border border-slate-200
+                hover:border-onlyvet-teal hover:bg-teal-50 
+                transition text-[12px]
+              "
+            >
+              {dateLabel} · {timeLabel}
+            </Link>
+          );
+        })}
+      </div>
+      <p className="text-[11px] text-slate-500">
+        В реальной версии слоты будут загружаться из Vetmanager.
+      </p>
+    </div>
   );
 }
 
