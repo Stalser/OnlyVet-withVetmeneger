@@ -35,7 +35,6 @@ export function DoctorCard({ doctor, showProfileButton = false }: DoctorCardProp
         </div>
         <div className="flex-1">
           <div className="text-[14px] font-semibold">{doctor.name}</div>
-          {/* В role НЕ пишем 'ветеринарный врач', только суть: 'эксперт по...', 'диагност', 'терапия' и т.п. */}
           <div className="text-[12px] text-slate-500">{doctor.role}</div>
         </div>
       </div>
@@ -62,23 +61,9 @@ export function DoctorCard({ doctor, showProfileButton = false }: DoctorCardProp
         ))}
       </div>
 
-      {/* Доп. информация — внизу, но не мешает кнопке */}
-      <div className="mt-auto text-[11px] text-slate-500 space-y-0.5">
-        <div className="font-medium text-slate-600">
-          {doctor.experienceLabel}
-        </div>
-        {!!doctor.format?.length && (
-          <div>
-            <span className="text-slate-400">Формат: </span>
-            {doctor.format.join(", ")}
-          </div>
-        )}
-        {!!doctor.species?.length && (
-          <div>
-            <span className="text-slate-400">Пациенты: </span>
-            {doctor.species.join(", ")}
-          </div>
-        )}
+      {/* Доп. информация — одна строка про опыт */}
+      <div className="mt-auto text-[11px] text-slate-600">
+        {doctor.experienceLabel}
       </div>
 
       {/* Кнопка по центру внизу, яркий hover */}
