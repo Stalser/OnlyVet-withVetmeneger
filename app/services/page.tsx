@@ -6,10 +6,11 @@ import Link from "next/link";
 
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { ServiceCard } from "@/components/ServiceCard";
 import {
   services,
-  type ServiceCategory,
   type Service,
+  type ServiceCategory,
 } from "@/data/services";
 import { doctors } from "@/data/doctors";
 
@@ -128,13 +129,18 @@ export default function ServicesPage() {
           {/* Сетка услуг */}
           <div className="grid gap-4 md:grid-cols-3 sm:grid-cols-2">
             {filtered.map((service) => (
-              <Link key={service.id} href={`/services/${service.id}`} className="h-full">
+              <Link
+                key={service.id}
+                href={`/services/${service.id}`}
+                className="h-full"
+              >
                 <ServiceCard service={service} />
               </Link>
             ))}
             {filtered.length === 0 && (
               <div className="text-[13px] text-slate-500 col-span-full">
-                По выбранным фильтрам пока нет услуг. Попробуйте изменить параметры.
+                По выбранным фильтрам пока нет услуг. Попробуйте изменить
+                параметры.
               </div>
             )}
           </div>
@@ -146,7 +152,7 @@ export default function ServicesPage() {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// Фильтрация услуг
+// ЛОГИКА ФИЛЬТРАЦИИ УСЛУГ
 ////////////////////////////////////////////////////////////////////////////////
 
 function filterServices({
@@ -158,7 +164,7 @@ function filterServices({
   spec: FilterSpec;
   doctorId: FilterDoctorId;
 }): Service[] {
-  // если выбран врач, берём его специализацию
+  // если выбран врач — используем его специализацию как приоритетную
   let doctorSpec: FilterSpec | null = null;
   if (doctorId !== "all") {
     const doctor = doctors.find((d) => d.id === doctorId);
@@ -170,8 +176,7 @@ function filterServices({
   return services.filter((s) => {
     const byCategory = category === "all" ? true : s.category === category;
 
-    // фильтр по специализации врачей, которые ведут услугу
-    const specToCheck = doctorSpec ?? spec;
+    const specToCheck: FilterSpec = doctorSpec ?? spec;
     const bySpec =
       specToCheck === "all"
         ? true
