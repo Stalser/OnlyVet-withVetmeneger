@@ -9,6 +9,13 @@ import { Footer } from "@/components/Footer";
 import { doctors } from "@/data/doctors";
 import { services } from "@/data/services";
 
+type BookingPageProps = {
+  searchParams?: {
+    doctorId?: string;
+    serviceId?: string;
+  };
+};
+
 // Заглушка "пользователь залогинен" + данные — потом заменим реальным ЛК
 const mockIsLoggedIn = false;
 const mockUser = {
@@ -21,7 +28,28 @@ const mockUser = {
   ],
 };
 
-export default function BookingPage() {
+export default function BookingPage({ searchParams }: BookingPageProps) {
+  const doctorIdFromQuery = searchParams?.doctorId;
+  const serviceIdFromQuery = searchParams?.serviceId;
+
+  const initialDoctorId =
+    doctorIdFromQuery && doctors.some((d) => d.id === doctorIdFromQuery)
+      ? doctorIdFromQuery
+      : "";
+
+  const initialServiceId =
+    serviceIdFromQuery && services.some((s) => s.id === serviceIdFromQuery)
+      ? serviceIdFromQuery
+      : "";
+
+  const selectedDoctorFromQuery = doctors.find(
+    (d) => d.id === initialDoctorId
+  );
+  const selectedServiceFromQuery = services.find(
+    (s) => s.id === initialServiceId
+  );
+
+  // контактные данные
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [telegram, setTelegram] = useState("");
@@ -29,15 +57,19 @@ export default function BookingPage() {
 
   // питомец
   const [petMode, setPetMode] = useState<"existing" | "new">("existing");
-  const [selectedPetId, setSelectedPetId] = useState<string>(""); // для существующего
-  const [newPetName, setNewPetName] = useState(""); // для нового
+  const [selectedPetId, setSelectedPetId] = useState<string>("");
+  const [newPetName, setNewPetName] = useState("");
 
   // услуга / врач
-  const [selectedServiceId, setSelectedServiceId] = useState<string>("");
-  const [doctorMode, setDoctorMode] = useState<"any" | "specific">("any");
-  const [selectedDoctorId, setSelectedDoctorId] = useState<string>("");
+  const [selectedServiceId, setSelectedServiceId] =
+    useState<string>(initialServiceId);
+  const [doctorMode, setDoctorMode] = useState<"any" | "specific">(
+    initialDoctorId ? "specific" : "any"
+  );
+  const [selectedDoctorId, setSelectedDoctorId] =
+    useState<string>(initialDoctorId);
 
-  // дата/время
+  // время
   const [timeMode, setTimeMode] = useState<"any" | "choose">("any");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
@@ -62,6 +94,9 @@ export default function BookingPage() {
     }
   }, []);
 
+  const selectedDoctor = doctors.find((d) => d.id === selectedDoctorId);
+  const selectedService = services.find((s) => s.id === selectedServiceId);
+
   // простая валидация
   const isValid =
     fullName.trim().length > 0 &&
@@ -79,7 +114,6 @@ export default function BookingPage() {
     e.preventDefault();
     if (!isValid) return;
 
-    // Здесь потом будет реальная отправка на backend / в Vetmanager
     console.log("Submit booking:", {
       fullName,
       phone,
@@ -101,7 +135,7 @@ export default function BookingPage() {
         consentRules,
       },
     });
-    alert("Заявка на консультацию отправлена (пока демонстрационный вариант).");
+    alert("Заявка на консультацию отправлена (демо-режим).");
   };
 
   return (
@@ -121,17 +155,40 @@ export default function BookingPage() {
               Записаться на онлайн-консультацию
             </h1>
             <p className="text-[13px] text-slate-600 max-w-2xl">
-              Заполните форму ниже — мы подберём удобное время и врача. При
-              необходимости вы сможете прикрепить анализы, УЗИ, фото и другие
-              материалы.
+              Заполните форму ниже — мы подберём удобное время и врача. Вы можете
+              начать как с конкретного врача/услуги, так и просто описав ситуацию.
             </p>
+
+            {/* Если пришли с конкретной точки (врач/услуга) — покажем подсказку */}
+            {(selectedDoctorFromQuery || selectedServiceFromQuery) && (
+              <div className="mt-3 text-[12px] text-slate-600 bg-white border border-slate-200 rounded-2xl px-3 py-2 inline-flex flex-col gap-1">
+                {selectedDoctorFromQuery && (
+                  <div>
+                    Вы выбрали врача:{" "}
+                    <span className="font-medium">
+                      {selectedDoctorFromQuery.name}
+                    </span>
+                    .
+                  </div>
+                )}
+                {selectedServiceFromQuery && (
+                  <div>
+                    Вы выбрали услугу:{" "}
+                    <span className="font-medium">
+                      {selectedServiceFromQuery.name}
+                    </span>
+                    .
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <form
             onSubmit={handleSubmit}
             className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 md:p-6 space-y-6"
           >
-            {/* 1. Данные клиента */}
+            {/* 1. Контактные данные */}
             <section className="space-y-3">
               <h2 className="text-[15px] font-semibold">Контактные данные</h2>
               <div className="grid md:grid-cols-2 gap-4">
@@ -238,7 +295,7 @@ export default function BookingPage() {
                       ))}
                     </select>
                     <p className="text-[11px] text-slate-500 mt-1">
-                      В реальной версии здесь будут данные из личного кабинета.
+                      В реальной версии здесь будут данные из вашего личного кабинета.
                     </p>
                   </div>
                 ) : (
@@ -265,11 +322,10 @@ export default function BookingPage() {
 
             {/* 3. Услуга и врач */}
             <section className="space-y-3">
-              <h2 className="text-[15px] font-semibold">
-                Услуга и врач
-              </h2>
+              <h2 className="text-[15px] font-semibold">Услуга и врач</h2>
 
               <div className="grid md:grid-cols-2 gap-4">
+                {/* Услуга */}
                 <div>
                   <label className="block text-[12px] text-slate-600 mb-1">
                     Услуга
@@ -286,8 +342,14 @@ export default function BookingPage() {
                       </option>
                     ))}
                   </select>
+                  {selectedService && (
+                    <p className="mt-1 text-[11px] text-slate-500">
+                      Фокус: {selectedService.shortDescription}
+                    </p>
+                  )}
                 </div>
 
+                {/* Врач */}
                 <div className="space-y-2">
                   <label className="block text-[12px] text-slate-600 mb-1">
                     Врач
@@ -330,6 +392,11 @@ export default function BookingPage() {
                       </option>
                     ))}
                   </select>
+                  {selectedDoctor && (
+                    <p className="mt-1 text-[11px] text-slate-500">
+                      Фокус врача: {selectedDoctor.servicesShort}
+                    </p>
+                  )}
                 </div>
               </div>
             </section>
@@ -347,7 +414,7 @@ export default function BookingPage() {
                     onChange={() => setTimeMode("any")}
                     className="rounded-full border-slate-300"
                   />
-                  <span>Любое ближайшее время (администратор предложит варианты)</span>
+                  <span>Любое ближайшее время (подберём сами)</span>
                 </label>
                 <label className="inline-flex items-center gap-2">
                   <input
@@ -388,6 +455,30 @@ export default function BookingPage() {
                   </div>
                 </div>
               )}
+
+              {/* Псевдо-расписание под выбранного врача */}
+              <div className="bg-onlyvet-bg rounded-2xl border border-dashed border-slate-300 p-3 text-[12px] text-slate-600 space-y-1 mt-2">
+                <div className="font-medium text-slate-700 mb-1">
+                  {selectedDoctor
+                    ? `Пример ближайших слотов для ${selectedDoctor.name}`
+                    : "Пример ближайших слотов (онлайн)"}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <span className="px-2 py-1 rounded-full bg-white border border-slate-200">
+                    Сегодня · 18:30
+                  </span>
+                  <span className="px-2 py-1 rounded-full bg-white border border-slate-200">
+                    Завтра · 11:00
+                  </span>
+                  <span className="px-2 py-1 rounded-full bg-white border border-slate-200">
+                    Завтра · 19:00
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  В реальной системе здесь будет динамическое расписание из
+                  Vetmanager.
+                </p>
+              </div>
             </section>
 
             {/* 5. Файлы и документы */}
@@ -397,9 +488,9 @@ export default function BookingPage() {
               </h2>
               <div className="border border-dashed border-slate-300 rounded-2xl p-4 bg-slate-50/80 text-[13px] text-slate-600">
                 <p className="mb-2">
-                  Вы можете прикрепить результаты анализов, выписки, УЗИ, рентген,
-                  фото и другие файлы, которые помогут врачу лучше понять
-                  ситуацию.
+                  Вы можете прикрепить результаты анализов, выписки, УЗИ,
+                  рентген, фото и другие файлы, которые помогут врачу лучше
+                  понять ситуацию.
                 </p>
                 <label className="inline-flex items-center gap-2 text-[12px] cursor-pointer">
                   <span className="px-3 py-1.5 rounded-full bg-white border border-slate-300 shadow-sm">
@@ -413,7 +504,7 @@ export default function BookingPage() {
                     accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.doc,.docx"
                   />
                   <span className="text-slate-500">
-                    (pdf, изображения и другие форматы)
+                    (pdf, изображения и др. форматы)
                   </span>
                 </label>
                 {files.length > 0 && (
@@ -508,8 +599,7 @@ export default function BookingPage() {
                 </button>
                 <p className="mt-2 text-[11px] text-slate-500">
                   Нажимая «Записаться», вы подтверждаете корректность указанных
-                  данных. После обработки заявки с вами свяжется администратор
-                  для уточнения деталей.
+                  данных. После обработки заявки с вами свяжется администратор.
                 </p>
               </div>
             </section>
