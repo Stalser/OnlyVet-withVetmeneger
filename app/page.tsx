@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -68,8 +69,7 @@ export default function HomePage() {
                 <div
                   className="rounded-[22px] min-h-[220px] bg-cover bg-center"
                   style={{
-                    backgroundImage:
-                      "url('/img/hero.jpg')",
+                    backgroundImage: "url('/img/hero.jpg')",
                   }}
                 />
               </div>
@@ -152,13 +152,13 @@ export default function HomePage() {
                   доступен на странице «Все врачи».
                 </p>
               </div>
-              <a
+              <Link
                 href="/doctors"
                 className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-onlyvet-coral text-white text-[13px] font-medium shadow-[0_12px_30px_rgba(247,118,92,0.5)] hover:brightness-105 transition"
               >
                 Все врачи
                 <span className="text-[16px] leading-none">→</span>
-              </a>
+              </Link>
             </div>
 
             {/* Фильтр по специализации */}
@@ -191,19 +191,21 @@ export default function HomePage() {
             {/* Сетка карточек */}
             <div className="grid gap-4 md:grid-cols-4 sm:grid-cols-2">
               {mainDoctors.map((doc) => (
-                <DoctorCard key={doc.id} doctor={doc} />
+                <Link key={doc.id} href={`/doctors/${doc.id}`}>
+                  <DoctorCard doctor={doc} />
+                </Link>
               ))}
             </div>
 
             {/* Кнопка "Все врачи" для мобильной версии */}
             <div className="mt-4 sm:hidden">
-              <a
+              <Link
                 href="/doctors"
                 className="inline-flex items-center justify-center w-full px-4 py-2 rounded-full bg-onlyvet-coral text-white text-[13px] font-medium shadow-[0_12px_30px_rgba(247,118,92,0.5)] hover:brightness-105 transition"
               >
                 Все врачи
                 <span className="ml-2 text-[16px] leading-none">→</span>
-              </a>
+              </Link>
             </div>
           </div>
         </section>
@@ -276,7 +278,7 @@ export default function HomePage() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-4 sm:grid-cols-2">
-              {/* ВКонтакте */}
+              {/* VK */}
               <a
                 href="#"
                 className="bg-white rounded-3xl border border-slate-200/80 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/70 transition-all text-center"
@@ -312,9 +314,9 @@ export default function HomePage() {
                 </p>
               </a>
 
-              {/* Instagram* */}
+              {/* Instagram */}
               <a
-                href="#"
+                href="#"  
                 className="bg-white rounded-3xl border border-slate-200/80 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/70 transition-all text-center"
               >
                 <div className="w-14 h-14 rounded-full bg-slate-50 flex items-center justify-center shadow-[0_8px_22px_rgba(15,23,42,0.08)]">
@@ -330,7 +332,7 @@ export default function HomePage() {
                 </p>
               </a>
 
-              {/* Одноклассники */}
+              {/* OK */}
               <a
                 href="#"
                 className="bg-white rounded-3xl border border-slate-200/80 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/70 transition-all text-center"
