@@ -28,6 +28,16 @@ export default function ServicesPage() {
     [category, spec, doctorId]
   );
 
+  // "умные" доступные варианты
+  const availableCategories = useMemo(
+    () => getAvailableCategories(spec, doctorId),
+    [spec, doctorId]
+  );
+  const availableSpecs = useMemo(
+    () => getAvailableSpecs(category, doctorId),
+    [category, doctorId]
+  );
+
   return (
     <>
       <Header />
@@ -50,80 +60,81 @@ export default function ServicesPage() {
           <div className="flex flex-wrap gap-2 text-[12px] mb-2">
             <span className="text-slate-500 mr-1">Тип услуги:</span>
             {[
-              { key: "all", label: "Все" },
+              { key: "all" as FilterCategory, label: "Все" },
               { key: "консультация", label: "Консультации" },
               { key: "второе мнение", label: "Второе мнение" },
               { key: "диагностика", label: "Диагностика" },
               { key: "сопровождение", label: "Сопровождение" },
-            ].map((btn) => (
-              <button
-                key={btn.key}
-                type="button"
-                onClick={() => setCategory(btn.key as FilterCategory)}
-                className={`px-3 py-1.5 rounded-full border transition ${
-                  category === btn.key
-                    ? "bg-onlyvet-navy text-white border-onlyvet-navy shadow-sm text-xs"
-                    : "border-slate-300 text-onlyvet-navy bg-white hover:bg-slate-50 text-xs"
-                }`}
-              >
-                {btn.label}
-              </button>
-            ))}
+            ].map((btn) => {
+              const enabled = availableCategories.has(btn.key);
+              return (
+                <button
+                  key={btn.key}
+                  type="button"
+                  onClick={() => enabled && setCategory(btn.key)}
+                  className={`px-3 py-1.5 rounded-full border transition ${
+                    category === btn.key
+                      ? "bg-onlyvet-navy text-white border-onlyvet-navy shadow-sm text-xs"
+                      : enabled
+                      ? "border-slate-300 text-onlyvet-navy bg-white hover:bg-slate-50 text-xs"
+                      : "border-slate-200 text-slate-300 bg-slate-50 cursor-default text-xs"
+                  }`}
+                >
+                  {btn.label}
+                </button>
+              );
+            })}
           </div>
 
           {/* Фильтры: специализация врача */}
           <div className="flex flex-wrap gap-2 text-[12px] mb-2">
             <span className="text-slate-500 mr-1">Специализация врача:</span>
             {[
-              { key: "all", label: "Любая" },
+              { key: "all" as FilterSpec, label: "Любая" },
               { key: "терапия", label: "Терапия" },
               { key: "эксперт", label: "Эксперт / онкология" },
               { key: "диагностика", label: "Диагностика" },
               { key: "онкология", label: "Онкология" },
-            ].map((btn) => (
-              <button
-                key={btn.key}
-                type="button"
-                onClick={() => setSpec(btn.key as FilterSpec)}
-                className={`px-3 py-1.5 rounded-full border transition ${
-                  spec === btn.key
-                    ? "bg-onlyvet-navy text-white border-onlyvet-navy shadow-sm text-xs"
-                    : "border-slate-300 text-onlyvet-navy bg-white hover:bg-slate-50 text-xs"
-                }`}
-              >
-                {btn.label}
-              </button>
-            ))}
+            ].map((btn) => {
+              const enabled = availableSpecs.has(btn.key);
+              return (
+                <button
+                  key={btn.key}
+                  type="button"
+                  onClick={() => enabled && setSpec(btn.key)}
+                  className={`px-3 py-1.5 rounded-full border transition ${
+                    spec === btn.key
+                      ? "bg-onlyvet-navy text-white border-onlyvet-navy shadow-sm text-xs"
+                      : enabled
+                      ? "border-slate-300 text-onlyvet-navy bg-white hover:bg-slate-50 text-xs"
+                      : "border-slate-200 text-slate-300 bg-slate-50 cursor-default text-xs"
+                  }`}
+                >
+                  {btn.label}
+                </button>
+              );
+            })}
           </div>
 
-          {/* Фильтры: конкретный врач */}
-          <div className="flex flex-wrap gap-2 text-[12px] mb-4">
-            <span className="text-slate-500 mr-1">Врач:</span>
-            <button
-              type="button"
-              onClick={() => setDoctorId("all")}
-              className={`px-3 py-1.5 rounded-full border transition ${
-                doctorId === "all"
-                  ? "bg-onlyvet-navy text-white border-onlyvet-navy shadow-sm text-xs"
-                  : "border-slate-300 text-onlyvet-navy bg-white hover:bg-slate-50 text-xs"
-              }`}
+          {/* Фильтр: конкретный врач — компактный select */}
+          <div className="flex items-center gap-2 text-[12px] mb-4">
+            <span className="text-slate-500">Врач:</span>
+            <select
+              value={doctorId}
+              onChange={(e) => setDoctorId(e.target.value as FilterDoctorId)}
+              className="
+                rounded-full border border-slate-300 bg-white px-3 py-1.5 
+                text-[12px] text-onlyvet-navy
+                focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40
+              "
             >
-              Все врачи
-            </button>
-            {doctors.map((doc) => (
-              <button
-                key={doc.id}
-                type="button"
-                onClick={() => setDoctorId(doc.id)}
-                className={`px-3 py-1.5 rounded-full border transition ${
-                  doctorId === doc.id
-                    ? "bg-onlyvet-navy text-white border-onlyvet-navy shadow-sm text-xs"
-                    : "border-slate-300 text-onlyvet-navy bg-white hover:bg-slate-50 text-xs"
-                }`}
-              >
-                {doc.name}
-              </button>
-            ))}
+              <option value="all">Все врачи</option>
+              {doctors.map((doc) => (
+                <option key={doc.id} value={doc.id}>
+                  {doc.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Сетка услуг */}
@@ -152,7 +163,7 @@ export default function ServicesPage() {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// ЛОГИКА ФИЛЬТРАЦИИ УСЛУГ
+// ЛОГИКА ФИЛЬТРАЦИИ И "УМНЫХ" ФИЛЬТРОВ
 ////////////////////////////////////////////////////////////////////////////////
 
 function filterServices({
@@ -184,4 +195,39 @@ function filterServices({
 
     return byCategory && bySpec;
   });
+}
+
+// какие категории вообще дают результат при текущих spec + doctor
+function getAvailableCategories(spec: FilterSpec, doctorId: FilterDoctorId) {
+  const set = new Set<FilterCategory>();
+  // 'all' всегда допустимо
+  set.add("all");
+
+  (["консультация", "второе мнение", "диагностика", "сопровождение"] as ServiceCategory[]).forEach(
+    (cat) => {
+      const result = filterServices({ category: cat, spec, doctorId });
+      if (result.length > 0) {
+        set.add(cat);
+      }
+    }
+  );
+
+  return set;
+}
+
+// какие специализации вообще дают результат при текущей категории + doctor
+function getAvailableSpecs(category: FilterCategory, doctorId: FilterDoctorId) {
+  const set = new Set<FilterSpec>();
+  set.add("all");
+
+  (["терапия", "эксперт", "диагностика", "онкология"] as FilterSpec[]).forEach(
+    (spec) => {
+      const result = filterServices({ category, spec, doctorId });
+      if (result.length > 0) {
+        set.add(spec);
+      }
+    }
+  );
+
+  return set;
 }
