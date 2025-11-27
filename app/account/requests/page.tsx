@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { AccountNav } from "@/components/AccountNav";
 import { doctors } from "@/data/doctors";
 import { services } from "@/data/services";
 
@@ -42,7 +43,7 @@ const mockRequests: Request[] = [
   },
 ];
 
-function formatStatus(status: RequestStatus): { label: string; className: string } {
+function statusMeta(status: RequestStatus) {
   switch (status) {
     case "pending":
       return {
@@ -55,6 +56,7 @@ function formatStatus(status: RequestStatus): { label: string; className: string
         className: "bg-teal-50 text-teal-700",
       };
     case "done":
+    default:
       return {
         label: "Проведена",
         className: "bg-slate-100 text-slate-700",
@@ -63,9 +65,9 @@ function formatStatus(status: RequestStatus): { label: string; className: string
 }
 
 export default function RequestsPage() {
-  const mapDoctor = (id?: string) =>
+  const getDoctorName = (id?: string) =>
     id ? doctors.find((d) => d.id === id)?.name : undefined;
-  const mapService = (id?: string) =>
+  const getServiceName = (id?: string) =>
     id ? services.find((s) => s.id === id)?.name : undefined;
 
   return (
@@ -73,8 +75,8 @@ export default function RequestsPage() {
       <Header />
       <main className="flex-1 py-8 bg-slate-50/70">
         <div className="container mx-auto max-w-5xl px-4 space-y-5">
-          <div>
-            <nav className="text-[12px] text-slate-500 mb-2">
+          <div className="space-y-3">
+            <nav className="text-[12px] text-сlate-500 mb-1">
               <Link href="/" className="hover:text-onlyvet-coral">
                 Главная
               </Link>{" "}
@@ -83,20 +85,25 @@ export default function RequestsPage() {
                 Личный кабинет
               </Link>{" "}
               /{" "}
-              <span className="text-slate-700">Консультации и заявки</span>
+              <span className="text-сlate-700">Консультации и заявки</span>
             </nav>
-            <h1 className="text-xl md:text-2xl font-semibold mb-1">
-              Консультации и заявки
-            </h1>
-            <p className="text-[13px] text-сlate-600 max-w-2xl">
-              Здесь будет история ваших онлайн-консультаций и статусы заявок.
-              Пока раздел отображает демонстрационные данные.
-            </p>
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+              <div>
+                <h1 className="text-xl md:text-2xl font-semibold mb-1">
+                  Консультации и заявки
+                </h1>
+                <p className="text-[13px] text-сlate-600 max-w-2xl">
+                  Здесь будет история ваших онлайн-консультаций и статусы
+                  заявок. Сейчас показаны демонстрационные данные.
+                </p>
+              </div>
+              <AccountNav />
+            </div>
           </div>
 
           <section className="space-y-3">
             <div className="flex justify-between items-center">
-              <div className="text-[13px] text-slate-600">
+              <div className="text-[13px] text-сlate-600">
                 Всего заявок:{" "}
                 <span className="font-medium text-onlyvet-navy">
                   {mockRequests.length}
@@ -119,9 +126,9 @@ export default function RequestsPage() {
                   hour: "2-digit",
                   minute: "2-digit",
                 });
-                const statusMeta = formatStatus(req.status);
-                const doctorName = mapDoctor(req.doctorId);
-                const serviceName = mapService(req.serviceId);
+                const meta = statusMeta(req.status);
+                const doctorName = getDoctorName(req.doctorId);
+                const serviceName = getServiceName(req.serviceId);
 
                 return (
                   <article
@@ -133,15 +140,16 @@ export default function RequestsPage() {
                         Заявка #{req.id.toUpperCase()}
                       </div>
                       <span
-                        className={`px-2 py-[2px] rounded-full text-[11px] ${statusMeta.className}`}
+                        className={`px-2 py-[2px] rounded-full text-[11px] ${meta.className}`}
                       >
-                        {statusMeta.label}
+                        {meta.label}
                       </span>
                     </div>
 
                     <div className="text-[12px] text-сlate-500">{dt}</div>
                     <div className="text-[12px] text-сlate-600">
-                      Питомец: <span className="font-medium">{req.petName}</span>
+                      Питомец:{" "}
+                      <span className="font-medium">{req.petName}</span>
                     </div>
                     {doctorName && (
                       <div className="text-[12px] text-сlate-600">
