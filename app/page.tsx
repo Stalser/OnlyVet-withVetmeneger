@@ -9,6 +9,7 @@ import { Footer } from "@/components/Footer";
 import { DoctorCard } from "@/components/DoctorCard";
 import { ServiceCard } from "@/components/ServiceCard";
 import { ReviewCard } from "@/components/ReviewCard";
+import { ReviewModal } from "@/components/ReviewModal";
 
 import { doctors } from "@/data/doctors";
 import { services, type ServiceCategory } from "@/data/services";
@@ -24,6 +25,7 @@ export default function HomePage() {
   const [serviceCategory, setServiceCategory] =
     useState<ServiceFilterCategory>("all");
   const [serviceSpec, setServiceSpec] = useState<ServiceFilterSpec>("all");
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
 
   return (
     <>
@@ -108,7 +110,8 @@ export default function HomePage() {
                     Онлайн без хаоса
                   </div>
                   <div className="text-[13px] text-slate-600">
-                    Чёткая структура приёма, документы и план в личном кабинете.
+                    Чёткая структура приёма, документы и план в личном
+                    кабинете.
                   </div>
                 </article>
                 <article className="bg-onlyvet-bg rounded-2xl border border-slate-200 p-3">
@@ -143,29 +146,49 @@ export default function HomePage() {
           setServiceSpec={setServiceSpec}
         />
 
-        {/* Отзывы (простая версия: 3 штуки) */}
+        {/* ОТЗЫВЫ */}
         <section className="py-7">
           <div className="container mx-auto max-w-5xl px-4">
-            <div className="flex items-baseline justify-between gap-4 mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
               <div>
                 <h2 className="text-lg md:text-xl font-semibold">Отзывы</h2>
                 <p className="text-[13px] text-slate-600 max-w-xl">
-                  Несколько свежих отзывов от владельцев.
+                  Несколько свежих отзывов от владельцев. Полный список — на
+                  странице «Все отзывы».
                 </p>
               </div>
-              <Link
-                href="/reviews"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-onlyvet-coral text-white text-[13px] font-medium shadow-[0_12px_30px_rgba(247,118,92,0.5)] hover:brightness-105 transition"
-              >
-                Все отзывы
-                <span className="text-[16px] leading-none">→</span>
-              </Link>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setReviewModalOpen(true)}
+                  className="
+                    inline-flex items-center gap-2 px-4 py-2 rounded-full 
+                    border border-slate-300 bg-white text-[13px] text-onlyvet-navy
+                    hover:bg-slate-50 transition
+                  "
+                >
+                  Оставить отзыв
+                </button>
+                <Link
+                  href="/reviews"
+                  className="
+                    inline-flex items-center gap-2 px-4 py-2 rounded-full 
+                    bg-onlyvet-coral text-white text-[13px] font-medium
+                    shadow-[0_12px_30px_rgba(247,118,92,0.5)] hover:brightness-105 transition
+                  "
+                >
+                  Все отзывы
+                  <span className="text-[16px] leading-none">→</span>
+                </Link>
+              </div>
             </div>
-            <div className="grid gap-4 md:grid-cols-3">
-              {reviews.slice(0, 3).map((review) => (
-                <ReviewCard key={review.id} review={review} />
-              ))}
-            </div>
+
+            <ReviewsCarousel />
+
+            <ReviewModal
+              open={reviewModalOpen}
+              onClose={() => setReviewModalOpen(false)}
+            />
           </div>
         </section>
 
@@ -194,7 +217,7 @@ function DoctorsSection({
   return (
     <section className="py-7">
       <div className="container mx-auto max-w-5xl px-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center см:justify-between gap-3 mb-3">
           <div>
             <h2 className="text-lg md:text-xl font-semibold">Врачи OnlyVet</h2>
             <p className="text-[13px] text-slate-600 max-w-xl">
@@ -342,7 +365,6 @@ function ServicesSection({
   return (
     <section className="py-7">
       <div className="container mx-auto max-w-5xl px-4">
-        {/* Заголовок + кнопка */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
           <div>
             <h2 className="text-lg md:text-xl font-semibold">Услуги OnlyVet</h2>
@@ -360,7 +382,6 @@ function ServicesSection({
           </Link>
         </div>
 
-        {/* Фильтры: тип услуги */}
         <div className="flex flex-wrap items-center gap-2 text-[12px] mb-2">
           <span className="text-slate-500 mr-1">Тип услуги:</span>
           {[
@@ -387,7 +408,6 @@ function ServicesSection({
           ))}
         </div>
 
-        {/* Фильтры: специализация врача */}
         <div className="flex flex-wrap items-center gap-2 text-[12px] mb-4">
           <span className="text-slate-500 mr-1">Специализация врача:</span>
           {[
@@ -412,7 +432,6 @@ function ServicesSection({
           ))}
         </div>
 
-        {/* Отфильтрованные услуги (до 3 на главной) */}
         <div className="grid gap-4 md:grid-cols-3 sm:grid-cols-2">
           {filteredServices.slice(0, 3).map((service) => (
             <Link
@@ -426,6 +445,71 @@ function ServicesSection({
         </div>
       </div>
     </section>
+  );
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// КАРУСЕЛЬ ОТЗЫВОВ НА ГЛАВНОЙ
+////////////////////////////////////////////////////////////////////////////////
+
+function ReviewsCarousel() {
+  const [page, setPage] = useState(0);
+  const perPage = 3;
+
+  const sorted = useMemo(
+    () =>
+      [...reviews].sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      ),
+    []
+  );
+
+  const pageCount = Math.max(1, Math.ceil(sorted.length / perPage));
+  const canPrev = page > 0;
+  const canNext = page < pageCount - 1;
+  const current = sorted.slice(page * perPage, page * perPage + perPage);
+
+  return (
+    <div className="space-y-3">
+      <div className="grid gap-4 md:grid-cols-3 sm:grid-cols-2">
+        {current.map((rev) => (
+          <ReviewCard key={rev.id} review={rev} truncate />
+        ))}
+      </div>
+      {pageCount > 1 && (
+        <div className="flex items-center justify-between text-[12px] text-slate-500">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={!canPrev}
+              onClick={() => canPrev && setPage((p) => p - 1)}
+              className={`px-3 py-1.5 rounded-full border text-xs ${
+                canPrev
+                  ? "border-slate-300 text-onlyvet-navy bg-white hover:bg-slate-50"
+                  : "border-slate-200 text-slate-300 bg-slate-50 cursor-default"
+              }`}
+            >
+              ← Назад
+            </button>
+            <button
+              type="button"
+              disabled={!canNext}
+              onClick={() => canNext && setPage((p) => p + 1)}
+              className={`px-3 py-1.5 rounded-full border text-xs ${
+                canNext
+                  ? "border-slate-300 text-onlyvet-navy bg-white hover:bg-slate-50"
+                  : "border-slate-200 text-slate-300 bg-slate-50 cursor-default"
+              }`}
+            >
+              Вперёд →
+            </button>
+            <span className="ml-2">
+              Страница {page + 1} из {pageCount}
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -530,7 +614,6 @@ function FeedbackBlock() {
     <section className="py-7">
       <div className="container mx-auto max-w-5xl px-4">
         <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 md:p-6 flex flex-col md:flex-row gap-6 items-start">
-          {/* Левая часть — текст и контакты */}
           <div className="flex-1">
             <h2 className="text-lg md:text-xl font-semibold mb-2">
               Есть вопрос по питомцу или сервису OnlyVet?
@@ -564,7 +647,6 @@ function FeedbackBlock() {
             </p>
           </div>
 
-          {/* Правая часть — форма */}
           <form className="w-full md:max-w-sm space-y-3">
             <div>
               <label className="block text-[12px] text-slate-600 mb-1">
