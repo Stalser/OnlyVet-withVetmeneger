@@ -7,10 +7,10 @@ import { services } from "@/data/services";
 
 interface ReviewCardProps {
   review: Review;
-  truncate?: boolean;   // для главной — обрезать текст, для полной страницы можно false
+  truncate?: boolean; // true (по умолчанию) — обрезать длинные
 }
 
-function getSourceMeta(source: Review["source"]) {
+function sourceMeta(source: Review["source"]) {
   switch (source) {
     case "yandex":
       return { label: "Яндекс", short: "Я", bg: "#FFCC00" };
@@ -18,55 +18,31 @@ function getSourceMeta(source: Review["source"]) {
       return { label: "2ГИС", short: "2Г", bg: "#00B956" };
     case "google":
       return { label: "Google", short: "G", bg: "#4285F4" };
-    case "site":
     default:
       return { label: "Сайт OnlyVet", short: "OV", bg: "#0F172A" };
   }
-}
-
-function getDoctorName(doctorId?: string) {
-  if (!doctorId) return undefined;
-  const doc = doctors.find((d) => d.id === doctorId);
-  return doc?.name;
-}
-
-function getServiceName(serviceId?: string) {
-  if (!serviceId) return undefined;
-  const svc = services.find((s) => s.id === serviceId);
-  return svc?.name;
 }
 
 export function ReviewCard({ review, truncate = true }: ReviewCardProps) {
   const { id, clientName, petName, rating, text, date, source, doctorId, serviceId } =
     review;
 
-  const sourceMeta = getSourceMeta(source);
-  const doctorName = getDoctorName(doctorId);
-  const serviceName = getServiceName(serviceId);
-
+  const meta = sourceMeta(source);
   const maxLength = 260;
-  const shouldTruncate = truncate && text.length > maxLength;
-  const previewText = shouldTruncate ? text.slice(0, maxLength) + "…" : text;
+  const isLong = truncate && text.length > maxLength;
+  const preview = isLong ? text.slice(0, maxLength) + "…" : text;
 
-  const dt = new Date(date);
-  const formattedDate = dt.toLocaleDateString("ru-RU", {
+  const doctor = doctors.find((d) => d.id === doctorId);
+  const service = services.find((s) => s.id === serviceId);
+
+  const dt = new Date(date).toLocaleDateString("ru-RU", {
     day: "2-digit",
     month: "short",
     year: "numeric",
   });
 
   return (
-    <article
-      className="
-        bg-white 
-        rounded-2xl 
-        border border-slate-200/80 
-        p-4 
-        flex 
-        flex-col 
-        shadow-card
-      "
-    >
+    <article className="bg-white rounded-2xl border border-slate-200/80 p-4 flex flex-col shadow-card">
       {/* Верх: аватар + имя + источник */}
       <div className="flex items-center justify-between gap-3 mb-2">
         <div className="flex items-center gap-2">
@@ -82,58 +58,56 @@ export function ReviewCard({ review, truncate = true }: ReviewCardProps) {
         </div>
 
         <div className="flex flex-col items-end gap-1">
-          {/* Рейтинг */}
           <div className="flex items-center gap-1 text-[11px] text-slate-600">
-            <span className="text-yellow-400 text-[13px]">★</span>
-            <span>{rating.toFixed(1)}</span>
+            <span className="text-yellow-400 text-[14px]">★</span>
+            {rating}
           </div>
-          {/* Источник */}
           <div className="flex items-center gap-1 text-[11px] text-slate-500">
             <div
-              className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-semibold text-white"
-              style={{ backgroundColor: sourceMeta.bg }}
+              className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold"
+              style={{ background: meta.bg }}
             >
-              {sourceMeta.short}
+              {meta.short}
             </div>
-            <span>{sourceMeta.label}</span>
+            {meta.label}
           </div>
         </div>
       </div>
 
       {/* Текст */}
       <div className="text-[13px] text-slate-700 leading-relaxed mb-2">
-        {previewText}
+        {preview}
       </div>
 
-      {/* Доп. инфа: врач / услуга / дата */}
+      {/* Доп. информация */}
       <div className="mt-auto text-[11px] text-slate-500 space-y-1">
         <div className="flex flex-wrap gap-2">
-          {doctorName && (
+          {doctor && (
             <span>
               Врач:{" "}
               <Link
-                href={`/doctors/${doctorId}`}
+                href={`/doctors/${doctor.id}`}
                 className="text-onlyvet-coral hover:underline"
               >
-                {doctorName}
+                {doctor.name}
               </Link>
             </span>
           )}
-          {serviceName && (
+          {service && (
             <span>
               Услуга:{" "}
               <Link
-                href={`/services/${serviceId}`}
+                href={`/services/${service.id}`}
                 className="text-onlyvet-coral hover:underline"
               >
-                {serviceName}
+                {service.name}
               </Link>
             </span>
           )}
         </div>
         <div className="flex justify-between items-center">
-          <span>{formattedDate}</span>
-          {shouldTruncate && (
+          <span>{dt}</span>
+          {isLong && (
             <Link
               href={`/reviews/${id}`}
               className="text-onlyvet-coral font-medium"
