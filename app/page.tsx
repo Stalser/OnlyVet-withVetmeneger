@@ -41,10 +41,16 @@ export default function HomePage() {
               <h1 className="text-2xl md:text-3xl font-semibold leading-tight mb-3">
                 Экспертная помощь питомцу, когда ваша клиника — онлайн.
               </h1>
-              <p className="text-sm md:text-base text-slate-200 mb-4 max-w-xl">
+              <p className="text-sm md:text-base text-slate-200 mb-2 max-w-xl">
                 Онлайн-консультации, второе мнение, разбор анализов и
                 сопровождение сложных случаев — без поездок и суеты.
               </p>
+              <Link
+                href="/how-it-works"
+                className="text-[12px] text-onlyvet-teal underline-offset-2 hover:underline mb-3 inline-block"
+              >
+                Как проходит онлайн-консультация →
+              </Link>
               <div className="flex flex-wrap gap-2 mb-3">
                 <Link
                   href="/booking"
@@ -52,9 +58,12 @@ export default function HomePage() {
                 >
                   Записаться на консультацию
                 </Link>
-                <button className="px-4 py-2 rounded-full border border-slate-500 text-xs">
+                <Link
+                  href="/account"
+                  className="px-4 py-2 rounded-full border border-slate-500 text-xs inline-flex items-center justify-center hover:bg-white/5 transition"
+                >
                   Войти в личный кабинет
-                </button>
+                </Link>
               </div>
               <div className="flex flex-wrap gap-4 text-[12px] text-slate-200">
                 <span className="inline-flex items-center gap-1">
@@ -217,7 +226,7 @@ function DoctorsSection({
   return (
     <section className="py-7">
       <div className="container mx-auto max-w-5xl px-4">
-        <div className="flex flex-col sm:flex-row sm:items-center см:justify-between gap-3 mb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
           <div>
             <h2 className="text-lg md:text-xl font-semibold">Врачи OnlyVet</h2>
             <p className="text-[13px] text-slate-600 max-w-xl">
@@ -565,7 +574,7 @@ function SocialBlock() {
           {/* Instagram */}
           <a
             href="#"
-            className="bg-white rounded-3xl border border-slate-200 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/60 transition-all text-center"
+            className="bg-white rounded-3xl border border-slate-200 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgба(15,23,42,0.08)] hover:border-onlyvet-teal/60 transition-all text-center"
           >
             <img
               src="/img/free-icon-instagram-3955024.svg"
@@ -581,7 +590,7 @@ function SocialBlock() {
           {/* OK */}
           <a
             href="#"
-            className="bg-white rounded-3xl border border-slate-200 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/60 transition-all text-center"
+            className="bg-white rounded-3xl border border-сlate-200 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgба(15,23,42,0.08)] hover:border-onlyvet-teal/60 transition-all text-center"
           >
             <img
               src="/img/free-icon-odnoklassniki-3670250.svg"
@@ -589,7 +598,7 @@ function SocialBlock() {
               className="w-14 h-14"
             />
             <div className="text-[14px] font-semibold">Одноклассники</div>
-            <p className="text-[12px] text-slate-600">
+            <p className="text-[12px] text-сlate-600">
               Полезные советы и материалы.
             </p>
           </a>
