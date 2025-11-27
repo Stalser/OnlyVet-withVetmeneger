@@ -1,3 +1,4 @@
+// app/page.tsx
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
@@ -10,13 +11,18 @@ import { ServiceCard } from "@/components/ServiceCard";
 import { ReviewCard } from "@/components/ReviewCard";
 
 import { doctors } from "@/data/doctors";
-import { services } from "@/data/services";
+import { services, type ServiceCategory } from "@/data/services";
 import { reviews } from "@/data/reviews";
 
 type HomeSpecFilter = "all" | "терапия" | "диагностика" | "эксперт" | "онкология";
 
+type ServiceFilterCategory = "all" | ServiceCategory;
+type ServiceFilterSpec = HomeSpecFilter;
+
 export default function HomePage() {
   const [specFilter, setSpecFilter] = useState<HomeSpecFilter>("all");
+  const [serviceCategory, setServiceCategory] = useState<ServiceFilterCategory>("all");
+  const [serviceSpec, setServiceSpec] = useState<ServiceFilterSpec>("all");
 
   return (
     <>
@@ -98,8 +104,7 @@ export default function HomePage() {
                     Онлайн без хаоса
                   </div>
                   <div className="text-[13px] text-slate-600">
-                    Чёткая структура приёма, документы и план в личном
-                    кабинете.
+                    Чёткая структура приёма, документы и план в личном кабинете.
                   </div>
                 </article>
                 <article className="bg-onlyvet-bg rounded-2xl border border-slate-200 p-3">
@@ -127,32 +132,12 @@ export default function HomePage() {
         <DoctorsSection specFilter={specFilter} setSpecFilter={setSpecFilter} />
 
         {/* Услуги */}
-        <section className="py-7">
-  <div className="container mx-auto max-w-5xl px-4">
-    <div className="flex items-baseline justify-between gap-4 mb-4">
-      <div>
-        <h2 className="text-lg md:text-xl font-semibold">Услуги</h2>
-        <p className="text-[13px] text-slate-600 max-w-xl">
-          Основные направления. Полный перечень — на странице «Все услуги».
-        </p>
-      </div>
-      <Link
-        href="/services"
-        className="text-[13px] text-onlyvet-coral whitespace-nowrap"
-      >
-        Все услуги →
-      </Link>
-    </div>
-
-    <div className="grid gap-4 md:grid-cols-3">
-      {services.slice(0, 3).map((service) => (
-        <Link key={service.id} href={`/services/${service.id}`}>
-          <ServiceCard service={service} />
-        </Link>
-      ))}
-    </div>
-  </div>
-</section>
+        <ServicesSection
+          serviceCategory={serviceCategory}
+          setServiceCategory={setServiceCategory}
+          serviceSpec={serviceSpec}
+          setServiceSpec={setServiceSpec}
+        />
 
         {/* Отзывы */}
         <section className="py-7">
@@ -220,13 +205,12 @@ function DoctorsSection({
           </Link>
         </div>
 
-        {/* Фильтры */}
         <div className="flex flex-wrap items-center gap-2 text-[12px] mb-4">
           <span className="text-slate-500 mr-1">Специализация:</span>
           {[
             { key: "all", label: "Все" },
             { key: "терапия", label: "Терапия" },
-            { key: "эксперт", label: "Эксперт / консилиум" },
+            { key: "эксперт", label: "Эксперт / онкология" },
             { key: "диагностика", label: "Диагностика" },
             { key: "онкология", label: "Онкология" },
           ].map((btn) => (
@@ -322,6 +306,121 @@ function DoctorsCarousel({ specFilter }: { specFilter: HomeSpecFilter }) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// УСЛУГИ НА ГЛАВНОЙ
+////////////////////////////////////////////////////////////////////////////////
+
+function getFilteredServices(
+  category: ServiceFilterCategory,
+  spec: ServiceFilterSpec
+) {
+  return services.filter((s) => {
+    const byCategory = category === "all" ? true : s.category === category;
+    const bySpec =
+      spec === "all" ? true : s.specializations.includes(spec as any);
+    return byCategory && bySpec;
+  });
+}
+
+function ServicesSection({
+  serviceCategory,
+  setServiceCategory,
+  serviceSpec,
+  setServiceSpec,
+}: {
+  serviceCategory: ServiceFilterCategory;
+  setServiceCategory: (c: ServiceFilterCategory) => void;
+  serviceSpec: ServiceFilterSpec;
+  setServiceSpec: (s: ServiceFilterSpec) => void;
+}) {
+  const filteredServices = getFilteredServices(serviceCategory, serviceSpec);
+
+  return (
+    <section className="py-7">
+      <div className="container mx-auto max-w-5xl px-4">
+        {/* Заголовок + кнопка */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+          <div>
+            <h2 className="text-lg md:text-xl font-semibold">Услуги OnlyVet</h2>
+            <p className="text-[13px] text-slate-600 max-w-xl">
+              Основные форматы работы: консультации, второе мнение, диагностика
+              и сопровождение хронических пациентов.
+            </p>
+          </div>
+          <Link
+            href="/services"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-onlyvet-coral text-white text-[13px] font-medium shadow-[0_12px_30px_rgba(247,118,92,0.5)] hover:brightness-105 transition"
+          >
+            Все услуги
+            <span className="text-[16px] leading-none">→</span>
+          </Link>
+        </div>
+
+        {/* Фильтры: тип услуги */}
+        <div className="flex flex-wrap items-center gap-2 text-[12px] mb-2">
+          <span className="text-slate-500 mr-1">Тип услуги:</span>
+          {[
+            { key: "all", label: "Все" },
+            { key: "консультация", label: "Консультации" },
+            { key: "второе мнение", label: "Второе мнение" },
+            { key: "диагностика", label: "Диагностика" },
+            { key: "сопровождение", label: "Сопровождение" },
+          ].map((btn) => (
+            <button
+              key={btn.key}
+              type="button"
+              onClick={() =>
+                setServiceCategory(btn.key as ServiceFilterCategory)
+              }
+              className={`px-3 py-1.5 rounded-full border transition text-xs ${
+                serviceCategory === btn.key
+                  ? "bg-onlyvet-navy text-white border-onlyvet-navy shadow-sm"
+                  : "border-slate-300 text-onlyvet-navy bg-white hover:bg-slate-50"
+              }`}
+            >
+              {btn.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Фильтры: специализация врача */}
+        <div className="flex flex-wrap items-center gap-2 text-[12px] mb-4">
+          <span className="text-slate-500 mr-1">Специализация врача:</span>
+          {[
+            { key: "all", label: "Любая" },
+            { key: "терапия", label: "Терапия" },
+            { key: "эксперт", label: "Эксперт / онкология" },
+            { key: "диагностика", label: "Диагностика" },
+            { key: "онкология", label: "Онкология" },
+          ].map((btn) => (
+            <button
+              key={btn.key}
+              type="button"
+              onClick={() => setServiceSpec(btn.key as ServiceFilterSpec)}
+              className={`px-3 py-1.5 rounded-full border transition text-xs ${
+                serviceSpec === btn.key
+                  ? "bg-onlyvet-navy text-white border-onlyvet-navy shadow-sm"
+                  : "border-slate-300 text-onlyvet-navy bg-white hover:bg-slate-50"
+              }`}
+            >
+              {btn.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Отфильтрованные услуги (до 3 на главной) */}
+        <div className="grid gap-4 md:grid-cols-3 sm:grid-cols-2">
+          {filteredServices.slice(0, 3).map((service) => (
+            <Link key={service.id} href={`/services/${service.id}`} className="h-full">
+              <ServiceCard service={service} />
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // СОЦСЕТИ
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -329,63 +428,84 @@ function SocialBlock() {
   return (
     <section className="py-10 bg-gradient-to-b from-transparent to-slate-50/70">
       <div className="container mx-auto max-w-5xl px-4">
-        <h2 className="text-lg md:text-xl font-semibold mb-1">Мы в социальных сетях</h2>
+        <h2 className="text-lg md:text-xl font-semibold mb-1">
+          Мы в социальных сетях
+        </h2>
         <p className="text-[13px] text-slate-600 max-w-xl mb-6">
           Подписывайтесь на OnlyVet — делимся историями пациентов, рекомендациями
           и полезными подсказками.
         </p>
 
         <div className="grid gap-4 md:grid-cols-4 sm:grid-cols-2">
-
           {/* VK */}
           <a
             href="#"
-            className="bg-white rounded-3xl border border-slate-200 px-5 py-6 flex flex-col items-center gap-3
-                       hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/60 transition-all text-center"
+            className="bg-white rounded-3xl border border-slate-200 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/60 transition-all text-center"
           >
-            <img src="/img/free-icon-vk-3670055.svg" alt="VK" className="w-14 h-14" />
+            <img
+              src="/img/free-icon-vk-3670055.svg"
+              alt="VK"
+              className="w-14 h-14"
+            />
             <div className="text-[14px] font-semibold">ВКонтакте</div>
-            <p className="text-[12px] text-slate-600">Новости и разборы анализов.</p>
+            <p className="text-[12px] text-slate-600">
+              Новости и разборы анализов.
+            </p>
           </a>
 
           {/* Telegram */}
           <a
             href="#"
-            className="bg-white rounded-3xl border border-slate-200 px-5 py-6 flex flex-col items-center gap-3
-                       hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/60 transition-all text-center"
+            className="bg-white rounded-3xl border border-slate-200 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/60 transition-all text-center"
           >
-            <img src="/img/free-icon-telegram-2111646.svg" alt="Telegram" className="w-14 h-14" />
+            <img
+              src="/img/free-icon-telegram-2111646.svg"
+              alt="Telegram"
+              className="w-14 h-14"
+            />
             <div className="text-[14px] font-semibold">Telegram</div>
-            <p className="text-[12px] text-slate-600">Ответы на вопросы и полезные разборы.</p>
+            <p className="text-[12px] text-slate-600">
+              Разборы сложных случаев и ответы на вопросы.
+            </p>
           </a>
 
           {/* Instagram */}
           <a
             href="#"
-            className="bg-white rounded-3xl border border-slate-200 px-5 py-6 flex flex-col items-center gap-3
-                       hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/60 transition-all text-center"
+            className="bg-white rounded-3xl border border-slate-200 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/60 transition-all text-center"
           >
-            <img src="/img/free-icon-instagram-3955024.svg" alt="Instagram" className="w-14 h-14" />
+            <img
+              src="/img/free-icon-instagram-3955024.svg"
+              alt="Instagram"
+              className="w-14 h-14"
+            />
             <div className="text-[14px] font-semibold">Instagram*</div>
-            <p className="text-[12px] text-slate-600">Истории пациентов и визуальные схемы.</p>
+            <p className="text-[12px] text-slate-600">
+              Истории пациентов и визуальные схемы.
+            </p>
           </a>
 
           {/* OK */}
           <a
             href="#"
-            className="bg-white rounded-3xl border border-slate-200 px-5 py-6 flex flex-col items-center gap-3
-                       hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/60 transition-all text-center"
+            className="bg-white rounded-3xl border border-slate-200 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/60 transition-all text-center"
           >
-            <img src="/img/free-icon-odnoklassniki-3670250.svg" alt="Одноклассники" className="w-14 h-14" />
+            <img
+              src="/img/free-icon-odnoklassniki-3670250.svg"
+              alt="Одноклассники"
+              className="w-14 h-14"
+            />
             <div className="text-[14px] font-semibold">Одноклассники</div>
-            <p className="text-[12px] text-slate-600">Полезные советы и материалы.</p>
+            <p className="text-[12px] text-slate-600">
+              Полезные советы и материалы.
+            </p>
           </a>
-
         </div>
 
         <p className="mt-3 text-[10px] text-slate-400 max-w-xl">
-          * Instagram принадлежит компании Meta Platforms Inc., деятельность которой
-          запрещена на территории Российской Федерации как экстремистская организация.
+          * Instagram принадлежит компании Meta Platforms Inc., деятельность
+          которой запрещена на территории Российской Федерации как
+          экстремистская организация.
         </p>
       </div>
     </section>
