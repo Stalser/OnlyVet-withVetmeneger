@@ -278,6 +278,80 @@ export default function HomePage() {
     </div>
   </div>
 </section>
+        {/* Обратная связь */}
+<section className="py-7">
+  <div className="container mx-auto max-w-5xl px-4">
+    <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 md:p-6 flex flex-col md:flex-row gap-6 items-start">
+      <div className="flex-1">
+        <h2 className="text-lg md:text-xl font-semibold mb-2">
+          Есть вопрос по питомцу или сервису OnlyVet?
+        </h2>
+        <p className="text-[13px] text-slate-600 mb-3 max-w-md">
+          Напишите нам коротко, что беспокоит, и мы ответим вам на почту или в
+          выбранный мессенджер. Это не заменяет консультацию, но помогает
+          сориентироваться.
+        </p>
+        <div className="text-[13px] text-slate-600 space-y-1">
+          <div>
+            Telegram:{" "}
+            <a href="#" className="text-onlyvet-coral">
+              @onlyvet_clinic
+            </a>
+          </div>
+          <div>
+            Почта:{" "}
+            <a href="mailto:support@onlyvet.ru" className="text-onlyvet-coral">
+              support@onlyvet.ru
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <form className="w-full md:max-w-sm space-y-3">
+        <div>
+          <label className="block text-[12px] text-slate-600 mb-1">
+            Как к вам обращаться
+          </label>
+          <input
+            type="text"
+            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+            placeholder="Имя"
+          />
+        </div>
+        <div>
+          <label className="block text-[12px] text-slate-600 mb-1">
+            Контакт для ответа
+          </label>
+          <input
+            type="text"
+            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+            placeholder="Email или Telegram"
+          />
+        </div>
+        <div>
+          <label className="block text-[12px] text-slate-600 mb-1">
+            Кратко суть вопроса
+          </label>
+          <textarea
+            rows={3}
+            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] resize-none focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+            placeholder="Например: анализы, диагноз, схема лечения..."
+          />
+        </div>
+        <button
+          type="submit"
+          className="w-full px-4 py-2.5 rounded-full bg-onlyvet-coral text-white text-[13px] font-medium shadow-[0_10px_26px_rgba(247,118,92,0.45)]"
+        >
+          Отправить запрос
+        </button>
+        <p className="text-[11px] text-slate-500">
+          Нажимая «Отправить», вы соглашаетесь с обработкой персональных данных
+          и условиями сервиса.
+        </p>
+      </form>
+    </div>
+  </div>
+</section>
       </main>
       <Footer />
     </>
