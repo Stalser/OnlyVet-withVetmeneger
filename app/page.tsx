@@ -205,88 +205,85 @@ export default function HomePage() {
         </section>
 
         {/* Соцсети */}
-<section className="py-8">
+<section className="py-10">
   <div className="container mx-auto max-w-5xl px-4">
-    <div className="flex items-baseline justify-between gap-4 mb-4">
-      <div>
-        <h2 className="text-lg md:text-xl font-semibold">
-          Мы в социальных сетях
-        </h2>
-        <p className="text-[13px] text-slate-600 max-w-xl">
-          Подписывайтесь на OnlyVet в соцсетях — делимся историями пациентов,
-          разбираем анализы и публикуем понятные рекомендации по уходу.
-        </p>
-      </div>
-    </div>
+    <h2 className="text-lg md:text-xl font-semibold mb-1">
+      Мы в социальных сетях
+    </h2>
+    <p className="text-[13px] text-slate-600 max-w-xl mb-6">
+      Подписывайтесь на OnlyVet — делимся историями пациентов, разбираем
+      анализы и публикуем полезные рекомендации.
+    </p>
 
-    <div className="grid gap-4 md:grid-cols-4 sm:grid-cols-2">
+    <div className="grid gap-5 md:grid-cols-4 sm:grid-cols-2">
+
       {/* ВКонтакте */}
       <a
         href="#"
-        className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-col items-center gap-3 hover:shadow-soft hover:border-onlyvet-teal/70 transition-all text-center"
+        className="bg-white rounded-2xl border border-slate-200 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-soft transition-shadow text-center"
       >
         <img
           src="/img/free-icon-vk-3670055.svg"
           alt="ВКонтакте"
           className="w-14 h-14"
         />
-        <div className="text-[13px] font-semibold">ВКонтакте</div>
-        <div className="text-[11px] text-slate-600">
+        <div className="text-[14px] font-semibold">ВКонтакте</div>
+        <p className="text-[12px] text-slate-600">
           Новости, подсказки и разборы анализов.
-        </div>
+        </p>
       </a>
 
-      {/* Telegram — убедись, что svg загружен как free-icon-telegram-2111646.svg */}
+      {/* Telegram */}
       <a
         href="#"
-        className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-col items-center gap-3 hover:shadow-soft hover:border-onlyvet-teal/70 transition-all text-center"
+        className="bg-white rounded-2xl border border-slate-200 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-soft transition-shadow text-center"
       >
         <img
           src="/img/free-icon-telegram-2111646.svg"
           alt="Telegram"
           className="w-14 h-14"
         />
-        <div className="text-[13px] font-semibold">Telegram</div>
-        <div className="text-[11px] text-slate-600">
+        <div className="text-[14px] font-semibold">Telegram</div>
+        <p className="text-[12px] text-slate-600">
           Разборы клинических случаев и ответы на вопросы.
-        </div>
+        </p>
       </a>
 
       {/* Instagram* */}
       <a
         href="#"
-        className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-col items-center gap-3 hover:shadow-soft hover:border-onlyvet-teal/70 transition-all text-center"
+        className="bg-white rounded-2xl border border-slate-200 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-soft transition-shadow text-center"
       >
         <img
           src="/img/free-icon-instagram-3955024.svg"
           alt="Instagram"
           className="w-14 h-14"
         />
-        <div className="text-[13px] font-semibold">Instagram*</div>
-        <div className="text-[11px] text-slate-600">
-          Истории пациентов и визуальные подсказки.
-        </div>
+        <div className="text-[14px] font-semibold">Instagram*</div>
+        <p className="text-[12px] text-slate-600">
+          Истории пациентов и визуальные советы.
+        </p>
       </a>
 
-      {/* Одноклассники */}
+      {/* OK */}
       <a
         href="#"
-        className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-col items-center gap-3 hover:shadow-soft hover:border-onlyvet-teal/70 transition-all text-center"
+        className="bg-white rounded-2xl border border-slate-200 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-soft transition-shadow text-center"
       >
         <img
           src="/img/free-icon-odnoklassniki-3670250.svg"
           alt="Одноклассники"
           className="w-14 h-14"
         />
-        <div className="text-[13px] font-semibold">Одноклассники</div>
-        <div className="text-[11px] text-slate-600">
+        <div className="text-[14px] font-semibold">Одноклассники</div>
+        <p className="text-[12px] text-slate-600">
           Полезные советы и материалы.
-        </div>
+        </p>
       </a>
     </div>
 
-    {/* Сноска про Instagram/Meta */}
-    <p className="mt-2 text-[10px] text-slate-400 max-w-xl">
+    {/* Сноска */}
+    <p className="mt-3 text-[10px] text-slate-400 max-w-xl">
       * Instagram принадлежит компании Meta Platforms Inc., деятельность которой
       запрещена на территории Российской Федерации как экстремистская организация.
     </p>
