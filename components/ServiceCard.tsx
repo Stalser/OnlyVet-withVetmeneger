@@ -27,7 +27,7 @@ export function ServiceCard({ service, showDetailsButton = true }: ServiceCardPr
       "
     >
       <div className="mb-1">
-        <div className="text-[12px] uppercase tracking-[0.12em] text-slate-400 mb-1">
+        <div className="text-[11px] uppercase tracking-[0.14em] text-slate-400 mb-1">
           {service.category === "консультация"
             ? "Консультация"
             : service.category === "второе мнение"
