@@ -5,16 +5,11 @@ import type { Doctor } from "@/data/doctors";
 
 interface DoctorCardProps {
   doctor: Doctor;
+  // showProfileButton оставим на будущее, но сейчас не используем
   showProfileButton?: boolean;
 }
 
-export function DoctorCard({ doctor, showProfileButton = false }: DoctorCardProps) {
-  const href = showProfileButton
-    ? `/doctors/${doctor.id}`
-    : `/booking?doctorId=${doctor.id}`;
-
-  const label = showProfileButton ? "Профиль и запись" : "Записаться";
-
+export function DoctorCard({ doctor }: DoctorCardProps) {
   return (
     <article
       className="
@@ -35,7 +30,7 @@ export function DoctorCard({ doctor, showProfileButton = false }: DoctorCardProp
         cursor-pointer
       "
     >
-      {/* Верх: аватар + имя + краткое позиционирование */}
+      {/* Верх: аватар + имя + краткая роль */}
       <div className="flex gap-3 mb-2">
         <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-onlyvet-teal to-onlyvet-navy flex items-center justify-center text-white font-semibold text-sm md:text-lg">
           {doctor.initials}
@@ -68,15 +63,16 @@ export function DoctorCard({ doctor, showProfileButton = false }: DoctorCardProp
         ))}
       </div>
 
-      {/* Доп. информация — одна строка про опыт */}
-      <div className="mt-auto text-[11px] text-slate-600">
+      {/* Доп. информация — только опыт */}
+      <div className="mt-auto text-[11px] text-slate-600 mb-2">
         {doctor.experienceLabel}
       </div>
 
-      {/* Кнопка/ссылка по центру внизу */}
-      <div className="pt-3 flex justify-center">
+      {/* Кнопки внизу */}
+      <div className="pt-1 flex justify-center gap-2">
+        {/* Записаться → /booking?doctorId=... */}
         <Link
-          href={href}
+          href={`/booking?doctorId=${doctor.id}`}
           className="
             px-4 
             py-1.5 
@@ -92,7 +88,27 @@ export function DoctorCard({ doctor, showProfileButton = false }: DoctorCardProp
             inline-flex items-center justify-center
           "
         >
-          {label}
+          Записаться
+        </Link>
+
+        {/* Подробнее → /doctors/[id] */}
+        <Link
+          href={`/doctors/${doctor.id}`}
+          className="
+            px-4 
+            py-1.5 
+            rounded-full 
+            border border-slate-300
+            text-[11px] 
+            font-medium 
+            text-onlyvet-navy
+            bg-white
+            hover:bg-slate-50
+            transition
+            inline-flex items-center justify-center
+          "
+        >
+          Подробнее
         </Link>
       </div>
     </article>
