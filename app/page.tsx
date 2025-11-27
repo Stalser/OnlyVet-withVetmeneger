@@ -397,7 +397,7 @@ function SocialBlock() {
           >
             <div className="w-14 h-14 rounded-full bg-slate-50 flex items-center justify<center shadow">
               <img
-                src="/img/free-icon-odnoklassники-3670250.svg"
+                src="/img/free-icon-odnoklassniki-3670250.svg"
                 alt="Одноклассники"
                 className="w-9 h-9"
               />
