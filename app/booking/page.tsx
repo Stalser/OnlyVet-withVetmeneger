@@ -16,7 +16,7 @@ type BookingPageProps = {
   };
 };
 
-// Заглушка "пользователь залогинен" + данные — потом заменим реальным ЛК
+// заглушка авторизации
 const mockIsLoggedIn = false;
 const mockUser = {
   fullName: "Иванов Иван Иванович",
@@ -41,13 +41,6 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
     serviceIdFromQuery && services.some((s) => s.id === serviceIdFromQuery)
       ? serviceIdFromQuery
       : "";
-
-  const selectedDoctorFromQuery = doctors.find(
-    (d) => d.id === initialDoctorId
-  );
-  const selectedServiceFromQuery = services.find(
-    (s) => s.id === initialServiceId
-  );
 
   // контактные данные
   const [fullName, setFullName] = useState("");
@@ -82,7 +75,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
   const [consentOffer, setConsentOffer] = useState(false);
   const [consentRules, setConsentRules] = useState(false);
 
-  // если юзер залогинен — подставить данные
+  // автозаполнение из ЛК
   useEffect(() => {
     if (mockIsLoggedIn) {
       setFullName(mockUser.fullName);
@@ -97,7 +90,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
   const selectedDoctor = doctors.find((d) => d.id === selectedDoctorId);
   const selectedService = services.find((s) => s.id === selectedServiceId);
 
-  // простая валидация
+  // валидация
   const isValid =
     fullName.trim().length > 0 &&
     phone.trim().length > 0 &&
@@ -138,11 +131,18 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
     alert("Заявка на консультацию отправлена (демо-режим).");
   };
 
+  const resetSelection = () => {
+    setSelectedDoctorId("");
+    setSelectedServiceId("");
+    setDoctorMode("any");
+  };
+
   return (
     <>
       <Header />
       <main className="flex-1 py-8 bg-slate-50/70">
         <div className="container mx-auto max-w-5xl px-4">
+          {/* Заголовок и хлебные крошки */}
           <div className="mb-5">
             <nav className="text-[12px] text-slate-500 mb-2">
               <Link href="/" className="hover:text-onlyvet-coral">
@@ -155,35 +155,69 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
               Записаться на онлайн-консультацию
             </h1>
             <p className="text-[13px] text-slate-600 max-w-2xl">
-              Заполните форму ниже — мы подберём удобное время и врача. Вы можете
-              начать как с конкретного врача/услуги, так и просто описав ситуацию.
+              Заполните форму — мы подберём удобное время и врача. Если вы
+              перешли из карточки врача или услуги, выбранные параметры уже
+              подставлены.
             </p>
+          </div>
 
-            {/* Если пришли с конкретной точки (врач/услуга) — покажем подсказку */}
-            {(selectedDoctorFromQuery || selectedServiceFromQuery) && (
-              <div className="mt-3 text-[12px] text-slate-600 bg-white border border-slate-200 rounded-2xl px-3 py-2 inline-flex flex-col gap-1">
-                {selectedDoctorFromQuery && (
+          {/* Плашка выбора врача/услуги */}
+          {(selectedDoctor || selectedService) && (
+            <div className="mb-4 bg-white border border-slate-200 rounded-3xl p-4 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <div className="space-y-1 text-[13px] text-slate-700">
+                <div className="text-[12px] uppercase tracking-[0.12em] text-slate-400">
+                  Вы выбрали
+                </div>
+                {selectedDoctor && (
                   <div>
-                    Вы выбрали врача:{" "}
-                    <span className="font-medium">
-                      {selectedDoctorFromQuery.name}
+                    Врач:{" "}
+                    <Link
+                      href={`/doctors/${selectedDoctor.id}`}
+                      className="font-medium text-onlyvet-navy hover:text-onlyvet-coral"
+                    >
+                      {selectedDoctor.name}
+                    </Link>
+                    <span className="text-[12px] text-slate-500">
+                      {" "}
+                      · {selectedDoctor.role}
                     </span>
-                    .
                   </div>
                 )}
-                {selectedServiceFromQuery && (
+                {selectedService && (
                   <div>
-                    Вы выбрали услугу:{" "}
-                    <span className="font-medium">
-                      {selectedServiceFromQuery.name}
+                    Услуга:{" "}
+                    <Link
+                      href={`/services/${selectedService.id}`}
+                      className="font-medium text-onlyvet-navy hover:text-onlyvet-coral"
+                    >
+                      {selectedService.name}
+                    </Link>
+                    <span className="text-[12px] text-slate-500">
+                      {" "}
+                      · {selectedService.priceLabel}
                     </span>
-                    .
                   </div>
                 )}
               </div>
-            )}
-          </div>
+              <div className="flex flex-wrap gap-2 text-[12px]">
+                <button
+                  type="button"
+                  onClick={resetSelection}
+                  className="px-3 py-1.5 rounded-full border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition"
+                >
+                  Сбросить выбор
+                </button>
+                <Link
+                  href="/doctors"
+                  className="px-3 py-1.5 rounded-full border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition"
+                >
+                  Выбрать другого врача
+                </Link>
+              </div>
+            </div>
+          )}
 
+          {/* Форма */}
           <form
             onSubmit={handleSubmit}
             className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 md:p-6 space-y-6"
@@ -295,13 +329,13 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                       ))}
                     </select>
                     <p className="text-[11px] text-slate-500 mt-1">
-                      В реальной версии здесь будут данные из вашего личного кабинета.
+                      В реальной версии здесь будут данные из личного кабинета.
                     </p>
                   </div>
                 ) : (
                   <p className="text-[12px] text-slate-500">
                     Для выбора существующего питомца нужен личный кабинет. Пока
-                    можете указать питомца как нового.
+                    укажите питомца как нового.
                   </p>
                 )
               ) : (
@@ -456,7 +490,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                 </div>
               )}
 
-              {/* Псевдо-расписание под выбранного врача */}
+              {/* Псевдо-слоты */}
               <div className="bg-onlyvet-bg rounded-2xl border border-dashed border-slate-300 p-3 text-[12px] text-slate-600 space-y-1 mt-2">
                 <div className="font-medium text-slate-700 mb-1">
                   {selectedDoctor
@@ -481,7 +515,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
               </div>
             </section>
 
-            {/* 5. Файлы и документы */}
+            {/* 5. Файлы */}
             <section className="space-y-3">
               <h2 className="text-[15px] font-semibold">
                 Анализы, документы, фото (при необходимости)
@@ -517,7 +551,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
               </div>
             </section>
 
-            {/* 6. Согласия и отправка */}
+            {/* 6. Согласия и кнопка отправки */}
             <section className="space-y-3">
               <h2 className="text-[15px] font-semibold">
                 Согласия и завершение заявки
@@ -541,7 +575,6 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                     в соответствии с Политикой обработки ПДн.
                   </span>
                 </label>
-
                 <label className="flex items-start gap-2">
                   <input
                     type="checkbox"
@@ -561,7 +594,6 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                     сервиса OnlyVet.
                   </span>
                 </label>
-
                 <label className="flex items-start gap-2">
                   <input
                     type="checkbox"
