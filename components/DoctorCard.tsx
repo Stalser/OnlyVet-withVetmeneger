@@ -1,5 +1,6 @@
 // components/DoctorCard.tsx
 
+import Link from "next/link";
 import type { Doctor } from "@/data/doctors";
 
 interface DoctorCardProps {
@@ -8,6 +9,12 @@ interface DoctorCardProps {
 }
 
 export function DoctorCard({ doctor, showProfileButton = false }: DoctorCardProps) {
+  const href = showProfileButton
+    ? `/doctors/${doctor.id}`
+    : `/booking?doctorId=${doctor.id}`;
+
+  const label = showProfileButton ? "Профиль и запись" : "Записаться";
+
   return (
     <article
       className="
@@ -66,10 +73,10 @@ export function DoctorCard({ doctor, showProfileButton = false }: DoctorCardProp
         {doctor.experienceLabel}
       </div>
 
-      {/* Кнопка по центру внизу, яркий hover */}
+      {/* Кнопка/ссылка по центру внизу */}
       <div className="pt-3 flex justify-center">
-        <button
-          type="button"
+        <Link
+          href={href}
           className="
             px-4 
             py-1.5 
@@ -82,10 +89,11 @@ export function DoctorCard({ doctor, showProfileButton = false }: DoctorCardProp
             transition
             group-hover:shadow-[0_14px_32px_rgba(247,118,92,0.65)]
             hover:brightness-110
+            inline-flex items-center justify-center
           "
         >
-          {showProfileButton ? "Профиль и запись" : "Записаться"}
-        </button>
+          {label}
+        </Link>
       </div>
     </article>
   );
