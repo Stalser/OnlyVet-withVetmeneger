@@ -128,29 +128,31 @@ export default function HomePage() {
 
         {/* Услуги */}
         <section className="py-7">
-          <div className="container mx-auto max-w-5xl px-4">
-            <div className="flex items-baseline justify-between gap-4 mb-4">
-              <div>
-                <h2 className="text-lg md:text-xl font-semibold">Услуги</h2>
-                <p className="text-[13px] text-slate-600 max-w-xl">
-                  Основные направления. Все услуги доступны на отдельной
-                  странице.
-                </p>
-              </div>
-              <a
-                href="/services"
-                className="text-[13px] text-onlyvet-coral whitespace-nowrap"
-              >
-                Все услуги →
-              </a>
-            </div>
-            <div className="grid gap-4 md:grid-cols-3">
-              {services.slice(0, 3).map((service) => (
-                <ServiceCard key={service.id} service={service} />
-              ))}
-            </div>
-          </div>
-        </section>
+  <div className="container mx-auto max-w-5xl px-4">
+    <div className="flex items-baseline justify-between gap-4 mb-4">
+      <div>
+        <h2 className="text-lg md:text-xl font-semibold">Услуги</h2>
+        <p className="text-[13px] text-slate-600 max-w-xl">
+          Основные направления. Полный перечень — на странице «Все услуги».
+        </p>
+      </div>
+      <Link
+        href="/services"
+        className="text-[13px] text-onlyvet-coral whitespace-nowrap"
+      >
+        Все услуги →
+      </Link>
+    </div>
+
+    <div className="grid gap-4 md:grid-cols-3">
+      {services.slice(0, 3).map((service) => (
+        <Link key={service.id} href={`/services/${service.id}`}>
+          <ServiceCard service={service} />
+        </Link>
+      ))}
+    </div>
+  </div>
+</section>
 
         {/* Отзывы */}
         <section className="py-7">
