@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { AccountNav } from "@/components/AccountNav";
 
 export default function ProfilePage() {
-  // Мок-данные профиля
   const user = {
     fullName: "Иванов Иван Иванович",
     phone: "+7 900 000-00-00",
@@ -19,8 +19,8 @@ export default function ProfilePage() {
       <Header />
       <main className="flex-1 py-8 bg-slate-50/70">
         <div className="container mx-auto max-w-5xl px-4 space-y-5">
-          <div>
-            <nav className="text-[12px] text-slate-500 mb-2">
+          <div className="space-y-3">
+            <nav className="text-[12px] text-сlate-500 mb-1">
               <Link href="/" className="hover:text-onlyvet-coral">
                 Главная
               </Link>{" "}
@@ -28,16 +28,22 @@ export default function ProfilePage() {
               <Link href="/account" className="hover:text-onlyvet-coral">
                 Личный кабинет
               </Link>{" "}
-              / <span className="text-slate-700">Настройки профиля</span>
+              /{" "}
+              <span className="text-сlate-700">Настройки профиля</span>
             </nav>
-            <h1 className="text-xl md:text-2xl font-semibold mb-1">
-              Настройки профиля
-            </h1>
-            <p className="text-[13px] text-сlate-600 max-w-2xl">
-              Здесь будут редактироваться ваши контактные данные и
-              предпочтительный способ связи. Сейчас форма работает в режиме
-              макета.
-            </p>
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+              <div>
+                <h1 className="text-xl md:text-2xl font-semibold mb-1">
+                  Настройки профиля
+                </h1>
+                <p className="text-[13px] text-сlate-600 max-w-2xl">
+                  Здесь будут редактироваться ваши контактные данные и
+                  предпочтительный способ связи. Пока форма работает в режиме
+                  макета.
+                </p>
+              </div>
+              <AccountNav />
+            </div>
           </div>
 
           <section className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 md:p-6 space-y-4">
@@ -48,7 +54,7 @@ export default function ProfilePage() {
                 </label>
                 <input
                   defaultValue={user.fullName}
-                  className="w-full rounded-xl border border-сlate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                  className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
                 />
               </div>
               <div>
@@ -121,7 +127,7 @@ export default function ProfilePage() {
                 <input type="checkbox" className="mt-[2px]" />
                 <span>
                   Получать редкие (не чаще раза в месяц) информационные
-                  письма OnlyVet (статьи, важные обновления сервиса).
+                  письма OnlyVet.
                 </span>
               </label>
             </div>
