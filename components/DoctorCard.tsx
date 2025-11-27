@@ -22,23 +22,25 @@ export function DoctorCard({ doctor, showProfileButton = false }: DoctorCardProp
         transition-all 
         duration-150 
         ease-out
-        hover:-translate-y-1 
+        hover:-translate-y-[3px] 
         hover:shadow-[0_18px_40px_rgba(15,23,42,0.10)]
         cursor-pointer
       "
+      // TODO: в будущем обернём в <Link href={`/doctors/${doctor.id}`}>...</Link>
     >
-      {/* Верх: аватар + имя/роль */}
+      {/* Верх: аватар + имя + краткое позиционирование */}
       <div className="flex gap-3 mb-2">
         <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-onlyvet-teal to-onlyvet-navy flex items-center justify-center text-white font-semibold text-sm md:text-lg">
           {doctor.initials}
         </div>
         <div className="flex-1">
           <div className="text-[14px] font-semibold">{doctor.name}</div>
+          {/* doctor.role — уже без слов «ветеринарный врач» в данных */}
           <div className="text-[12px] text-slate-500">{doctor.role}</div>
         </div>
       </div>
 
-      {/* Основные компетенции */}
+      {/* Фокус врача */}
       <div className="text-[12px] text-slate-600 mb-2">
         {doctor.servicesShort}
       </div>
@@ -60,20 +62,25 @@ export function DoctorCard({ doctor, showProfileButton = false }: DoctorCardProp
         ))}
       </div>
 
-      {/* Доп. информация */}
+      {/* Доп. информация — аккуратно, без перегруза */}
       <div className="mt-auto text-[11px] text-slate-500 space-y-0.5">
         <div className="font-medium text-slate-600">{doctor.experienceLabel}</div>
-        <div>
-          <span className="text-slate-400">Формат: </span>
-          {doctor.format.join(", ")}
-        </div>
-        <div>
-          <span className="text-slate-400">Пациенты: </span>
-          {doctor.species.join(", ")}
-        </div>
+        {/* Формат и пациенты можно убрать из данных, но если оставишь — они будут в одной строке */}
+        {!!doctor.format?.length && (
+          <div>
+            <span className="text-slate-400">Формат: </span>
+            {doctor.format.join(", ")}
+          </div>
+        )}
+        {!!doctor.species?.length && (
+          <div>
+            <span className="text-slate-400">Пациенты: </span>
+            {doctor.species.join(", ")}
+          </div>
+        )}
       </div>
 
-      {/* Кнопка по центру внизу */}
+      {/* Кнопка по центру внизу, яркий hover */}
       <div className="pt-3 flex justify-center">
         <button
           type="button"
@@ -86,8 +93,9 @@ export function DoctorCard({ doctor, showProfileButton = false }: DoctorCardProp
             text-[11px] 
             font-medium 
             shadow-[0_10px_24px_rgba(247,118,92,0.45)]
-            group-hover:shadow-[0_14px_32px_rgba(247,118,92,0.6)]
-            transition-shadow
+            transition
+            group-hover:shadow-[0_14px_32px_rgba(247,118,92,0.65)]
+            hover:brightness-110
           "
         >
           {showProfileButton ? "Профиль и запись" : "Записаться"}
