@@ -205,28 +205,33 @@ export default function HomePage() {
         </section>
 
         {/* Соцсети */}
-<section className="py-10">
+<section className="py-10 bg-gradient-to-b from-transparent to-slate-50/70">
   <div className="container mx-auto max-w-5xl px-4">
-    <h2 className="text-lg md:text-xl font-semibold mb-1">
-      Мы в социальных сетях
-    </h2>
-    <p className="text-[13px] text-slate-600 max-w-xl mb-6">
-      Подписывайтесь на OnlyVet — делимся историями пациентов, разбираем
-      анализы и публикуем полезные рекомендации.
-    </p>
+    <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-6">
+      <div>
+        <h2 className="text-lg md:text-xl font-semibold">
+          Мы в социальных сетях
+        </h2>
+        <p className="text-[13px] text-slate-600 max-w-xl">
+          Подписывайтесь на OnlyVet — делимся историями пациентов, разбираем
+          анализы и публикуем понятные рекомендации по уходу.
+        </p>
+      </div>
+    </div>
 
-    <div className="grid gap-5 md:grid-cols-4 sm:grid-cols-2">
-
+    <div className="grid gap-4 md:grid-cols-4 sm:grid-cols-2">
       {/* ВКонтакте */}
       <a
         href="#"
-        className="bg-white rounded-2xl border border-slate-200 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-soft transition-shadow text-center"
+        className="bg-white rounded-3xl border border-slate-200/80 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/70 transition-all text-center"
       >
-        <img
-          src="/img/free-icon-vk-3670055.svg"
-          alt="ВКонтакте"
-          className="w-14 h-14"
-        />
+        <div className="w-14 h-14 rounded-full bg-slate-50 flex items-center justify-center shadow-[0_8px_22px_rgba(15,23,42,0.08)]">
+          <img
+            src="/img/free-icon-vk-3670055.svg"
+            alt="ВКонтакте"
+            className="w-9 h-9"
+          />
+        </div>
         <div className="text-[14px] font-semibold">ВКонтакте</div>
         <p className="text-[12px] text-slate-600">
           Новости, подсказки и разборы анализов.
@@ -236,13 +241,15 @@ export default function HomePage() {
       {/* Telegram */}
       <a
         href="#"
-        className="bg-white rounded-2xl border border-slate-200 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-soft transition-shadow text-center"
+        className="bg-white rounded-3xl border border-slate-200/80 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/70 transition-all text-center"
       >
-        <img
-          src="/img/free-icon-telegram-2111646.svg"
-          alt="Telegram"
-          className="w-14 h-14"
-        />
+        <div className="w-14 h-14 rounded-full bg-slate-50 flex items-center justify-center shadow-[0_8px_22px_rgba(15,23,42,0.08)]">
+          <img
+            src="/img/free-icon-telegram-2111646.svg"
+            alt="Telegram"
+            className="w-9 h-9"
+          />
+        </div>
         <div className="text-[14px] font-semibold">Telegram</div>
         <p className="text-[12px] text-slate-600">
           Разборы клинических случаев и ответы на вопросы.
@@ -252,29 +259,33 @@ export default function HomePage() {
       {/* Instagram* */}
       <a
         href="#"
-        className="bg-white rounded-2xl border border-slate-200 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-soft transition-shadow text-center"
+        className="bg-white rounded-3xl border border-slate-200/80 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/70 transition-all text-center"
       >
-        <img
-          src="/img/free-icon-instagram-3955024.svg"
-          alt="Instagram"
-          className="w-14 h-14"
-        />
+        <div className="w-14 h-14 rounded-full bg-slate-50 flex items-center justify-center shadow-[0_8px_22px_rgba(15,23,42,0.08)]">
+          <img
+            src="/img/free-icon-instagram-3955024.svg"
+            alt="Instagram"
+            className="w-9 h-9"
+          />
+        </div>
         <div className="text-[14px] font-semibold">Instagram*</div>
         <p className="text-[12px] text-slate-600">
           Истории пациентов и визуальные советы.
         </p>
       </a>
 
-      {/* OK */}
+      {/* Одноклассники */}
       <a
         href="#"
-        className="bg-white rounded-2xl border border-slate-200 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-soft transition-shadow text-center"
+        className="bg-white rounded-3xl border border-slate-200/80 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/70 transition-all text-center"
       >
-        <img
-          src="/img/free-icon-odnoklassniki-3670250.svg"
-          alt="Одноклассники"
-          className="w-14 h-14"
-        />
+        <div className="w-14 h-14 rounded-full bg-slate-50 flex items-center justify-center shadow-[0_8px_22px_rgba(15,23,42,0.08)]">
+          <img
+            src="/img/free-icon-odnoklassniki-3670250.svg"
+            alt="Одноклассники"
+            className="w-9 h-9"
+          />
+        </div>
         <div className="text-[14px] font-semibold">Одноклассники</div>
         <p className="text-[12px] text-slate-600">
           Полезные советы и материалы.
@@ -282,7 +293,6 @@ export default function HomePage() {
       </a>
     </div>
 
-    {/* Сноска */}
     <p className="mt-3 text-[10px] text-slate-400 max-w-xl">
       * Instagram принадлежит компании Meta Platforms Inc., деятельность которой
       запрещена на территории Российской Федерации как экстремистская организация.
