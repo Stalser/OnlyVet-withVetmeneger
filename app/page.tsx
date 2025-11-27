@@ -226,10 +226,10 @@ export default function HomePage() {
         href="#"
         className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-col items-center gap-3 hover:shadow-soft transition-shadow text-center"
       >
-        <img src="/img/social/vk.png" alt="VK" className="w-14 h-14" />
+        <img src="/img/social/vk.svg" alt="VK" className="w-14 h-14" />
         <div className="text-[13px] font-semibold">ВКонтакте</div>
         <div className="text-[11px] text-slate-600">
-          Новости, подсказки и разбoры анализов.
+          Новости, подсказки и разборы анализов.
         </div>
       </a>
 
@@ -238,7 +238,7 @@ export default function HomePage() {
         href="#"
         className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-col items-center gap-3 hover:shadow-soft transition-shadow text-center"
       >
-        <img src="/img/social/telegram.png" alt="Telegram" className="w-14 h-14" />
+        <img src="/img/social/telegram.svg" alt="Telegram" className="w-14 h-14" />
         <div className="text-[13px] font-semibold">Telegram</div>
         <div className="text-[11px] text-slate-600">
           Разборы клинических случаев и ответы на вопросы.
@@ -250,7 +250,7 @@ export default function HomePage() {
         href="#"
         className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-col items-center gap-3 hover:shadow-soft transition-shadow text-center"
       >
-        <img src="/img/social/instagram.png" alt="Instagram" className="w-14 h-14" />
+        <img src="/img/social/instagram.svg" alt="Instagram" className="w-14 h-14" />
         <div className="text-[13px] font-semibold">Instagram*</div>
         <div className="text-[11px] text-slate-600">
           Истории пациентов и визуальные подсказки.
@@ -262,10 +262,10 @@ export default function HomePage() {
         href="#"
         className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-col items-center gap-3 hover:shadow-soft transition-shadow text-center"
       >
-        <img src="/img/social/ok.png" alt="Одноклассники" className="w-14 h-14" />
+        <img src="/img/social/ok.svg" alt="ОК" className="w-14 h-14" />
         <div className="text-[13px] font-semibold">Одноклассники</div>
         <div className="text-[11px] text-slate-600">
-          Полезные советы и обзоры в твоём формате.
+          Полезные советы и материалы.
         </div>
       </a>
 
@@ -273,12 +273,11 @@ export default function HomePage() {
 
     {/* Сноска про Instagram/Meta */}
     <p className="mt-2 text-[10px] text-slate-400 max-w-xl">
-      * Instagram принадлежит компании Meta Platforms Inc., деятельность которой
-      запрещена на территории Российской Федерации как экстремистская организация.
+      * Instagram принадлежит компании Meta Platforms Inc., деятельность
+      которой запрещена на территории Российской Федерации как экстремистская организация.
     </p>
   </div>
 </section>
-
         {/* Обратная связь */}
         <section className="py-7">
           <div className="container mx-auto max-w-5xl px-4">
