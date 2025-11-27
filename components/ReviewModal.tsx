@@ -6,31 +6,32 @@ import { useState } from "react";
 import { doctors } from "@/data/doctors";
 import { services } from "@/data/services";
 
-interface ReviewModalProps {
+export function ReviewModal({
+  open,
+  onClose,
+}: {
   open: boolean;
   onClose: () => void;
-}
-
-export function ReviewModal({ open, onClose }: ReviewModalProps) {
-  const [name, setName] = useState("");
+}) {
+  const [clientName, setClientName] = useState("");
   const [petName, setPetName] = useState("");
-  const [doctorId, setDoctorId] = useState<string>("");
-  const [serviceId, setServiceId] = useState<string>("");
-  const [rating, setRating] = useState<number>(5);
+  const [doctorId, setDoctorId] = useState("");
+  const [serviceId, setServiceId] = useState("");
+  const [rating, setRating] = useState(5);
   const [text, setText] = useState("");
   const [consent, setConsent] = useState(false);
 
   if (!open) return null;
 
-  const isValid = text.trim().length > 0 && rating > 0 && consent;
+  const isValid = text.trim().length > 0 && consent;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isValid) return;
 
     // Здесь будет отправка на backend / модерацию
-    console.log("New review (pending moderation):", {
-      name,
+    console.log("Новый отзыв (на модерации):", {
+      clientName,
       petName,
       doctorId,
       serviceId,
@@ -42,8 +43,7 @@ export function ReviewModal({ open, onClose }: ReviewModalProps) {
       "Спасибо! Ваш отзыв отправлен на модерацию и появится на сайте после проверки."
     );
 
-    // сбросим форму и закроем
-    setName("");
+    setClientName("");
     setPetName("");
     setDoctorId("");
     setServiceId("");
@@ -54,23 +54,20 @@ export function ReviewModal({ open, onClose }: ReviewModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 px-2">
-      <div className="bg-white rounded-3xl max-w-lg w-full p-5 md:p-6 shadow-[0_24px_60px_rgba(15,23,42,0.6)]">
-        <div className="flex items-start justify-between gap-2 mb-3">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 px-3">
+      <div className="bg-white rounded-3xl max-w-lg w-full p-5 md:p-6 shadow-[0_24px_60px_rgba(15,23,42,0.7)]">
+        <div className="flex items-start justify-between mb-3">
           <div>
-            <h2 className="text-[16px] font-semibold">
-              Оставить отзыв о консультации
-            </h2>
+            <h2 className="text-[16px] font-semibold">Оставить отзыв</h2>
             <p className="text-[12px] text-slate-500">
-              Мы публикуем только честные и конструктивные отзывы. Перед
-              публикацией отзыв проходит модерацию.
+              Отзыв не публикуется автоматически — сначала мы проверяем его на
+              корректность (по форме, а не по сути).
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 text-[18px]"
-            aria-label="Закрыть"
+            className="text-slate-500 text-[18px] hover:text-slate-700"
           >
             ×
           </button>
@@ -83,9 +80,9 @@ export function ReviewModal({ open, onClose }: ReviewModalProps) {
                 Ваше имя
               </label>
               <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                className="w-full rounded-xl border border-slate-300 px-3 py-2"
+                value={clientName}
+                onChange={(e) => setClientName(e.target.value)}
                 placeholder="Можно указать только имя или инициалы"
               />
             </div>
@@ -94,9 +91,9 @@ export function ReviewModal({ open, onClose }: ReviewModalProps) {
                 Питомец
               </label>
               <input
+                className="w-full rounded-xl border border-slate-300 px-3 py-2"
                 value={petName}
                 onChange={(e) => setPetName(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
                 placeholder="Кличка, вид"
               />
             </div>
@@ -105,12 +102,12 @@ export function ReviewModal({ open, onClose }: ReviewModalProps) {
           <div className="grid md:grid-cols-2 gap-3">
             <div>
               <label className="block text-[12px] text-slate-600 mb-1">
-                Врач (если хотите указать)
+                Врач (если хотите)
               </label>
               <select
+                className="w-full rounded-xl border border-slate-300 px-3 py-2"
                 value={doctorId}
                 onChange={(e) => setDoctorId(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
               >
                 <option value="">Не указывать</option>
                 {doctors.map((d) => (
@@ -125,9 +122,9 @@ export function ReviewModal({ open, onClose }: ReviewModalProps) {
                 Услуга
               </label>
               <select
+                className="w-full rounded-xl border border-slate-300 px-3 py-2"
                 value={serviceId}
                 onChange={(e) => setServiceId(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
               >
                 <option value="">Не указывать</option>
                 {services.map((s) => (
@@ -144,9 +141,9 @@ export function ReviewModal({ open, onClose }: ReviewModalProps) {
               Оценка
             </label>
             <select
+              className="rounded-xl border border-slate-300 px-3 py-2"
               value={rating}
               onChange={(e) => setRating(Number(e.target.value))}
-              className="w-32 rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
             >
               {[5, 4, 3, 2, 1].map((r) => (
                 <option key={r} value={r}>
@@ -158,60 +155,46 @@ export function ReviewModal({ open, onClose }: ReviewModalProps) {
 
           <div>
             <label className="block text-[12px] text-slate-600 mb-1">
-              Текст отзыва<span className="text-red-500">*</span>
+              Отзыв *
             </label>
             <textarea
+              rows={5}
+              className="w-full rounded-xl border border-slate-300 px-3 py-2 resize-none"
               value={text}
               onChange={(e) => setText(e.target.value)}
-              rows={5}
-              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] resize-none focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
-              placeholder="Расскажите, что было полезно, как прошла консультация, что изменилось после неё…"
+              placeholder="Расскажите, что было полезно, как прошла консультация, что изменилось…"
             />
           </div>
 
-          <div className="space-y-2 text-[11px] text-slate-600">
-            <label className="flex items-start gap-2">
-              <input
-                type="checkbox"
-                checked={consent}
-                onChange={(e) => setConsent(e.target.checked)}
-                className="mt-[2px]"
-              />
-              <span>
-                Я подтверждаю, что отзыв основан на личном опыте, и даю{" "}
-                <span className="text-onlyvet-coral">
-                  согласие на обработку персональных данных и публикацию отзыва
-                  на сайте после модерации
-                </span>
-                .
-              </span>
-            </label>
-            <p className="text-[11px] text-slate-500">
-              Отзыв не появляется на сайте сразу. Сначала команда OnlyVet
-              проверит его на корректность (без цензуры по сути, только по
-              форме и безопасности).
-            </p>
-          </div>
+          <label className="flex items-start gap-2 text-[11px] text-slate-600">
+            <input
+              type="checkbox"
+              checked={consent}
+              onChange={(e) => setConsent(e.target.checked)}
+              className="mt-[2px]"
+            />
+            <span>
+              Я согласен на обработку персональных данных и понимаю, что отзыв
+              будет опубликован только после проверки модератором.
+            </span>
+          </label>
 
           <div className="pt-1 flex justify-end gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-1.5 rounded-full border border-slate-300 text-[12px] text-slate-700 bg-white hover:bg-slate-50 transition"
+              className="px-4 py-2 rounded-full border border-slate-300 bg-white text-[12px]"
             >
               Отмена
             </button>
             <button
               type="submit"
               disabled={!isValid}
-              className={`
-                px-4 py-1.5 rounded-full text-[12px] font-medium
-                ${
-                  isValid
-                    ? "bg-onlyvet-coral text-white shadow-[0_10px_26px_rgba(247,118,92,0.6)] hover:brightness-105 transition"
-                    : "bg-slate-200 text-slate-500 cursor-not-allowed"
-                }
-              `}
+              className={`px-4 py-2 rounded-full text-[12px] ${
+                isValid
+                  ? "bg-onlyvet-coral text-white shadow-lg"
+                  : "bg-slate-200 text-slate-500 cursor-not-allowed"
+              }`}
             >
               Отправить отзыв
             </button>
