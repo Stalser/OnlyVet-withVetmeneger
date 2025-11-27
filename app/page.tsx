@@ -1,4 +1,6 @@
-// app/page.tsx
+"use client";
+
+import { useMemo, useState } from "react";
 
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -9,8 +11,20 @@ import { doctors } from "@/data/doctors";
 import { services } from "@/data/services";
 import { reviews } from "@/data/reviews";
 
+type HomeSpecFilter = "all" | "терапия" | "диагностика" | "эксперт" | "онкология";
+
 export default function HomePage() {
-  const mainDoctors = doctors.slice(0, 3);
+  const [specFilter, setSpecFilter] = useState<HomeSpecFilter>("all");
+
+  const filteredDoctors = useMemo(
+    () =>
+      doctors.filter((doc) =>
+        specFilter === "all" ? true : doc.specialization === specFilter
+      ),
+    [specFilter]
+  );
+
+  const mainDoctors = filteredDoctors.slice(0, 4);
   const mainServices = services.slice(0, 3);
   const mainReviews = reviews.slice(0, 3);
 
@@ -55,7 +69,7 @@ export default function HomePage() {
                   className="rounded-[22px] min-h-[220px] bg-cover bg-center"
                   style={{
                     backgroundImage:
-                      "url('https://images.pexels.com/photos/6235249/pexels-photo-6235249.jpeg?auto=compress&cs=tinysrgb&w=1200')",
+                      "url('/img/hero.jpg')",
                   }}
                 />
               </div>
@@ -127,27 +141,69 @@ export default function HomePage() {
         {/* Врачи */}
         <section className="py-7">
           <div className="container mx-auto max-w-5xl px-4">
-            <div className="flex items-baseline justify-between gap-4 mb-4">
+            {/* Заголовок + большая кнопка */}
+            <div className="flex items-center justify-between gap-4 mb-3">
               <div>
                 <h2 className="text-lg md:text-xl font-semibold">
                   Врачи OnlyVet
                 </h2>
                 <p className="text-[13px] text-slate-600 max-w-xl">
                   На главной — несколько специалистов. Полный список с фильтрами
-                  будет на странице «Все врачи».
+                  доступен на странице «Все врачи».
                 </p>
               </div>
               <a
                 href="/doctors"
-                className="text-[13px] text-onlyvet-coral whitespace-nowrap"
+                className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-onlyvet-coral text-white text-[13px] font-medium shadow-[0_12px_30px_rgba(247,118,92,0.5)] hover:brightness-105 transition"
               >
-                Все врачи →
+                Все врачи
+                <span className="text-[16px] leading-none">→</span>
               </a>
             </div>
-            <div className="grid gap-4 md:grid-cols-3">
+
+            {/* Фильтр по специализации */}
+            <div className="flex flex-wrap items-center gap-2 text-[12px] mb-4">
+              <span className="text-slate-500 mr-1">
+                Фильтр по специализации:
+              </span>
+              {[
+                { key: "all", label: "Все" },
+                { key: "терапия", label: "Терапия" },
+                { key: "эксперт", label: "Эксперт / консилиум" },
+                { key: "диагностика", label: "Диагностика" },
+                { key: "онкология", label: "Онкология" },
+              ].map((btn) => (
+                <button
+                  key={btn.key}
+                  type="button"
+                  onClick={() => setSpecFilter(btn.key as HomeSpecFilter)}
+                  className={`px-3 py-1.5 rounded-full border transition text-xs ${
+                    specFilter === btn.key
+                      ? "bg-onlyvet-navy text-white border-onlyvet-navy shadow-sm"
+                      : "border-slate-300 text-onlyvet-navy bg-white hover:bg-slate-50"
+                  }`}
+                >
+                  {btn.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Сетка карточек */}
+            <div className="grid gap-4 md:grid-cols-4 sm:grid-cols-2">
               {mainDoctors.map((doc) => (
                 <DoctorCard key={doc.id} doctor={doc} />
               ))}
+            </div>
+
+            {/* Кнопка "Все врачи" для мобильной версии */}
+            <div className="mt-4 sm:hidden">
+              <a
+                href="/doctors"
+                className="inline-flex items-center justify-center w-full px-4 py-2 rounded-full bg-onlyvet-coral text-white text-[13px] font-medium shadow-[0_12px_30px_rgba(247,118,92,0.5)] hover:brightness-105 transition"
+              >
+                Все врачи
+                <span className="ml-2 text-[16px] leading-none">→</span>
+              </a>
             </div>
           </div>
         </section>
@@ -205,100 +261,102 @@ export default function HomePage() {
         </section>
 
         {/* Соцсети */}
-<section className="py-10 bg-gradient-to-b from-transparent to-slate-50/70">
-  <div className="container mx-auto max-w-5xl px-4">
-    <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-6">
-      <div>
-        <h2 className="text-lg md:text-xl font-semibold">
-          Мы в социальных сетях
-        </h2>
-        <p className="text-[13px] text-slate-600 max-w-xl">
-          Подписывайтесь на OnlyVet — делимся историями пациентов, разбираем
-          анализы и публикуем понятные рекомендации по уходу.
-        </p>
-      </div>
-    </div>
+        <section className="py-10 bg-gradient-to-b from-transparent to-slate-50/70">
+          <div className="container mx-auto max-w-5xl px-4">
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-6">
+              <div>
+                <h2 className="text-lg md:text-xl font-semibold">
+                  Мы в социальных сетях
+                </h2>
+                <p className="text-[13px] text-slate-600 max-w-xl">
+                  Подписывайтесь на OnlyVet — делимся историями пациентов,
+                  разбираем анализы и публикуем полезные рекомендации.
+                </p>
+              </div>
+            </div>
 
-    <div className="grid gap-4 md:grid-cols-4 sm:grid-cols-2">
-      {/* ВКонтакте */}
-      <a
-        href="#"
-        className="bg-white rounded-3xl border border-slate-200/80 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/70 transition-all text-center"
-      >
-        <div className="w-14 h-14 rounded-full bg-slate-50 flex items-center justify-center shadow-[0_8px_22px_rgba(15,23,42,0.08)]">
-          <img
-            src="/img/free-icon-vk-3670055.svg"
-            alt="ВКонтакте"
-            className="w-9 h-9"
-          />
-        </div>
-        <div className="text-[14px] font-semibold">ВКонтакте</div>
-        <p className="text-[12px] text-slate-600">
-          Новости, подсказки и разборы анализов.
-        </p>
-      </a>
+            <div className="grid gap-4 md:grid-cols-4 sm:grid-cols-2">
+              {/* ВКонтакте */}
+              <a
+                href="#"
+                className="bg-white rounded-3xl border border-slate-200/80 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/70 transition-all text-center"
+              >
+                <div className="w-14 h-14 rounded-full bg-slate-50 flex items-center justify-center shadow-[0_8px_22px_rgba(15,23,42,0.08)]">
+                  <img
+                    src="/img/free-icon-vk-3670055.svg"
+                    alt="ВКонтакте"
+                    className="w-9 h-9"
+                  />
+                </div>
+                <div className="text-[14px] font-semibold">ВКонтакте</div>
+                <p className="text-[12px] text-slate-600">
+                  Новости, подсказки и разборы анализов.
+                </p>
+              </a>
 
-      {/* Telegram */}
-      <a
-        href="#"
-        className="bg-white rounded-3xl border border-slate-200/80 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/70 transition-all text-center"
-      >
-        <div className="w-14 h-14 rounded-full bg-slate-50 flex items-center justify-center shadow-[0_8px_22px_rgba(15,23,42,0.08)]">
-          <img
-            src="/img/free-icon-telegram-2111646.svg"
-            alt="Telegram"
-            className="w-9 h-9"
-          />
-        </div>
-        <div className="text-[14px] font-semibold">Telegram</div>
-        <p className="text-[12px] text-slate-600">
-          Разборы клинических случаев и ответы на вопросы.
-        </p>
-      </a>
+              {/* Telegram */}
+              <a
+                href="#"
+                className="bg-white rounded-3xl border border-slate-200/80 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/70 transition-all text-center"
+              >
+                <div className="w-14 h-14 rounded-full bg-slate-50 flex items-center justify-center shadow-[0_8px_22px_rgba(15,23,42,0.08)]">
+                  <img
+                    src="/img/free-icon-telegram-2111646.svg"
+                    alt="Telegram"
+                    className="w-9 h-9"
+                  />
+                </div>
+                <div className="text-[14px] font-semibold">Telegram</div>
+                <p className="text-[12px] text-slate-600">
+                  Разборы клинических случаев и ответы на вопросы.
+                </p>
+              </a>
 
-      {/* Instagram* */}
-      <a
-        href="#"
-        className="bg-white rounded-3xl border border-slate-200/80 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/70 transition-all text-center"
-      >
-        <div className="w-14 h-14 rounded-full bg-slate-50 flex items-center justify-center shadow-[0_8px_22px_rgba(15,23,42,0.08)]">
-          <img
-            src="/img/free-icon-instagram-3955024.svg"
-            alt="Instagram"
-            className="w-9 h-9"
-          />
-        </div>
-        <div className="text-[14px] font-semibold">Instagram*</div>
-        <p className="text-[12px] text-slate-600">
-          Истории пациентов и визуальные советы.
-        </p>
-      </a>
+              {/* Instagram* */}
+              <a
+                href="#"
+                className="bg-white rounded-3xl border border-slate-200/80 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/70 transition-all text-center"
+              >
+                <div className="w-14 h-14 rounded-full bg-slate-50 flex items-center justify-center shadow-[0_8px_22px_rgba(15,23,42,0.08)]">
+                  <img
+                    src="/img/free-icon-instagram-3955024.svg"
+                    alt="Instagram"
+                    className="w-9 h-9"
+                  />
+                </div>
+                <div className="text-[14px] font-semibold">Instagram*</div>
+                <p className="text-[12px] text-slate-600">
+                  Истории пациентов и визуальные советы.
+                </p>
+              </a>
 
-      {/* Одноклассники */}
-      <a
-        href="#"
-        className="bg-white rounded-3xl border border-slate-200/80 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/70 transition-all text-center"
-      >
-        <div className="w-14 h-14 rounded-full bg-slate-50 flex items-center justify-center shadow-[0_8px_22px_rgba(15,23,42,0.08)]">
-          <img
-            src="/img/free-icon-odnoklassniki-3670250.svg"
-            alt="Одноклассники"
-            className="w-9 h-9"
-          />
-        </div>
-        <div className="text-[14px] font-semibold">Одноклассники</div>
-        <p className="text-[12px] text-slate-600">
-          Полезные советы и материалы.
-        </p>
-      </a>
-    </div>
+              {/* Одноклассники */}
+              <a
+                href="#"
+                className="bg-white rounded-3xl border border-slate-200/80 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/70 transition-all text-center"
+              >
+                <div className="w-14 h-14 rounded-full bg-slate-50 flex items-center justify-center shadow-[0_8px_22px_rgba(15,23,42,0.08)]">
+                  <img
+                    src="/img/free-icon-odnoklassniki-3670250.svg"
+                    alt="Одноклассники"
+                    className="w-9 h-9"
+                  />
+                </div>
+                <div className="text-[14px] font-semibold">Одноклассники</div>
+                <p className="text-[12px] text-slate-600">
+                  Полезные советы и материалы.
+                </p>
+              </a>
+            </div>
 
-    <p className="mt-3 text-[10px] text-slate-400 max-w-xl">
-      * Instagram принадлежит компании Meta Platforms Inc., деятельность которой
-      запрещена на территории Российской Федерации как экстремистская организация.
-    </p>
-  </div>
-</section>
+            <p className="mt-3 text-[10px] text-slate-400 max-w-xl">
+              * Instagram принадлежит компании Meta Platforms Inc., деятельность
+              которой запрещена на территории Российской Федерации как экстремистская
+              организация.
+            </p>
+          </div>
+        </section>
+
         {/* Обратная связь */}
         <section className="py-7">
           <div className="container mx-auto max-w-5xl px-4">
