@@ -84,9 +84,18 @@ export function Header() {
 
         {/* Кнопки справа */}
         <div className="hidden md:flex items-center gap-2">
-          <button className="px-3.5 py-2 rounded-full border border-slate-500 text-[11px] hover:bg-white/5 transition">
+          <Link
+            href="/account"
+            className="
+              px-3.5 py-2 rounded-full 
+              border border-slate-500 
+              text-[11px] 
+              hover:bg-white/5 
+              transition
+            "
+          >
             Войти
-          </button>
+          </Link>
           <Link
             href="/booking"
             className="
@@ -103,7 +112,7 @@ export function Header() {
           </Link>
         </div>
 
-        {/* Мобильное меню — пока заглушка */}
+        {/* Мобильное меню — заглушка */}
         <button
           className="md:hidden w-8 h-8 flex flex-col items-center justify-center gap-1.5 rounded-full border border-slate-600"
           aria-label="Меню"
