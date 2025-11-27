@@ -18,6 +18,22 @@ type FilterCategory = "all" | ServiceCategory;
 type FilterSpec = "all" | "терапия" | "эксперт" | "диагностика" | "онкология";
 type FilterDoctorId = "all" | string;
 
+const CATEGORY_BUTTONS: { key: FilterCategory; label: string }[] = [
+  { key: "all", label: "Все" },
+  { key: "консультация", label: "Консультации" },
+  { key: "второе мнение", label: "Второе мнение" },
+  { key: "диагностика", label: "Диагностика" },
+  { key: "сопровождение", label: "Сопровождение" },
+];
+
+const SPEC_BUTTONS: { key: FilterSpec; label: string }[] = [
+  { key: "all", label: "Любая" },
+  { key: "терапия", label: "Терапия" },
+  { key: "эксперт", label: "Эксперт / онкология" },
+  { key: "диагностика", label: "Диагностика" },
+  { key: "онкология", label: "Онкология" },
+];
+
 export default function ServicesPage() {
   const [category, setCategory] = useState<FilterCategory>("all");
   const [spec, setSpec] = useState<FilterSpec>("all");
@@ -59,13 +75,7 @@ export default function ServicesPage() {
           {/* Фильтры: тип услуги */}
           <div className="flex flex-wrap gap-2 text-[12px] mb-2">
             <span className="text-slate-500 mr-1">Тип услуги:</span>
-            {[
-              { key: "all" as FilterCategory, label: "Все" },
-              { key: "консультация", label: "Консультации" },
-              { key: "второе мнение", label: "Второе мнение" },
-              { key: "диагностика", label: "Диагностика" },
-              { key: "сопровождение", label: "Сопровождение" },
-            ].map((btn) => {
+            {CATEGORY_BUTTONS.map((btn) => {
               const enabled = availableCategories.has(btn.key);
               return (
                 <button
@@ -89,13 +99,7 @@ export default function ServicesPage() {
           {/* Фильтры: специализация врача */}
           <div className="flex flex-wrap gap-2 text-[12px] mb-2">
             <span className="text-slate-500 mr-1">Специализация врача:</span>
-            {[
-              { key: "all" as FilterSpec, label: "Любая" },
-              { key: "терапия", label: "Терапия" },
-              { key: "эксперт", label: "Эксперт / онкология" },
-              { key: "диагностика", label: "Диагностика" },
-              { key: "онкология", label: "Онкология" },
-            ].map((btn) => {
+            {SPEC_BUTTONS.map((btn) => {
               const enabled = availableSpecs.has(btn.key);
               return (
                 <button
