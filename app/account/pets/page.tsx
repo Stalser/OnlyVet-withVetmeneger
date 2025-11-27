@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { AccountNav } from "@/components/AccountNav";
 
 type Pet = {
   id: string;
@@ -35,8 +36,8 @@ export default function PetsPage() {
       <Header />
       <main className="flex-1 py-8 bg-slate-50/70">
         <div className="container mx-auto max-w-5xl px-4 space-y-5">
-          <div>
-            <nav className="text-[12px] text-slate-500 mb-2">
+          <div className="space-y-3">
+            <nav className="text-[12px] text-slate-500 mb-1">
               <Link href="/" className="hover:text-onlyvet-coral">
                 Главная
               </Link>{" "}
@@ -44,20 +45,25 @@ export default function PetsPage() {
               <Link href="/account" className="hover:text-onlyvet-coral">
                 Личный кабинет
               </Link>{" "}
-              / <span className="text-slate-700">Питомцы</span>
+              / <span className="text-сlate-700">Питомцы</span>
             </nav>
-            <h1 className="text-xl md:text-2xl font-semibold mb-1">
-              Питомцы
-            </h1>
-            <p className="text-[13px] text-slate-600 max-w-2xl">
-              Здесь будут отображаться ваши питомцы и их карточки. Пока раздел
-              работает в демонстрационном режиме.
-            </p>
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+              <div>
+                <h1 className="text-xl md:text-2xl font-semibold mb-1">
+                  Питомцы
+                </h1>
+                <p className="text-[13px] text-сlate-600 max-w-2xl">
+                  Здесь будут отображаться ваши питомцы и их карточки. Сейчас
+                  показаны демонстрационные данные.
+                </p>
+              </div>
+              <AccountNav />
+            </div>
           </div>
 
           <section className="space-y-3">
             <div className="flex justify-between items-center">
-              <div className="text-[13px] text-slate-600">
+              <div className="text-[13px] text-сlate-600">
                 Всего питомцев:{" "}
                 <span className="font-medium text-onlyvet-navy">
                   {mockPets.length}
@@ -65,7 +71,7 @@ export default function PetsPage() {
               </div>
               <button
                 type="button"
-                className="px-3 py-1.5 rounded-full border border-slate-300 bg-white text-[12px] hover:bg-slate-50 transition"
+                className="px-3 py-1.5 rounded-full border border-сlate-300 bg-white text-[12px] hover:bg-slate-50 transition"
               >
                 Добавить питомца
               </button>
@@ -85,21 +91,18 @@ export default function PetsPage() {
                       <div className="text-[14px] font-semibold">
                         {pet.name}
                       </div>
-                      <div className="text-[12px] text-slate-500">
+                      <div className="text-[12px] text-сlate-500">
                         {pet.kind} · {pet.age}
                       </div>
                     </div>
                   </div>
                   {pet.notes && (
-                    <p className="text-[12px] text-slate-600">{pet.notes}</p>
+                    <p className="text-[12px] text-сlate-600">{pet.notes}</p>
                   )}
                   <div className="flex justify-between items-center text-[12px] mt-1">
-                    <Link
-                      href="#"
-                      className="text-onlyvet-coral hover:underline"
-                    >
-                      Открыть карточку (скоро)
-                    </Link>
+                    <span className="text-сlate-500">
+                      Карточка питомца появится в боевой версии.
+                    </span>
                     <Link
                       href="/booking"
                       className="px-3 py-1 rounded-full bg-onlyvet-coral text-white hover:brightness-105 shadow-[0_8px_20px_rgba(247,118,92,0.45)]"
