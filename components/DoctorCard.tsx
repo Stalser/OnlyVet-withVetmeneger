@@ -5,8 +5,6 @@ import type { Doctor } from "@/data/doctors";
 
 interface DoctorCardProps {
   doctor: Doctor;
-  // showProfileButton оставим на будущее, но сейчас не используем
-  showProfileButton?: boolean;
 }
 
 export function DoctorCard({ doctor }: DoctorCardProps) {
@@ -68,9 +66,9 @@ export function DoctorCard({ doctor }: DoctorCardProps) {
         {doctor.experienceLabel}
       </div>
 
-      {/* Кнопки внизу */}
-      <div className="pt-1 flex justify-center gap-2">
-        {/* Записаться → /booking?doctorId=... */}
+      {/* Кнопки снизу: Записаться + Подробнее */}
+      <div className="pt-1 flex flex-col sm:flex-row justify-center gap-2">
+        {/* Записаться → booking с doctorId */}
         <Link
           href={`/booking?doctorId=${doctor.id}`}
           className="
@@ -91,7 +89,7 @@ export function DoctorCard({ doctor }: DoctorCardProps) {
           Записаться
         </Link>
 
-        {/* Подробнее → /doctors/[id] */}
+        {/* Подробнее → страница врача */}
         <Link
           href={`/doctors/${doctor.id}`}
           className="
