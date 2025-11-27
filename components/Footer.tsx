@@ -9,7 +9,7 @@ export function Footer() {
               ONLYVET
             </div>
             <div className="text-[13px]">
-              Ветеринарная онлайн-клиника для тех, кому важны доказательная
+              Ветеринарная онлайн-клиника, где на первом месте — доказательная
               медицина, спокойное объяснение и понятный план лечения.
             </div>
           </div>
@@ -33,10 +33,10 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Правая — контакты и соцсети */}
+          {/* Правая — контакты + соцсети */}
           <div>
             <div className="font-semibold text-[13px] mb-2">Контакты</div>
-            <div className="text-[13px] text-slate-200 space-y-1 mb-2">
+            <div className="text-[13px] text-slate-200 space-y-1 mb-3">
               <div>Почта: support@onlyvet.ru</div>
               <div>Для сотрудничества: partners@onlyvet.ru</div>
             </div>
@@ -77,7 +77,7 @@ export function Footer() {
           <div className="text-right">
             Онлайн-консультации не заменяют очный прием. В экстренных
             ситуациях немедленно обращайтесь в ближайшую круглосуточную
-            клинику.
+            ветеринарную клинику.
           </div>
         </div>
       </div>
