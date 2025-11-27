@@ -21,7 +21,8 @@ type ServiceFilterSpec = HomeSpecFilter;
 
 export default function HomePage() {
   const [specFilter, setSpecFilter] = useState<HomeSpecFilter>("all");
-  const [serviceCategory, setServiceCategory] = useState<ServiceFilterCategory>("all");
+  const [serviceCategory, setServiceCategory] =
+    useState<ServiceFilterCategory>("all");
   const [serviceSpec, setServiceSpec] = useState<ServiceFilterSpec>("all");
 
   return (
@@ -43,9 +44,12 @@ export default function HomePage() {
                 сопровождение сложных случаев — без поездок и суеты.
               </p>
               <div className="flex flex-wrap gap-2 mb-3">
-                <button className="px-4 py-2 rounded-full bg-onlyvet-coral text-xs font-medium shadow-[0_14px_36px_rgba(247,118,92,0.45)]">
+                <Link
+                  href="/booking"
+                  className="px-4 py-2 rounded-full bg-onlyvet-coral text-xs font-medium shadow-[0_14px_36px_rgba(247,118,92,0.45)] inline-flex items-center justify-center hover:brightness-105 transition"
+                >
                   Записаться на консультацию
-                </button>
+                </Link>
                 <button className="px-4 py-2 rounded-full border border-slate-500 text-xs">
                   Войти в личный кабинет
                 </button>
@@ -139,7 +143,7 @@ export default function HomePage() {
           setServiceSpec={setServiceSpec}
         />
 
-        {/* Отзывы */}
+        {/* Отзывы (простая версия: 3 штуки) */}
         <section className="py-7">
           <div className="container mx-auto max-w-5xl px-4">
             <div className="flex items-baseline justify-between gap-4 mb-4">
@@ -149,12 +153,13 @@ export default function HomePage() {
                   Несколько свежих отзывов от владельцев.
                 </p>
               </div>
-              <a
+              <Link
                 href="/reviews"
-                className="text-[13px] text-onlyvet-coral whitespace-nowrap"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-onlyvet-coral text-white text-[13px] font-medium shadow-[0_12px_30px_rgba(247,118,92,0.5)] hover:brightness-105 transition"
               >
-                Все отзывы →
-              </a>
+                Все отзывы
+                <span className="text-[16px] leading-none">→</span>
+              </Link>
             </div>
             <div className="grid gap-4 md:grid-cols-3">
               {reviews.slice(0, 3).map((review) => (
@@ -262,9 +267,9 @@ function DoctorsCarousel({ specFilter }: { specFilter: HomeSpecFilter }) {
     <div className="space-y-3">
       <div className="grid gap-4 md:grid-cols-4 sm:grid-cols-2 items-stretch">
         {current.map((doc) => (
-          <Link key={doc.id} href={`/doctors/${doc.id}`} className="h-full">
+          <div key={doc.id} className="h-full">
             <DoctorCard doctor={doc} />
-          </Link>
+          </div>
         ))}
       </div>
 
@@ -410,7 +415,11 @@ function ServicesSection({
         {/* Отфильтрованные услуги (до 3 на главной) */}
         <div className="grid gap-4 md:grid-cols-3 sm:grid-cols-2">
           {filteredServices.slice(0, 3).map((service) => (
-            <Link key={service.id} href={`/services/${service.id}`} className="h-full">
+            <Link
+              key={service.id}
+              href={`/services/${service.id}`}
+              className="h-full"
+            >
               <ServiceCard service={service} />
             </Link>
           ))}
