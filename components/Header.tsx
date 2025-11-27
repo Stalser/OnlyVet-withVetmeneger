@@ -1,3 +1,5 @@
+// components/Header.tsx
+
 "use client";
 
 import Link from "next/link";
@@ -10,7 +12,8 @@ function cn(...classes: (string | false | null | undefined)[]) {
 export function Header() {
   const pathname = usePathname();
 
-  const isActive = (href: string) => pathname === href;
+  const isActive = (href: string) =>
+    pathname === href || (href !== "/" && pathname.startsWith(href));
 
   return (
     <header className="sticky top-0 z-40 bg-onlyvet-navy text-white border-b border-slate-800/80">
@@ -35,8 +38,8 @@ export function Header() {
           <Link
             href="/"
             className={cn(
-              "text-slate-200 hover:text-white transition-colors",
-              isActive("/") && "font-semibold text-white"
+              "text-slate-300 hover:text-white transition-colors",
+              isActive("/") && "text-white font-medium"
             )}
           >
             Главная
@@ -44,8 +47,8 @@ export function Header() {
           <Link
             href="/doctors"
             className={cn(
-              "text-slate-200 hover:text-white transition-colors",
-              isActive("/doctors") && "font-semibold text-white"
+              "text-slate-300 hover:text-white transition-colors",
+              isActive("/doctors") && "text-white font-medium"
             )}
           >
             Врачи
@@ -53,8 +56,8 @@ export function Header() {
           <Link
             href="/services"
             className={cn(
-              "text-slate-200 hover:text-white transition-colors",
-              isActive("/services") && "font-semibold text-white"
+              "text-slate-300 hover:text-white transition-colors",
+              isActive("/services") && "text-white font-medium"
             )}
           >
             Услуги
@@ -62,8 +65,8 @@ export function Header() {
           <Link
             href="/reviews"
             className={cn(
-              "text-slate-200 hover:text-white transition-colors",
-              isActive("/reviews") && "font-semibold text-white"
+              "text-slate-300 hover:text-white transition-colors",
+              isActive("/reviews") && "text-white font-medium"
             )}
           >
             Отзывы
@@ -71,8 +74,8 @@ export function Header() {
           <Link
             href="/docs"
             className={cn(
-              "text-slate-200 hover:text-white transition-colors",
-              isActive("/docs") && "font-semibold text-white"
+              "text-slate-300 hover:text-white transition-colors",
+              isActive("/docs") && "text-white font-medium"
             )}
           >
             Документы
@@ -84,18 +87,29 @@ export function Header() {
           <button className="px-3.5 py-2 rounded-full border border-slate-500 text-[11px] hover:bg-white/5 transition">
             Войти
           </button>
-          <button className="px-4 py-2 rounded-full bg-onlyvet-coral text-[11px] font-semibold shadow-[0_10px_26px_rgba(247,118,92,0.45)] hover:brightness-105 transition">
+          <Link
+            href="/booking"
+            className="
+              px-4 py-2 rounded-full 
+              bg-onlyvet-coral 
+              text-[11px] font-semibold 
+              shadow-[0_10px_26px_rgba(247,118,92,0.45)]
+              hover:brightness-105 
+              transition
+              inline-flex items-center justify-center
+            "
+          >
             Записаться
-          </button>
+          </Link>
         </div>
 
-        {/* Мобильное меню (пока заглушка) */}
+        {/* Мобильное меню — пока заглушка */}
         <button
           className="md:hidden w-8 h-8 flex flex-col items-center justify-center gap-1.5 rounded-full border border-slate-600"
           aria-label="Меню"
         >
-          <span className="w-4 h-[2px] bg-slate-100 rounded-full" />
-          <span className="w-4 h-[2px] bg-slate-100 rounded-full" />
+          <span className="w-4 h-[2px] rounded-full bg-slate-100" />
+          <span className="w-4 h-[2px] rounded-full bg-slate-100" />
         </button>
       </div>
     </header>
