@@ -327,92 +327,63 @@ function SocialBlock() {
   return (
     <section className="py-10 bg-gradient-to-b from-transparent to-slate-50/70">
       <div className="container mx-auto max-w-5xl px-4">
-        <h2 className="text-lg md:text-xl font-semibold mb-1">
-          Мы в социальных сетях
-        </h2>
+        <h2 className="text-lg md:text-xl font-semibold mb-1">Мы в социальных сетях</h2>
         <p className="text-[13px] text-slate-600 max-w-xl mb-6">
           Подписывайтесь на OnlyVet — делимся историями пациентов, рекомендациями
           и полезными подсказками.
         </p>
 
         <div className="grid gap-4 md:grid-cols-4 sm:grid-cols-2">
+
           {/* VK */}
           <a
             href="#"
-            className="bg-white rounded-3xl border border-slate-200/80 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/70 transition-all text-center"
+            className="bg-white rounded-3xl border border-slate-200 px-5 py-6 flex flex-col items-center gap-3
+                       hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/60 transition-all text-center"
           >
-            <div className="w-14 h-14 rounded-full bg-slate-50 flex items-center justify-center shadow">
-              <img
-                src="/img/free-icon-vk-3670055.svg"
-                alt="ВКонтакте"
-                className="w-9 h-9"
-              />
-            </div>
+            <img src="/img/free-icon-vk-3670055.svg" alt="VK" className="w-14 h-14" />
             <div className="text-[14px] font-semibold">ВКонтакте</div>
-            <p className="text-[12px] text-slate-600">
-              Новости и разборы анализов.
-            </p>
+            <p className="text-[12px] text-slate-600">Новости и разборы анализов.</p>
           </a>
 
           {/* Telegram */}
           <a
             href="#"
-            className="bg-white rounded-3xl border border-slate-200/80 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/70 transition-all text-center"
+            className="bg-white rounded-3xl border border-slate-200 px-5 py-6 flex flex-col items-center gap-3
+                       hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/60 transition-all text-center"
           >
-            <div className="w-14 h-14 rounded-full bg-slate-50 flex items-center justify-center shadow">
-              <img
-                src="/img/free-icon-telegram-2111646.svg"
-                alt="Telegram"
-                className="w-9 h-9"
-              />
-            </div>
+            <img src="/img/free-icon-telegram-2111646.svg" alt="Telegram" className="w-14 h-14" />
             <div className="text-[14px] font-semibold">Telegram</div>
-            <p className="text-[12px] text-slate-600">
-              Разборы сложных случаев и ответы на вопросы.
-            </p>
+            <p className="text-[12px] text-slate-600">Ответы на вопросы и полезные разборы.</p>
           </a>
 
           {/* Instagram */}
           <a
             href="#"
-            className="bg-white rounded-3xl border border-slate-200/80 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/70 transition-all text<center>"
+            className="bg-white rounded-3xl border border-slate-200 px-5 py-6 flex flex-col items-center gap-3
+                       hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/60 transition-all text-center"
           >
-            <div className="w-14 h-14 rounded-full bg-slate-50 flex items-center justify-center shadow">
-              <img
-                src="/img/free-icon-instagram-3955024.svg"
-                alt="Instagram"
-                className="w-9 h-9"
-              />
-            </div>
+            <img src="/img/free-icon-instagram-3955024.svg" alt="Instagram" className="w-14 h-14" />
             <div className="text-[14px] font-semibold">Instagram*</div>
-            <p className="text-[12px] text-slate-600">
-              Истории пациентов и визуальные схемы.
-            </p>
+            <p className="text-[12px] text-slate-600">Истории пациентов и визуальные схемы.</p>
           </a>
 
           {/* OK */}
           <a
             href="#"
-            className="bg-white rounded-3xl border border-slate-200/80 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/70 transition-all text-center"
+            className="bg-white rounded-3xl border border-slate-200 px-5 py-6 flex flex-col items-center gap-3
+                       hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/60 transition-all text-center"
           >
-            <div className="w-14 h-14 rounded-full bg-slate-50 flex items-center justify<center shadow">
-              <img
-                src="/img/free-icon-odnoklassniki-3670250.svg"
-                alt="Одноклассники"
-                className="w-9 h-9"
-              />
-            </div>
+            <img src="/img/free-icon-odnoklassniki-3670250.svg" alt="Одноклассники" className="w-14 h-14" />
             <div className="text-[14px] font-semibold">Одноклассники</div>
-            <p className="text-[12px] text-slate-600">
-              Полезные советы и материалы.
-            </p>
+            <p className="text-[12px] text-slate-600">Полезные советы и материалы.</p>
           </a>
+
         </div>
 
         <p className="mt-3 text-[10px] text-slate-400 max-w-xl">
-          * Instagram принадлежит компании Meta Platforms Inc., деятельность
-          которой запрещена на территории Российской Федерации как
-          экстремистская организация.
+          * Instagram принадлежит компании Meta Platforms Inc., деятельность которой
+          запрещена на территории Российской Федерации как экстремистская организация.
         </p>
       </div>
     </section>
