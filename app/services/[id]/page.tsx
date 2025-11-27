@@ -38,7 +38,7 @@ export default function ServicePage({ params }: PageProps) {
             / <span className="text-slate-700">{name}</span>
           </div>
 
-          {/* Верх: название + правая колонка */}
+          {/* Верх: краткое описание и блок записи */}
           <section className="grid gap-6 md:grid-cols-[1.4fr,1fr]">
             <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 space-y-3">
               <div className="text-[11px] uppercase tracking-[0.14em] text-slate-400">
@@ -51,7 +51,9 @@ export default function ServicePage({ params }: PageProps) {
                   : "Сопровождение"}
               </div>
               <h1 className="text-xl md:text-2xl font-semibold">{name}</h1>
-              <p className="text-[13px] text-slate-600">{shortDescription}</p>
+              <p className="text-[13px] text-slate-600">
+                {shortDescription}
+              </p>
 
               <div className="flex flex-wrap gap-1">
                 {tags.map((tag) => (
@@ -65,19 +67,18 @@ export default function ServicePage({ params }: PageProps) {
               </div>
             </div>
 
-            {/* Блок записи / стоимости */}
             <aside className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 space-y-3">
               <h2 className="text-[15px] font-semibold">Записаться на услугу</h2>
               <p className="text-[13px] text-slate-600">
-                Выберите удобное время, загрузите анализы и опишите запрос — мы
-                подготовимся к консультации заранее.
+                Оставьте запрос — мы подберём удобное время и поможем
+                подготовиться к консультации.
               </p>
               <div className="text-[13px] font-medium text-onlyvet-navy">
                 Стоимость: {priceLabel}
               </div>
               <button
                 type="button"
-                className="w-full px-4 py-2.5 rounded-full bg-onlyvet-coral text-white text-[13px] font-medium shadow-[0_12px_32px_rgба(247,118,92,0.6)] hover:brightness-105 transition"
+                className="w-full px-4 py-2.5 rounded-full bg-onlyvet-coral text-white text-[13px] font-medium shadow-[0_12px_32px_rgba(247,118,92,0.6)] hover:brightness-105 transition"
               >
                 Записаться
               </button>
@@ -88,7 +89,7 @@ export default function ServicePage({ params }: PageProps) {
             </aside>
           </section>
 
-          {/* Подробное описание */}
+          {/* Детальное описание */}
           <section className="grid gap-6 md:grid-cols-[1.4fr,1fr]">
             <div className="space-y-4">
               <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5">
@@ -103,7 +104,6 @@ export default function ServicePage({ params }: PageProps) {
               </div>
             </div>
 
-            {/* Место под FAQ/заметки (заглушка) */}
             <div className="space-y-4">
               <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5">
                 <h3 className="text-[15px] font-semibold mb-2">
@@ -112,7 +112,8 @@ export default function ServicePage({ params }: PageProps) {
                 <p className="text-[13px] text-slate-700 leading-relaxed">
                   В дальнейшем здесь можно будет разместить чек-лист подготовки:
                   какие анализы и данные желательно иметь под рукой, как лучше
-                  описать жалобы и историю заболевания.
+                  описать жалобы и историю заболевания, чтобы консультация была
+                  максимально продуктивной.
                 </p>
               </div>
             </div>
@@ -124,7 +125,6 @@ export default function ServicePage({ params }: PageProps) {
   );
 }
 
-// статические пути
 export function generateStaticParams() {
   return services.map((service) => ({
     id: service.id,
