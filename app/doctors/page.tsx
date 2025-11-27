@@ -17,7 +17,7 @@ export default function DoctorsPage() {
   const [tagFilter, setTagFilter] = useState<TagFilter>("all");
   const [search, setSearch] = useState("");
 
-  // набор всех тегов для фильтра
+  // собрать список тегов для фильтра
   const allTags = useMemo(
     () =>
       Array.from(
@@ -35,13 +35,9 @@ export default function DoctorsPage() {
     const q = search.trim().toLowerCase();
 
     return doctors.filter((d) => {
-      // фильтр по специализации
       if (specFilter !== "all" && d.specialization !== specFilter) return false;
-
-      // фильтр по тегу
       if (tagFilter !== "all" && !d.tags.includes(tagFilter)) return false;
 
-      // поиск по имени / роли / фокусу / тегам
       if (q) {
         const haystack =
           `${d.name} ${d.role} ${d.servicesShort} ${d.tags.join(" ")}`.toLowerCase();
@@ -66,7 +62,6 @@ export default function DoctorsPage() {
                 онкология, сложные случаи, второе мнение.
               </p>
             </div>
-            {/* Можно потом добавить кнопку "Подобрать врача" */}
           </div>
 
           {/* Фильтры */}
@@ -96,7 +91,7 @@ export default function DoctorsPage() {
               ))}
             </div>
 
-            {/* Теги / тип запроса */}
+            {/* Тематика запросов (теги) */}
             {allTags.length > 0 && (
               <div className="flex flex-wrap items-center gap-2 text-[12px]">
                 <span className="text-slate-500 mr-1">Тематика запросов:</span>
@@ -128,11 +123,11 @@ export default function DoctorsPage() {
               </div>
             )}
 
-            {/* Поиск по имени/ключевым словам */}
+            {/* Поиск */}
             <div className="mt-1">
               <input
                 type="text"
-                placeholder="Поиск по имени, роли, ключевым словам…"
+                placeholder="Поиск по имени, роли, фокусу, тегам…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="
@@ -154,8 +149,12 @@ export default function DoctorsPage() {
               </div>
             ) : (
               filteredDoctors.map((doc) => (
-                <Link key={doc.id} href={`/doctors/${doc.id}`} className="h-full">
-                  <DoctorCard doctor={doc} showProfileButton />
+                <Link
+                  key={doc.id}
+                  href={`/doctors/${doc.id}`}
+                  className="h-full"
+                >
+                  <DoctorCard doctor={doc} />
                 </Link>
               ))
             )}
