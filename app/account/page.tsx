@@ -21,53 +21,65 @@ export default function AccountDashboardPage() {
   return (
     <>
       <Header />
-      <main className="flex-1 py-8 bg-slate-50/70">
-        <div className="container mx-auto max-w-5xl px-4 space-y-5">
-          {/* Заголовок + хлебные крошки */}
+
+      <main className="flex-1 bg-slate-50/70 py-8">
+        <div className="container mx-auto max-w-5xl px-4 space-y-7">
+          {/* Хлебные крошки + заголовок + навигация */}
           <div className="space-y-3">
-            <nav className="text-[12px] text-slate-500 mb-1">
+            <nav className="text-[12px] text-slate-500">
               <Link href="/" className="hover:text-onlyvet-coral">
                 Главная
               </Link>{" "}
-              / <span className="text-slate-700">Личный кабинет</span>
+              /{" "}
+              <span className="text-slate-700">Личный кабинет</span>
             </nav>
-            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
-              <div>
-                <h1 className="text-xl md:text-2xl font-semibold mb-1">
+
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+              <div className="space-y-1">
+                <h1 className="text-xl md:text-2xl font-semibold">
                   Личный кабинет
                 </h1>
-                <p className="text-[13px] text-slate-600 max-w-2xl">
-                  Здесь будут собраны ваши питомцы, онлайн-консультации и
-                  настройки профиля. Сейчас раздел работает в демонстрационном
-                  режиме.
+                <p className="text-[13px] text-slate-600 max-w-2xl leading-relaxed">
+                  Здесь собрана информация о ваших питомцах, консультациях,
+                  документах и настройках профиля. Раздел работает в
+                  демонстрационном режиме — данные не являются реальными.
                 </p>
               </div>
+
+              {/* Навигация ЛК */}
               <AccountNav />
             </div>
           </div>
 
-          {/* Профиль + сводка */}
+          {/* Основной блок: профиль + краткая статистика */}
           <section className="grid gap-4 md:grid-cols-[1.4fr,1fr]">
-            <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 flex flex-col gap-3">
+            {/* Профиль */}
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 flex flex-col gap-4">
               <div>
-                <div className="text-[12px] text-slate-500 mb-1">
+                <div className="text-[12px] uppercase tracking-wide text-slate-500 mb-1">
                   Профиль владельца
                 </div>
-                <div className="text-[15px] font-semibold">{user.name}</div>
-                <div className="text-[13px] text-slate-600">
+
+                <div className="text-[16px] font-semibold text-slate-900">
+                  {user.name}
+                </div>
+
+                <div className="text-[13px] text-slate-600 mt-1">
                   Телефон: {user.phone}
                 </div>
                 <div className="text-[13px] text-slate-600">
                   Telegram: {user.telegram}
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2 text-[12px] mt-1">
+
+              <div className="flex flex-wrap gap-2 text-[12px]">
                 <Link
                   href="/account/profile"
                   className="px-3 py-1.5 rounded-full border border-slate-300 bg-white hover:bg-slate-50 transition"
                 >
                   Редактировать профиль
                 </Link>
+
                 <Link
                   href="/booking"
                   className="px-3 py-1.5 rounded-full bg-onlyvet-coral text-white shadow-[0_10px_24px_rgba(247,118,92,0.45)] hover:brightness-105 transition"
@@ -77,115 +89,116 @@ export default function AccountDashboardPage() {
               </div>
             </div>
 
-            <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 flex flex-col gap-2 text-[13px]">
-              <div className="text-[12px] text-slate-500 mb-1">
-                Сводка по аккаунту (демо)
+            {/* Сводка */}
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 flex flex-col gap-2">
+              <div className="text-[12px] uppercase tracking-wide text-slate-500 mb-1">
+                Сводка аккаунта (демо)
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-600">Питомцы</span>
-                <span className="font-semibold text-onlyvet-navy">
-                  {stats.pets}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-600">Всего консультаций</span>
-                <span className="font-semibold text-onlyvet-navy">
-                  {stats.requests}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-600">Активные заявки</span>
-                <span className="font-semibold text-onlyvet-navy">
-                  {stats.active}
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-500 mt-1">
-                В боевой версии здесь будет отображаться статистика по вашим
-                реальным обращениям.
+
+              {[
+                ["Питомцы", stats.pets],
+                ["Всего консультаций", stats.requests],
+                ["Активные заявки", stats.active],
+              ].map(([label, value]) => (
+                <div key={label} className="flex justify-between text-[13px]">
+                  <span className="text-slate-600">{label}</span>
+                  <span className="font-semibold text-onlyvet-navy">
+                    {value as number}
+                  </span>
+                </div>
+              ))}
+
+              <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
+                В реальной версии здесь будет отображаться статистика по вашим
+                питомцам и консультациям.
               </p>
             </div>
           </section>
 
-                    {/* Быстрые разделы */}
+          {/* Быстрые разделы */}
           <section className="grid gap-4 md:grid-cols-3">
+            {/* Питомцы */}
             <Link
               href="/account/pets"
-              className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4 flex flex-col gap-2 hover:-translate-y-[2px] hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] transition"
+              className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 flex flex-col gap-2 transition hover:-translate-y-[2px] hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)]"
             >
-              <div className="text-[13px] font-semibold mb-1">Питомцы</div>
-              <p className="text-[12px] text-slate-600">
-                Список ваших питомцев, их карточки и история обращений.
+              <div className="text-[14px] font-semibold">Питомцы</div>
+              <p className="text-[12px] text-slate-600 leading-relaxed">
+                Список питомцев, карточки, документы и история обращений.
               </p>
-              <span className="text-[12px] text-onlyvet-coral font-medium mt-auto">
+              <span className="mt-auto text-[12px] text-onlyvet-coral font-medium">
                 Открыть раздел →
               </span>
             </Link>
 
+            {/* Консультации */}
             <Link
               href="/account/requests"
-              className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4 flex flex-col gap-2 hover:-translate-y-[2px] hover:shadow-[0_18px_40px_rgба(15,23,42,0.08)] transition"
+              className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 flex flex-col gap-2 transition hover:-translate-y-[2px] hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)]"
             >
-              <div className="text-[13px] font-semibold mb-1">
+              <div className="text-[14px] font-semibold">
                 Консультации и заявки
               </div>
-              <p className="text-[12px] text-slate-600">
-                Журнал онлайн-консультаций и статусы заявок.
+              <p className="text-[12px] text-slate-600 leading-relaxed">
+                Все консультации, статусы заявок и рекомендации врачей.
               </p>
-              <span className="text-[12px] text-onlyvet-coral font-medium mt-auto">
+              <span className="mt-auto text-[12px] text-onlyvet-coral font-medium">
                 Смотреть историю →
               </span>
             </Link>
 
+            {/* Документы */}
             <Link
               href="/account/documents"
-              className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4 flex flex-col gap-2 hover:-translate-y-[2px] hover:shadow-[0_18px_40px_rgба(15,23,42,0.08)] transition"
+              className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 flex flex-col gap-2 transition hover:-translate-y-[2px] hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)]"
             >
-              <div className="text-[13px] font-semibold mb-1">Документы</div>
-              <p className="text-[12px] text-slate-600">
-                Договоры, счета, чеки и другие документы, связанные с
-                консультациями.
+              <div className="text-[14px] font-semibold">Документы</div>
+              <p className="text-[12px] text-slate-600 leading-relaxed">
+                Договоры, акты, счета, чеки и все меддокументы по питомцам.
               </p>
-              <span className="text-[12px] text-onlyvet-coral font-medium mt-auto">
+              <span className="mt-auto text-[12px] text-onlyvet-coral font-medium">
                 Перейти к документам →
               </span>
             </Link>
           </section>
 
-          {/* Второй ряд быстрых разделов (опционально) */}
+          {/* Второй ряд */}
           <section className="grid gap-4 md:grid-cols-2">
+            {/* Доверенные лица */}
             <Link
               href="/account/trusted"
-              className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4 flex flex-col gap-2 hover:-translate-y-[2px] hover:shadow-[0_18px_40px_rgба(15,23,42,0.08)] transition"
+              className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 flex flex-col gap-2 transition hover:-translate-y-[2px] hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)]"
             >
-              <div className="text-[13px] font-semibold mb-1">
+              <div className="text-[14px] font-semibold">
                 Доверенные лица
               </div>
-              <p className="text-[12px] text-slate-600">
-                Люди, которым вы доверяете доступ к информации о питомцах и
-                записям на консультации.
+              <p className="text-[12px] text-slate-600 leading-relaxed">
+                Люди, которым вы доверяете доступ к информации и заявкам.
               </p>
-              <span className="text-[12px] text-onlyvet-coral font-medium mt-auto">
-                Управлять доверенными лицами →
+              <span className="mt-auto text-[12px] text-onlyvet-coral font-medium">
+                Управлять →
               </span>
             </Link>
 
+            {/* Настройки профиля */}
             <Link
               href="/account/profile"
-              className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4 flex flex-col gap-2 hover:-translate-y-[2px] hover:shadow-[0_18px_40px_rgба(15,23,42,0.08)] transition"
+              className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 flex flex-col gap-2 transition hover:-translate-y-[2px] hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)]"
             >
-              <div className="text-[13px] font-semibold mb-1">
+              <div className="text-[14px] font-semibold">
                 Настройки профиля
               </div>
-              <p className="text-[12px] text-slate-600">
-                Контактные данные, способ связи и согласия на уведомления.
+              <p className="text-[12px] text-slate-600 leading-relaxed">
+                Контактные данные, телеграм, почта, уведомления и согласия.
               </p>
-              <span className="text-[12px] text-onlyvet-coral font-medium mt-auto">
-                Перейти к настройкам →
+              <span className="mt-auto text-[12px] text-onlyvet-coral font-medium">
+                Перейти →
               </span>
             </Link>
           </section>
         </div>
       </main>
+
       <Footer />
     </>
   );
