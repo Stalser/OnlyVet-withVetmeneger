@@ -82,7 +82,8 @@ function statusMeta(status: RequestStatus) {
 }
 
 export default function AdminRequestsPage() {
-  const [requestsState, setRequestsState] = useState<AdminRequest[]>(mockAdminRequests);
+  const [requestsState, setRequestsState] =
+    useState<AdminRequest[]>(mockAdminRequests);
   const [filter, setFilter] = useState<"all" | RequestStatus>("all");
 
   const filtered = useMemo(
@@ -101,14 +102,16 @@ export default function AdminRequestsPage() {
 
   const getDoctorName = (id?: string) =>
     id ? doctors.find((d) => d.id === id)?.name : undefined;
+
   const getServiceName = (id?: string) =>
     id ? services.find((s) => s.id === id)?.name : undefined;
 
   return (
     <>
       <Header />
-      <main className="flex-1 py-8 bg-slate-50/70">
-        <div className="container mx-auto max-w-5xl px-4 space-y-5">
+
+      <main className="flex-1 bg-slate-50/70 py-8">
+        <div className="container mx-auto max-w-5xl px-4 space-y-7">
           {/* Заголовок */}
           <div className="space-y-3">
             <nav className="text-[12px] text-slate-500 mb-1">
@@ -117,14 +120,15 @@ export default function AdminRequestsPage() {
               </Link>{" "}
               / <span className="text-slate-700">Заявки</span>
             </nav>
-            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
               <div>
                 <h1 className="text-xl md:text-2xl font-semibold mb-1">
                   Заявки на консультации
                 </h1>
-                <p className="text-[13px] text-slate-600 max-w-2xl">
-                  Каркас интерфейса для обработки заявок. В боевой версии здесь
-                  будут реальные данные из формы записи на консультацию.
+                <p className="text-[13px] text-slate-600 max-w-2xl leading-relaxed">
+                  Интерфейс для обработки заявок на онлайн-консультации. Пока
+                  используются демонстрационные данные. В боевой версии здесь
+                  будут заявки из формы записи.
                 </p>
               </div>
               <AdminNav />
@@ -132,7 +136,7 @@ export default function AdminRequestsPage() {
           </div>
 
           {/* Фильтр по статусу */}
-          <section className="space-y-3">
+          <section className="space-y-4">
             <div className="flex flex-wrap items-center gap-2 text-[12px]">
               <span className="text-slate-500 mr-1">Статус:</span>
               {[
@@ -174,7 +178,7 @@ export default function AdminRequestsPage() {
                 return (
                   <article
                     key={req.id}
-                    className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4 flex flex-col gap-1 text-[13px]"
+                    className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4 md:p-5 flex flex-col gap-1 text-[13px]"
                   >
                     <div className="flex justify-between items-center mb-1">
                       <div className="font-semibold text-onlyvet-navy">
@@ -188,20 +192,22 @@ export default function AdminRequestsPage() {
                     </div>
 
                     <div className="text-[12px] text-slate-500">{dt}</div>
+
                     <div className="text-[12px] text-slate-600">
                       Клиент:{" "}
                       <span className="font-medium">{req.clientName}</span>
                     </div>
-                    <div className="text-[12px] text-сlate-600">
+                    <div className="text-[12px] text-slate-600">
                       Телефон:{" "}
                       <span className="font-medium">{req.phone}</span>
                     </div>
-                    <div className="text-[12px] text-сlate-600">
+                    <div className="text-[12px] text-slate-600">
                       Питомец:{" "}
                       <span className="font-medium">{req.petName}</span>
                     </div>
+
                     {doctorName && (
-                      <div className="text-[12px] text-сlate-600">
+                      <div className="text-[12px] text-slate-600">
                         Врач:{" "}
                         <Link
                           href={`/doctors/${req.doctorId}`}
@@ -211,8 +217,9 @@ export default function AdminRequestsPage() {
                         </Link>
                       </div>
                     )}
+
                     {serviceName && (
-                      <div className="text-[12px] text-сlate-600">
+                      <div className="text-[12px] text-slate-600">
                         Услуга:{" "}
                         <Link
                           href={`/services/${req.serviceId}`}
@@ -223,6 +230,7 @@ export default function AdminRequestsPage() {
                       </div>
                     )}
 
+                    {/* Кнопки управления статусом */}
                     <div className="flex flex-wrap gap-2 mt-2 text-[12px]">
                       {req.status !== "done" && (
                         <button
@@ -233,15 +241,20 @@ export default function AdminRequestsPage() {
                           Отметить как завершённую
                         </button>
                       )}
-                      {req.status !== "in_progress" && req.status !== "done" && (
-                        <button
-                          type="button"
-                          onClick={() => updateStatus(req.id, "in_progress")}
-                          className="px-3 py-1.5 rounded-full bg-sky-600 text-white hover:bg-sky-700 transition"
-                        >
-                          В работу
-                        </button>
-                      )}
+
+                      {req.status !== "in_progress" &&
+                        req.status !== "done" && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateStatus(req.id, "in_progress")
+                            }
+                            className="px-3 py-1.5 rounded-full bg-sky-600 text-white hover:bg-sky-700 transition"
+                          >
+                            В работу
+                          </button>
+                        )}
+
                       {req.status !== "rejected" && (
                         <button
                           type="button"
@@ -255,8 +268,9 @@ export default function AdminRequestsPage() {
                   </article>
                 );
               })}
+
               {filtered.length === 0 && (
-                <div className="text-[13px] text-сlate-500">
+                <div className="text-[13px] text-slate-500">
                   По выбранному фильтру нет заявок.
                 </div>
               )}
@@ -264,6 +278,7 @@ export default function AdminRequestsPage() {
           </section>
         </div>
       </main>
+
       <Footer />
     </>
   );
