@@ -10,8 +10,13 @@ import { Footer } from "@/components/Footer";
 export default function RegisterPage() {
   const router = useRouter();
 
-  const [fullName, setFullName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [middleName, setMiddleName] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [telegram, setTelegram] = useState("");
+
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
 
@@ -22,6 +27,14 @@ export default function RegisterPage() {
     e.preventDefault();
     setError(null);
 
+    if (!lastName.trim() || !firstName.trim()) {
+      setError("Заполните фамилию и имя.");
+      return;
+    }
+    if (!phone.trim() || !email.trim()) {
+      setError("Телефон и email обязательны.");
+      return;
+    }
     if (password !== password2) {
       setError("Пароли не совпадают.");
       return;
@@ -34,21 +47,23 @@ export default function RegisterPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          lastName,
+          firstName,
+          middleName,
           phone,
-          fullName,
+          email,
+          telegram,
           password,
           password2,
         }),
       });
 
       const data = await res.json();
-
       if (!res.ok) {
         setError(data.error || "Ошибка регистрации");
         return;
       }
 
-      // Здесь можно сразу логинить, но пока просто шлём на страницу входа
       router.push("/auth/login");
     } catch (err) {
       console.error(err);
@@ -84,40 +99,99 @@ export default function RegisterPage() {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-3 text-[13px]">
-                <div>
-                  <label className="block text-[12px] text-slate-600 mb-1">
-                    ФИО
-                  </label>
-                  <input
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
-                    placeholder="Например: Иванов Иван Иванович"
-                  />
+                {/* ФИО */}
+                <div className="grid md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[12px] text-slate-600 mb-1">
+                      Фамилия<span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                      placeholder="Иванов"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[12px] text-slate-600 mb-1">
+                      Имя<span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                      placeholder="Иван"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[12px] text-slate-600 mb-1">
+                      Отчество
+                    </label>
+                    <input
+                      type="text"
+                      value={middleName}
+                      onChange={(e) => setMiddleName(e.target.value)}
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                      placeholder="Иванович"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-[12px] text-slate-600 mb-1">
-                    Телефон (логин)
-                  </label>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
-                    placeholder="+7 ..."
-                  />
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    В будущем по этому номеру будет выполняться вход в личный
-                    кабинет.
-                  </p>
-                </div>
-
+                {/* Телефон + email */}
                 <div className="grid md:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[12px] text-slate-600 mb-1">
-                      Пароль
+                      Телефон (логин)<span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                      placeholder="+7 ..."
+                    />
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      По этому номеру будет выполняться вход в личный кабинет.
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-[12px] text-slate-600 mb-1">
+                      Email<span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                      placeholder="example@mail.ru"
+                    />
+                  </div>
+                </div>
+
+                {/* Telegram */}
+                <div>
+                  <label className="block text-[12px] text-slate-600 mb-1">
+                    Логин Telegram
+                  </label>
+                  <input
+                    type="text"
+                    value={telegram}
+                    onChange={(e) => setTelegram(e.target.value)}
+                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                    placeholder="@username (необязательно)"
+                  />
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    При наличии, по Telegram удобнее всего коммуницировать.
+                  </p>
+                </div>
+
+                {/* Пароли */}
+                <div className="grid md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[12px] text-slate-600 mb-1">
+                      Пароль<span className="text-red-500">*</span>
                     </label>
                     <input
                       type="password"
@@ -129,7 +203,7 @@ export default function RegisterPage() {
                   </div>
                   <div>
                     <label className="block text-[12px] text-slate-600 mb-1">
-                      Повтор пароля
+                      Повтор пароля<span className="text-red-500">*</span>
                     </label>
                     <input
                       type="password"
@@ -174,9 +248,9 @@ export default function RegisterPage() {
 
               <p className="text-[11px] text-slate-500">
                 В демонстрационном режиме эта форма отправляет данные на
-                внутренний API `/api/auth/register`. Позже этот API будет
-                создавать реального пользователя в базе данных и связывать его
-                с клиентом в Vetmanager.
+                внутренний API <code>/api/auth/register</code>. Позже этот API
+                будет создавать реального пользователя в базе данных и
+                связывать его с клиентом в Vetmanager.
               </p>
             </div>
           </div>
