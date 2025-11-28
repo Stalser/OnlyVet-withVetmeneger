@@ -1,7 +1,8 @@
 // lib/db.ts
 //
-// Это абстракция над БД. Сейчас — мок на массивах.
-// Потом здесь нужно будет сделать реальную реализацию поверх Postgres / Supabase.
+// ВРЕМЕННЫЙ слой "БД в памяти" для прототипа.
+// В будущем этот файл нужно будет заменить на реальную работу с Postgres/Yandex Cloud,
+// но интерфейс функций (getUserByPhone, createUser) можно сохранить прежним.
 
 export type UserRole = "user" | "admin";
 
@@ -18,10 +19,10 @@ export interface User {
   updated_at: string;
 }
 
-// ВРЕМЕННО: in-memory store
+// in-memory store — живёт, пока работает сервер
 const users: User[] = [];
 
-// Нормализация телефона (удаляем лишние символы)
+// Нормализация телефона: убираем всё, кроме цифр, приводим к виду 7XXXXXXXXXX
 export function normalizePhone(phone: string): string {
   const digits = phone.replace(/\D/g, "");
   if (digits.startsWith("8") && digits.length === 11) {
@@ -33,7 +34,10 @@ export function normalizePhone(phone: string): string {
   return digits;
 }
 
-// === Функции для работы с пользователями ===
+// Сгенерировать простой id (пока вместо uuid)
+function genId(): string {
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
 
 // Найти пользователя по телефону
 export async function getUserByPhone(phone: string): Promise<User | null> {
@@ -54,13 +58,14 @@ export async function createUser(opts: {
   const now = new Date().toISOString();
   const norm = normalizePhone(opts.phone);
 
-  // Проверка дублей
+  // защита от дублей
   if (users.some((u) => u.phone === norm)) {
-    throw new Error("USER_DUPLICATE_PHONE");
+    const err = new Error("USER_DUPLICATE_PHONE");
+    throw err;
   }
 
   const user: User = {
-    id: crypto.randomUUID(),
+    id: genId(),
     phone: norm,
     email: opts.email ?? null,
     password_hash: opts.password_hash,
@@ -76,5 +81,5 @@ export async function createUser(opts: {
   return user;
 }
 
-// TODO: заменить эти функции на реальные запросы к Postgres,
-// когда подключим настоящую БД (например, через Prisma / Supabase client).
+// На будущее: сюда же можно будет добавить методы для обновления профиля,
+// поиска по id и т.д.
