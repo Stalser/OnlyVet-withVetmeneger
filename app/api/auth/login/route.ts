@@ -1,4 +1,5 @@
 // app/api/auth/login/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
 import { getUserByPhone, normalizePhone } from "@/lib/db";
 import { verifyPassword } from "@/lib/auth";
@@ -33,9 +34,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // TODO: здесь нужно создать сессию (httpOnly cookie / JWT)
-    // Сейчас просто возвращаем user, чисто для проверки.
-
+    // TODO: здесь нужно создать сессию (httpOnly cookie / JWT).
+    // Пока просто возвращаем данные пользователя.
     return NextResponse.json(
       {
         user: {
