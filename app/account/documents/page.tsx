@@ -59,10 +59,12 @@ export default function AccountDocumentsPage() {
   return (
     <>
       <Header />
-      <main className="flex-1 py-8 bg-slate-50/70">
-        <div className="container mx-auto max-w-5xl px-4 space-y-5">
+
+      <main className="flex-1 bg-slate-50/70 py-8">
+        <div className="container mx-auto max-w-5xl px-4 space-y-7">
+          {/* Хлебные крошки + заголовок */}
           <div className="space-y-3">
-            <nav className="text-[12px] text-slate-500 mb-1">
+            <nav className="text-[12px] text-slate-500">
               <Link href="/" className="hover:text-onlyvet-coral">
                 Главная
               </Link>{" "}
@@ -72,12 +74,13 @@ export default function AccountDocumentsPage() {
               </Link>{" "}
               / <span className="text-slate-700">Документы клиента</span>
             </nav>
-            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
-              <div>
-                <h1 className="text-xl md:text-2xl font-semibold mb-1">
+
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+              <div className="space-y-1">
+                <h1 className="text-xl md:text-2xl font-semibold">
                   Документы клиента
                 </h1>
-                <p className="text-[13px] text-slate-600 max-w-2xl">
+                <p className="text-[13px] text-slate-600 max-w-2xl leading-relaxed">
                   Здесь будут храниться ваши договоры, акты, заявления, счета,
                   чеки и другие документы, связанные с онлайн-консультациями.
                   Сейчас отображаются демонстрационные данные.
@@ -87,6 +90,7 @@ export default function AccountDocumentsPage() {
             </div>
           </div>
 
+          {/* Основная сетка документов */}
           <section className="grid gap-4 md:grid-cols-2 items-start">
             <div className="space-y-3">
               <ClientDocsBlock
@@ -105,6 +109,7 @@ export default function AccountDocumentsPage() {
                 emptyText="Заявления пока не добавлены."
               />
             </div>
+
             <div className="space-y-3">
               <ClientDocsBlock
                 title="Счета"
@@ -124,22 +129,24 @@ export default function AccountDocumentsPage() {
             </div>
           </section>
 
+          {/* Блок про будущую загрузку документов */}
           <section className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 md:p-6 text-[13px] text-slate-700">
             <h2 className="text-[15px] font-semibold mb-2">
               Загрузка документов (будет позже)
             </h2>
-            <p className="mb-2">
+            <p className="mb-2 leading-relaxed">
               В дальнейшем вы сможете загружать сюда документы самостоятельно:
               договоры, акты, заявления, подтверждения оплаты. Также сюда смогут
               выгружаться документы из Vetmanager автоматически.
             </p>
             <p className="text-[11px] text-slate-500">
-              В демо-версии загрузка файлов недоступна. Сейчас важна структура и
-              логика отображения.
+              В демо-версии загрузка файлов недоступна. Сейчас важна структура
+              и логика отображения.
             </p>
           </section>
         </div>
       </main>
+
       <Footer />
     </>
   );
@@ -154,10 +161,13 @@ function ClientDocsBlock({
   docs: ClientDocument[];
   emptyText: string;
 }) {
+  const hasDocs = docs.length > 0;
+
   return (
-    <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4">
-      <div className="text-[13px] font-semibold mb-2">{title}</div>
-      {docs.length === 0 ? (
+    <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4 md:p-5 flex flex-col gap-2">
+      <div className="text-[13px] font-semibold mb-1">{title}</div>
+
+      {!hasDocs ? (
         <p className="text-[12px] text-slate-500">{emptyText}</p>
       ) : (
         <ul className="space-y-1 text-[12px] text-slate-700">
@@ -169,7 +179,7 @@ function ClientDocsBlock({
               <div className="flex-1">
                 <div className="font-medium">{d.title}</div>
                 {d.description && (
-                  <div className="text-[11px] text-slate-600">
+                  <div className="text-[11px] text-slate-600 leading-tight mt-[2px]">
                     {d.description}
                   </div>
                 )}
