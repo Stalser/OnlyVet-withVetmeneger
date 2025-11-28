@@ -10,20 +10,26 @@ import { Footer } from "@/components/Footer";
 export default function LoginPage() {
   const router = useRouter();
 
-  const [identifier, setIdentifier] = useState(""); // телефон или email
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+
+  const identifierError = hasSubmitted && !identifier.trim();
+  const passwordError = hasSubmitted && !password.trim();
+
+  const isValid =
+    identifier.trim().length > 0 &&
+    password.trim().length > 0;
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    setHasSubmitted(true);
     setError(null);
 
-    if (!identifier.trim() || !password.trim()) {
-      setError("Укажите телефон/email и пароль.");
-      return;
-    }
+    if (!isValid) return;
 
     try {
       setLoading(true);
@@ -41,7 +47,7 @@ export default function LoginPage() {
         return;
       }
 
-      // TODO: когда будут сессии, пользователь будет входить "по-настоящему"
+      // TODO: когда будут сессии, пользователь будет реально входить
       router.push("/account");
     } catch (err) {
       console.error(err);
@@ -85,9 +91,18 @@ export default function LoginPage() {
                     type="text"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                    className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
+                      identifierError
+                        ? "border-rose-400 focus:ring-rose-300"
+                        : "border-slate-300 focus:ring-onlyvet-teal/40"
+                    }`}
                     placeholder="+7 ... или example@mail.ru"
                   />
+                  {identifierError && (
+                    <p className="mt-1 text-[11px] text-rose-600">
+                      Укажите телефон или email.
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-[12px] text-slate-600 mb-1">
@@ -97,9 +112,18 @@ export default function LoginPage() {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                    className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
+                      passwordError
+                        ? "border-rose-400 focus:ring-rose-300"
+                        : "border-slate-300 focus:ring-onlyvet-teal/40"
+                    }`}
                     placeholder="Ваш пароль"
                   />
+                  {passwordError && (
+                    <p className="mt-1 text-[11px] text-rose-600">
+                      Укажите пароль.
+                    </p>
+                  )}
                 </div>
 
                 {error && (
@@ -114,7 +138,7 @@ export default function LoginPage() {
                   className="
                     w-full mt-1 px-4 py-2.5 rounded-full 
                     bg-onlyvet-coral text-white text-[13px] font-medium 
-                    shadow-[0_10px_26px_rgba(247,118,92,0.45)]
+                    shadow-[0_10px_26px_rgба(247,118,92,0.45)]
                     hover:brightness-105 transition
                     disabled:bg-slate-300 disabled:shadow-none disabled:cursor-not-allowed
                   "
@@ -143,7 +167,7 @@ export default function LoginPage() {
 
               <p className="text-[11px] text-slate-500">
                 Сейчас эта форма обращается к API <code>/api/auth/login</code>,
-                который проверяет телефон или email и пароль. Как только мы
+                который проверяет телефон/email и пароль. Как только мы
                 подключим настоящую БД и сессии, вход будет полностью рабочим.
               </p>
             </div>
