@@ -15,6 +15,7 @@ type BookingPageProps = {
     doctorId?: string;
     serviceId?: string;
     slotId?: string;
+    petId?: string;
   };
 };
 
@@ -33,6 +34,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
   const doctorIdFromQuery = searchParams?.doctorId || "";
   const serviceIdFromQuery = searchParams?.serviceId || "";
   const slotIdFromQuery = searchParams?.slotId || "";
+  const petIdFromQuery = searchParams?.petId || "";
 
   const initialDoctorId =
     doctorIdFromQuery && doctors.some((d) => d.id === doctorIdFromQuery)
@@ -49,15 +51,24 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
       ? slotIdFromQuery
       : "";
 
+  const initialPetId =
+    petIdFromQuery && mockUser.pets.some((p) => p.id === petIdFromQuery)
+      ? petIdFromQuery
+      : "";
+
+  // ФИО
+  const [lastName, setLastName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [middleName, setMiddleName] = useState("");
+
   // контакты
-  const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [telegram, setTelegram] = useState("");
   const [email, setEmail] = useState("");
 
   // питомец
   const [petMode, setPetMode] = useState<"existing" | "new">("existing");
-  const [selectedPetId, setSelectedPetId] = useState<string>("");
+  const [selectedPetId, setSelectedPetId] = useState<string>(initialPetId);
   const [newPetName, setNewPetName] = useState("");
 
   // врач / услуга / слот
@@ -83,19 +94,22 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
   const [consentOffer, setConsentOffer] = useState(false);
   const [consentRules, setConsentRules] = useState(false);
 
-  // флаг, что пользователь уже пытался отправить форму
+  // валидатор/ошибки
   const [hasSubmitted, setHasSubmitted] = useState(false);
 
   useEffect(() => {
     if (mockIsLoggedIn) {
-      setFullName(mockUser.fullName);
+      const parts = mockUser.fullName.split(" ");
+      setLastName(parts[0] || "");
+      setFirstName(parts[1] || "");
+      setMiddleName(parts.slice(2).join(" ") || "");
       setPhone(mockUser.phone);
       setTelegram(mockUser.telegram);
-      if (mockUser.pets.length > 0) {
+      if (mockUser.pets.length > 0 && !selectedPetId) {
         setSelectedPetId(mockUser.pets[0].id);
       }
     }
-  }, []);
+  }, [selectedPetId]);
 
   const selectedDoctor = doctors.find((d) => d.id === selectedDoctorId);
   const selectedService = services.find((s) => s.id === selectedServiceId);
@@ -103,7 +117,10 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
 
   const timeSelectionLocked = !!selectedSlot;
 
-  const fullNameError = hasSubmitted && !fullName.trim();
+  const fullName = [lastName, firstName, middleName].filter(Boolean).join(" ");
+
+  const lastNameError = hasSubmitted && !lastName.trim();
+  const firstNameError = hasSubmitted && !firstName.trim();
   const phoneError = hasSubmitted && !phone.trim();
   const emailError = hasSubmitted && !email.trim();
   const consentsError =
@@ -111,7 +128,8 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
     (!consentPersonalData || !consentOffer || !consentRules);
 
   const isValid =
-    fullName.trim().length > 0 &&
+    lastName.trim().length > 0 &&
+    firstName.trim().length > 0 &&
     phone.trim().length > 0 &&
     email.trim().length > 0 &&
     consentPersonalData &&
@@ -130,6 +148,9 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
     if (!isValid) return;
 
     console.log("Submit booking:", {
+      lastName,
+      firstName,
+      middleName,
       fullName,
       phone,
       telegram,
@@ -203,8 +224,8 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
             </h1>
             <p className="text-[13px] text-slate-600 max-w-2xl">
               Заполните форму — мы подберём удобное время и врача. Если вы
-              перешли из карточки врача или услуги, выбранные параметры уже
-              подставлены.
+              перешли из карточки врача, услуги или питомца, выбранные
+              параметры уже подставлены.
             </p>
           </div>
 
@@ -282,28 +303,67 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
             {/* Контактные данные */}
             <section className="space-y-3">
               <h2 className="text-[15px] font-semibold">Контактные данные</h2>
-              <div className="grid md:grid-cols-2 gap-4">
+
+              {/* ФИО */}
+              <div className="grid md:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-[12px] text-slate-600 mb-1">
-                    ФИО<span className="text-red-500">*</span>
+                    Фамилия<span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
                     className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
-                      fullNameError
+                      lastNameError
                         ? "border-rose-400 focus:ring-rose-300"
                         : "border-slate-300 focus:ring-onlyvet-teal/40"
                     }`}
-                    placeholder="Например: Иванов Иван Иванович"
+                    placeholder="Иванов"
                   />
-                  {fullNameError && (
+                  {lastNameError && (
                     <p className="mt-1 text-[11px] text-rose-600">
-                      Пожалуйста, укажите ФИО.
+                      Укажите фамилию.
                     </p>
                   )}
                 </div>
+                <div>
+                  <label className="block text-[12px] text-slate-600 mb-1">
+                    Имя<span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
+                      firstNameError
+                        ? "border-rose-400 focus:ring-rose-300"
+                        : "border-slate-300 focus:ring-onlyvet-teal/40"
+                    }`}
+                    placeholder="Иван"
+                  />
+                  {firstNameError && (
+                    <p className="mt-1 text-[11px] text-rose-600">
+                      Укажите имя.
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-[12px] text-slate-600 mb-1">
+                    Отчество
+                  </label>
+                  <input
+                    type="text"
+                    value={middleName}
+                    onChange={(e) => setMiddleName(e.target.value)}
+                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                    placeholder="Иванович (необязательно)"
+                  />
+                </div>
+              </div>
+
+              {/* Телефон + email + Telegram */}
+              <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[12px] text-slate-600 mb-1">
                     Номер телефона<span className="text-red-500">*</span>
@@ -325,23 +385,6 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                     </p>
                   )}
                 </div>
-              </div>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[12px] text-slate-600 mb-1">
-                    Логин Telegram
-                  </label>
-                  <input
-                    type="text"
-                    value={telegram}
-                    onChange={(e) => setTelegram(e.target.value)}
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
-                    placeholder="@username (необязательно)"
-                  />
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    При наличии, Telegram позволяет коммуницировать быстрее.
-                  </p>
-                </div>
                 <div>
                   <label className="block text-[12px] text-slate-600 mb-1">
                     Email<span className="text-red-500">*</span>
@@ -359,10 +402,28 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                   />
                   {emailError && (
                     <p className="mt-1 text-[11px] text-rose-600">
-                      Email нужен для отправки подтверждений и материалов
+                      Email обязателен для подтверждений и материалов
                       консультации.
                     </p>
                   )}
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[12px] text-slate-600 mb-1">
+                    Логин Telegram
+                  </label>
+                  <input
+                    type="text"
+                    value={telegram}
+                    onChange={(e) => setTelegram(e.target.value)}
+                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                    placeholder="@username (необязательно)"
+                  />
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    При наличии нам проще общаться через Telegram.
+                  </p>
                 </div>
               </div>
             </section>
