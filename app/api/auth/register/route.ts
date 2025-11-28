@@ -1,4 +1,5 @@
 // app/api/auth/register/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
 import { createUser, getUserByPhone, normalizePhone } from "@/lib/db";
 import { hashPassword, isPasswordStrong } from "@/lib/auth";
@@ -48,8 +49,8 @@ export async function POST(req: NextRequest) {
       telegram,
     });
 
-    // TODO: создать сессию (cookie / JWT) и вернуть юзера
-    // Пока просто возвращаем json
+    // TODO: здесь можно сразу создать сессию (cookie) и логинить пользователя.
+    // Пока просто возвращаем информацию об аккаунте.
     return NextResponse.json(
       {
         user: {
