@@ -2,7 +2,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import type { BookingStatus } from "@/lib/types";
-import { mockBookings } from "@/lib/mockBookings";
+import { findBookingById } from "../mockStore";
 
 // GET /api/booking/:id — получить одну заявку
 export async function GET(
@@ -38,7 +38,10 @@ export async function PATCH(
       cancelReason?: string;
     };
 
-    if (status && !["pending", "in_review", "approved", "rejected"].includes(status)) {
+    if (
+      status &&
+      !["pending", "in_review", "approved", "rejected"].includes(status)
+    ) {
       return NextResponse.json(
         { error: "Invalid status" },
         { status: 400 }
