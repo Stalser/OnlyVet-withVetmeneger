@@ -10,7 +10,7 @@ import { Footer } from "@/components/Footer";
 export default function LoginPage() {
   const router = useRouter();
 
-  const [phone, setPhone] = useState("");
+  const [identifier, setIdentifier] = useState(""); // телефон или email
   const [password, setPassword] = useState("");
 
   const [error, setError] = useState<string | null>(null);
@@ -20,13 +20,18 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
 
+    if (!identifier.trim() || !password.trim()) {
+      setError("Укажите телефон/email и пароль.");
+      return;
+    }
+
     try {
       setLoading(true);
 
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, password }),
+        body: JSON.stringify({ identifier, password }),
       });
 
       const data = await res.json();
@@ -36,7 +41,7 @@ export default function LoginPage() {
         return;
       }
 
-      // TODO: когда появятся сессии, пользователь будет попадать в ЛК уже авторизованным
+      // TODO: когда будут сессии, пользователь будет входить "по-настоящему"
       router.push("/account");
     } catch (err) {
       console.error(err);
@@ -65,23 +70,23 @@ export default function LoginPage() {
                   Вход в личный кабинет
                 </h1>
                 <p className="text-[13px] text-slate-600">
-                  Используйте номер телефона и пароль, указанные при
-                  регистрации. Позже здесь появится полноценная система входа с
-                  сессиями и восстановлением доступа.
+                  Используйте номер телефона или email и пароль, указанные при
+                  регистрации. Позже здесь появится полноценная система входа
+                  с сессиями и восстановлением доступа.
                 </p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-3 text-[13px]">
                 <div>
                   <label className="block text-[12px] text-slate-600 mb-1">
-                    Телефон
+                    Телефон или email
                   </label>
                   <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    type="text"
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
                     className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
-                    placeholder="+7 ..."
+                    placeholder="+7 ... или example@mail.ru"
                   />
                 </div>
                 <div>
@@ -137,9 +142,9 @@ export default function LoginPage() {
               </form>
 
               <p className="text-[11px] text-slate-500">
-                Сейчас эта форма обращается к API `/api/auth/login`, который
-                проверяет телефон и пароль. Как только мы подключим настоящую
-                БД и сессии, вход будет полностью рабочим.
+                Сейчас эта форма обращается к API <code>/api/auth/login</code>,
+                который проверяет телефон или email и пароль. Как только мы
+                подключим настоящую БД и сессии, вход будет полностью рабочим.
               </p>
             </div>
           </div>
