@@ -1,20 +1,18 @@
 // lib/auth.ts
 //
-// Вспомогательные функции для работы с паролями.
-// Требуется установить bcryptjs:
-//   npm install bcryptjs
-//
+// Хэширование и проверка пароля.
+// Требуется: npm install bcryptjs
 
 import bcrypt from "bcryptjs";
 
 const SALT_ROUNDS = 10;
 
-// Хэш пароля
+// Сгенерировать хэш пароля
 export async function hashPassword(password: string): Promise<string> {
   return await bcrypt.hash(password, SALT_ROUNDS);
 }
 
-// Проверка пароля
+// Проверить пароль
 export async function verifyPassword(
   password: string,
   hash: string
@@ -22,9 +20,9 @@ export async function verifyPassword(
   return await bcrypt.compare(password, hash);
 }
 
-// Простая проверка "сложности" пароля (на фронте и на бэке)
+// Простейшая проверка сложности пароля
 export function isPasswordStrong(password: string): boolean {
   if (password.length < 8) return false;
-  // можно усилить: буквы верх/низ, цифры, символы
+  // при желании можно добавить проверку на цифры/буквы/символы
   return true;
 }
