@@ -22,6 +22,13 @@ export type ConsultationCardProps = {
   isFollowUp?: boolean;   // повторная консультация по рекомендации врача
   showPetLink?: boolean;
   petId?: string;
+
+  // колбэки — все опциональны, чтобы ничего не сломать
+  onAddInfo?: () => void;
+  onCancel?: () => void;
+  onRequestReschedule?: () => void;
+  onViewRecommendations?: () => void;
+  onBookAgain?: () => void;
 };
 
 function statusMeta(status: ConsultationStatus) {
@@ -84,6 +91,11 @@ export function ConsultationCard(props: ConsultationCardProps) {
     isFollowUp,
     showPetLink = false,
     petId,
+    onAddInfo,
+    onCancel,
+    onRequestReschedule,
+    onViewRecommendations,
+    onBookAgain,
   } = props;
 
   const meta = statusMeta(status);
@@ -184,52 +196,76 @@ export function ConsultationCard(props: ConsultationCardProps) {
         </p>
       )}
 
-      {/* Низ: действия (пока заглушки) */}
+      {/* Низ: действия */}
       <div className="mt-2 flex flex-wrap gap-2 text-[12px]">
-        {status === "pending" && (
+        {/* Заявка отправлена / на рассмотрении */}
+        {(status === "pending" || status === "in_review") && (
           <>
-            <Link
-              href="/booking"
-              className="px-3 py-1.5 rounded-full border border-slate-300 bg-white hover:bg-slate-50 transition"
-            >
-              Дополнить данные
-            </Link>
+            {onAddInfo && (
+              <button
+                type="button"
+                onClick={onAddInfo}
+                className="px-3 py-1.5 rounded-full border border-slate-300 bg-white hover:bg-slate-50 transition"
+              >
+                Дополнить данные
+              </button>
+            )}
+            {onCancel && (
+              <button
+                type="button"
+                onClick={onCancel}
+                className="px-3 py-1.5 rounded-full border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 transition"
+              >
+                Отменить заявку
+              </button>
+            )}
           </>
         )}
 
+        {/* Запланирована */}
         {status === "scheduled" && (
           <>
-            <button
-              type="button"
-              className="px-3 py-1.5 rounded-full border border-slate-300 bg-white hover:bg-slate-50 transition"
-            >
-              Запросить перенос
-            </button>
-            <button
-              type="button"
-              className="px-3 py-1.5 rounded-full border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 transition"
-            >
-              Отменить консультацию
-            </button>
+            {onRequestReschedule && (
+              <button
+                type="button"
+                onClick={onRequestReschedule}
+                className="px-3 py-1.5 rounded-full border border-slate-300 bg-white hover:bg-slate-50 transition"
+              >
+                Запросить перенос
+              </button>
+            )}
+            {onCancel && (
+              <button
+                type="button"
+                onClick={onCancel}
+                className="px-3 py-1.5 rounded-full border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 transition"
+              >
+                Отменить консультацию
+              </button>
+            )}
           </>
         )}
 
-        {status === "done" && (
-          <Link
-            href="/account/pets"
+        {/* Проведена */}
+        {status === "done" && onViewRecommendations && (
+          <button
+            type="button"
+            onClick={onViewRecommendations}
             className="px-3 py-1.5 rounded-full border border-slate-300 bg-white hover:bg-slate-50 transition"
           >
             Посмотреть рекомендации
-          </Link>
+          </button>
         )}
 
-        {status === "cancelled" && (
-          <Link
-            href="/booking"
+        {/* Отменена */}
+        {status === "cancelled" && onBookAgain && (
+          <button
+            type="button"
+            onClick={onBookAgain}
             className="px-3 py-1.5 rounded-full bg-onlyvet-coral text-white shadow-[0_8px_20px_rgba(247,118,92,0.45)] hover:brightness-105 transition"
           >
             Записаться заново
-          </Link>
+          </button>
         )}
       </div>
     </article>
