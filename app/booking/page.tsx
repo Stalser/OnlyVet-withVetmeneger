@@ -20,7 +20,8 @@ type BookingPageProps = {
   };
 };
 
-type DoctorMode = "any" | "help" | "specific";
+// режим выбора врача
+type DoctorMode = "auto" | "manual";
 
 const mockIsLoggedIn = false;
 const mockUser = {
@@ -83,7 +84,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
   const [selectedServiceId, setSelectedServiceId] =
     useState<string>(initialServiceId);
   const [doctorMode, setDoctorMode] = useState<DoctorMode>(
-    initialDoctorId ? "specific" : "any"
+    initialDoctorId ? "manual" : "auto"
   );
   const [selectedDoctorId, setSelectedDoctorId] =
     useState<string>(initialDoctorId);
@@ -145,9 +146,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
   // фильтрация врачей под выбранную услугу
   const availableDoctors = selectedService
     ? doctors.filter((d) =>
-        selectedService.specializations.includes(
-          d.specialization as any
-        )
+        selectedService.specializations.includes(d.specialization as any)
       )
     : doctors;
 
@@ -158,15 +157,16 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
       !availableDoctors.some((d) => d.id === selectedDoctorId)
     ) {
       setSelectedDoctorId("");
-      if (doctorMode === "specific") {
-        setDoctorMode("any");
+      if (doctorMode === "manual") {
+        // остаёмся в режиме "manual", но без выбранного врача
+        setDoctorMode("manual");
       }
     }
   }, [selectedServiceId, selectedDoctorId, availableDoctors, doctorMode]);
 
   useEffect(() => {
-    // при смене режима врача сбрасываем выбранного врача, если не specific
-    if (doctorMode !== "specific" && selectedDoctorId) {
+    // при смене режима врача на auto очищаем выбранного врача
+    if (doctorMode !== "manual" && selectedDoctorId) {
       setSelectedDoctorId("");
     }
   }, [doctorMode, selectedDoctorId]);
@@ -197,7 +197,8 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
     try {
       setIsSubmitting(true);
 
-      const petSpecies = petMode === "new" ? newPetSpecies || undefined : undefined;
+      const petSpecies =
+        petMode === "new" ? newPetSpecies || undefined : undefined;
 
       const petNotes =
         petMode === "new"
@@ -226,7 +227,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
             ? selectedServiceId
             : undefined,
         doctorId:
-          doctorMode === "specific" && selectedDoctorId
+          doctorMode === "manual" && selectedDoctorId
             ? selectedDoctorId
             : undefined,
 
@@ -267,14 +268,14 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
     setSelectedDoctorId("");
     setSelectedServiceId("");
     setSelectedSlotId("");
-    setDoctorMode("any");
+    setDoctorMode("auto");
   };
 
   const resetSlot = () => {
     setSelectedSlotId("");
   };
 
-  const slotLabel =
+  const selectedSlotLabel =
     selectedSlot &&
     (() => {
       const dt = new Date(selectedSlot.start);
@@ -353,11 +354,11 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                     </span>
                   </div>
                 )}
-                {selectedSlot && slotLabel && (
+                {selectedSlot && selectedSlotLabel && (
                   <div>
                     Время:{" "}
                     <span className="font-medium text-onlyvet-navy">
-                      {slotLabel}
+                      {selectedSlotLabel}
                     </span>
                   </div>
                 )}
@@ -623,7 +624,9 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                         onChange={(e) => setNewPetSpecies(e.target.value)}
                         className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
                       >
-                        <option value="">Выберите вид или оставьте пустым</option>
+                        <option value="">
+                          Выберите вид или оставьте пустым
+                        </option>
                         <option value="кошка">Кошка</option>
                         <option value="собака">Собака</option>
                         <option value="грызун">Грызун</option>
@@ -755,42 +758,38 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                       <input
                         type="radio"
                         name="doctorMode"
-                        value="any"
-                        checked={doctorMode === "any"}
-                        onChange={() => setDoctorMode("any")}
+                        value="auto"
+                        checked={doctorMode === "auto"}
+                        onChange={() => setDoctorMode("auto")}
                         className="rounded-full border-slate-300"
                       />
-                      <span>Любой доступный врач</span>
+                      <span>
+                        <span className="font-medium">
+                          Автоматический подбор врача
+                        </span>{" "}
+                        <span className="text-slate-500">(рекомендуется)</span>
+                      </span>
                     </label>
                     <label className="inline-flex items-center gap-2">
                       <input
                         type="radio"
                         name="doctorMode"
-                        value="help"
-                        checked={doctorMode === "help"}
-                        onChange={() => setDoctorMode("help")}
+                        value="manual"
+                        checked={doctorMode === "manual"}
+                        onChange={() => setDoctorMode("manual")}
                         className="rounded-full border-slate-300"
                       />
-                      <span>Подобрать врача за меня</span>
-                    </label>
-                    <label className="inline-flex items-center gap-2">
-                      <input
-                        type="radio"
-                        name="doctorMode"
-                        value="specific"
-                        checked={doctorMode === "specific"}
-                        onChange={() => setDoctorMode("specific")}
-                        className="rounded-full border-slate-300"
-                      />
-                      <span>Выбрать врача</span>
+                      <span className="font-medium">
+                        Выбрать врача вручную
+                      </span>
                     </label>
                   </div>
 
                   <select
                     value={selectedDoctorId}
                     onChange={(e) => setSelectedDoctorId(e.target.value)}
-                    disabled={doctorMode !== "specific"}
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] disabled:bg-slate-50 disabled:text-slate-400 focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
+                    disabled={doctorMode !== "manual"}
+                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] disabled:bg-slate-50 disabled:text-slate-400 focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
                   >
                     <option value="">Не выбран</option>
                     {availableDoctors.map((d) => (
@@ -800,16 +799,14 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                     ))}
                   </select>
 
-                  {doctorMode === "specific" && selectedDoctor && (
+                  {doctorMode === "manual" && selectedDoctor && (
                     <p className="mt-1 text-[11px] text-slate-500">
                       Специализация врача: {selectedDoctor.role}
                     </p>
                   )}
-                  {doctorMode !== "specific" && (
+                  {doctorMode === "auto" && (
                     <p className="mt-1 text-[11px] text-slate-500">
-                      Если вы не уверены, к кому обратиться, выберите «Любой» или
-                      «Подобрать за меня» — администратор сопоставит врача с
-                      вашим запросом.
+                      Мы подберём врача с нужной специализацией под ваш запрос.
                     </p>
                   )}
                 </div>
@@ -876,10 +873,10 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                 </>
               )}
 
-              {timeSelectionLocked && selectedSlot && slotLabel && (
+              {timeSelectionLocked && selectedSlot && selectedSlotLabel && (
                 <div className="bg-onlyvet-bg rounded-2xl border border-slate-200 p-3 text-[12px] text-slate-600 space-y-1">
                   <div className="font-medium text-slate-700">
-                    Время выбрано: {slotLabel}
+                    Время выбрано: {selectedSlotLabel}
                   </div>
                   <p className="text-[11px] text-slate-500">
                     Если вы хотите изменить дату или время, нажмите «Изменить
