@@ -39,8 +39,9 @@ export default function DoctorsPage() {
       if (tagFilter !== "all" && !d.tags.includes(tagFilter)) return false;
 
       if (q) {
-        const haystack =
-          `${d.name} ${d.role} ${d.servicesShort} ${d.tags.join(" ")}`.toLowerCase();
+        const haystack = `${d.name} ${d.role} ${
+          d.servicesShort
+        } ${d.tags.join(" ")}`.toLowerCase();
         if (!haystack.includes(q)) return false;
       }
 
@@ -48,24 +49,38 @@ export default function DoctorsPage() {
     });
   }, [specFilter, tagFilter, search]);
 
+  const hasDoctors = filteredDoctors.length > 0;
+
   return (
     <>
       <Header />
-      <main className="flex-1 py-8">
-        <div className="container mx-auto max-w-5xl px-4">
-          {/* Заголовок */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-            <div>
-              <h1 className="text-xl md:text-2xl font-semibold">Все врачи OnlyVet</h1>
-              <p className="text-[13px] text-slate-600 max-w-xl">
-                Найдите специалиста под вашу задачу: терапия, диагностика,
-                онкология, сложные случаи, второе мнение.
-              </p>
+
+      <main className="flex-1 bg-slate-50/70 py-8">
+        <div className="container mx-auto max-w-5xl px-4 space-y-6">
+          {/* Хлебные крошки + заголовок */}
+          <div className="space-y-3">
+            <nav className="text-[12px] text-slate-500">
+              <Link href="/" className="hover:text-onlyvet-coral">
+                Главная
+              </Link>{" "}
+              / <span className="text-slate-700">Врачи</span>
+            </nav>
+
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="space-y-1">
+                <h1 className="text-xl md:text-2xl font-semibold">
+                  Врачи OnlyVet
+                </h1>
+                <p className="text-[13px] text-slate-600 max-w-xl leading-relaxed">
+                  Подберите специалиста под вашу задачу: терапия, диагностика,
+                  онкология, сложные случаи и второе мнение.
+                </p>
+              </div>
             </div>
           </div>
 
           {/* Фильтры */}
-          <div className="space-y-3 mb-5">
+          <section className="space-y-3">
             {/* Специализация */}
             <div className="flex flex-wrap items-center gap-2 text-[12px]">
               <span className="text-slate-500 mr-1">Специализация:</span>
@@ -94,7 +109,9 @@ export default function DoctorsPage() {
             {/* Тематика запросов (теги) */}
             {allTags.length > 0 && (
               <div className="flex flex-wrap items-center gap-2 text-[12px]">
-                <span className="text-slate-500 mr-1">Тематика запросов:</span>
+                <span className="text-slate-500 mr-1">
+                  Тематика запросов:
+                </span>
                 <button
                   type="button"
                   onClick={() => setTagFilter("all")}
@@ -138,29 +155,32 @@ export default function DoctorsPage() {
                 "
               />
             </div>
-          </div>
+          </section>
 
           {/* Сетка врачей */}
-          <div className="grid gap-4 md:grid-cols-3 sm:grid-cols-2 items-stretch">
-            {filteredDoctors.length === 0 ? (
-              <div className="text-[13px] text-slate-500 col-span-full">
-                По заданным параметрам пока нет подходящих врачей. Попробуйте
-                ослабить фильтры.
-              </div>
-            ) : (
-              filteredDoctors.map((doc) => (
-                <Link
-                  key={doc.id}
-                  href={`/doctors/${doc.id}`}
-                  className="h-full"
-                >
-                  <DoctorCard doctor={doc} />
-                </Link>
-              ))
-            )}
-          </div>
+          <section>
+            <div className="grid gap-4 md:grid-cols-3 sm:grid-cols-2 items-stretch mt-2">
+              {!hasDoctors ? (
+                <div className="text-[13px] text-slate-500 col-span-full bg-white rounded-3xl border border-slate-200 shadow-soft px-4 py-3">
+                  По заданным параметрам пока нет подходящих врачей. Попробуйте
+                  ослабить фильтры или сбросить один из параметров.
+                </div>
+              ) : (
+                filteredDoctors.map((doc) => (
+                  <Link
+                    key={doc.id}
+                    href={`/doctors/${doc.id}`}
+                    className="h-full"
+                  >
+                    <DoctorCard doctor={doc} />
+                  </Link>
+                ))
+              )}
+            </div>
+          </section>
         </div>
       </main>
+
       <Footer />
     </>
   );
