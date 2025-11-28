@@ -86,7 +86,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
 
-  // файлы
+  // файлы (пока только на фронте)
   const [files, setFiles] = useState<File[]>([]);
 
   // согласия
@@ -94,8 +94,11 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
   const [consentOffer, setConsentOffer] = useState(false);
   const [consentRules, setConsentRules] = useState(false);
 
-  // валидатор/ошибки
+  // валидация / статус отправки
   const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [serverSuccess, setServerSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     if (mockIsLoggedIn) {
@@ -141,39 +144,65 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
     setFiles(Array.from(e.target.files));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setHasSubmitted(true);
+    setServerError(null);
+    setServerSuccess(null);
 
     if (!isValid) return;
 
-    console.log("Submit booking:", {
-      lastName,
-      firstName,
-      middleName,
-      fullName,
-      phone,
-      telegram,
-      email,
-      petMode,
-      selectedPetId,
-      newPetName,
-      selectedServiceId,
-      doctorMode,
-      selectedDoctorId,
-      selectedSlotId,
-      timeMode,
-      date,
-      time,
-      files,
-      consents: {
-        consentPersonalData,
-        consentOffer,
-        consentRules,
-      },
-    });
+    try {
+      setIsSubmitting(true);
 
-    alert("Заявка на консультацию отправлена (демо-режим).");
+      const payload = {
+        fullName,
+        phone,
+        telegram,
+        email,
+        petMode,
+        petId: petMode === "existing" ? selectedPetId : undefined,
+        petName: petMode === "new" ? newPetName : undefined,
+        petSpecies: undefined, // пока нет отдельного поля вида
+        petNotes: undefined,   // можно будет добавить позже
+
+        serviceId: selectedServiceId || undefined,
+        doctorId: selectedDoctorId || undefined,
+
+        timeMode,
+        preferredDate: timeMode === "choose" ? date || undefined : undefined,
+        preferredTime: timeMode === "choose" ? time || undefined : undefined,
+        vmSlotId: selectedSlotId || undefined,
+      };
+
+      const res = await fetch("/api/booking", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setServerError(
+          data?.error || "Не удалось отправить заявку. Попробуйте позже."
+        );
+        return;
+      }
+
+      const data = await res.json();
+
+      setServerSuccess(
+        "Заявка отправлена. Мы свяжемся с вами для подтверждения консультации."
+      );
+
+      // при желании можно частично очистить форму
+      // setLastName(""); setFirstName(""); ...
+    } catch (err) {
+      console.error(err);
+      setServerError("Произошла техническая ошибка. Попробуйте позже.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const resetSelection = () => {
@@ -206,7 +235,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
   return (
     <>
       <Header />
-      <main className="flex-1 py-8 bg-slate-50/70">
+      <main className="flex-1 bg-slate-50/70 py-8">
         <div className="container mx-auto max-w-5xl px-4">
           {/* Заголовок */}
           <div className="mb-5">
@@ -224,8 +253,8 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
             </h1>
             <p className="text-[13px] text-slate-600 max-w-2xl">
               Заполните форму — мы подберём удобное время и врача. Если вы
-              перешли из карточки врача, услуги или питомца, выбранные
-              параметры уже подставлены.
+              перешли из карточки врача или услуги, выбранные параметры уже
+              подставлены.
             </p>
           </div>
 
@@ -300,6 +329,18 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
             onSubmit={handleSubmit}
             className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 md:p-6 space-y-6"
           >
+            {/* Сообщения об успехе/ошибке */}
+            {serverSuccess && (
+              <div className="text-[12px] text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-2xl px-3 py-2">
+                {serverSuccess}
+              </div>
+            )}
+            {serverError && (
+              <div className="text-[12px] text-rose-700 bg-rose-50 border border-rose-100 rounded-2xl px-3 py-2">
+                {serverError}
+              </div>
+            )}
+
             {/* Контактные данные */}
             <section className="space-y-3">
               <h2 className="text-[15px] font-semibold">Контактные данные</h2>
@@ -362,7 +403,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                 </div>
               </div>
 
-              {/* Телефон + email + Telegram */}
+              {/* Телефон + email */}
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[12px] text-slate-600 mb-1">
@@ -409,6 +450,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                 </div>
               </div>
 
+              {/* Telegram */}
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[12px] text-slate-600 mb-1">
@@ -475,7 +517,8 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                       ))}
                     </select>
                     <p className="text-[11px] text-slate-500 mt-1">
-                      В реальной версии здесь будут данные из личного кабинета.
+                      В реальной версии здесь будут данные из вашего личного
+                      кабинета.
                     </p>
                   </div>
                 ) : (
@@ -766,17 +809,19 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
               <div className="pt-1">
                 <button
                   type="submit"
-                  disabled={!isValid}
+                  disabled={!isValid || isSubmitting}
                   className={`
                     w-full px-4 py-2.5 rounded-full text-[13px] font-medium
                     ${
-                      isValid
-                        ? "bg-onlyvet-coral text-white shadow-[0_12px_32px_rgba(247,118,92,0.6)] hover:brightness-105 transition"
-                        : "bg-slate-200 text-slate-500 cursor-not-allowed"
+                      !isValid || isSubmitting
+                        ? "bg-slate-200 text-slate-500 cursor-not-allowed"
+                        : "bg-onlyvet-coral text-white shadow-[0_12px_32px_rgba(247,118,92,0.6)] hover:brightness-105 transition"
                     }
                   `}
                 >
-                  Записаться на консультацию
+                  {isSubmitting
+                    ? "Отправляем заявку..."
+                    : "Записаться на консультацию"}
                 </button>
                 <p className="mt-2 text-[11px] text-slate-500">
                   Нажимая «Записаться», вы подтверждаете корректность указанных
