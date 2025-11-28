@@ -3,23 +3,23 @@
 import Link from "next/link";
 
 export type ConsultationStatus =
-  | "pending"   // заявка отправлена, ещё никто не обработал
-  | "in_review" // врач/регистратор просматривают, уточняют данные
-  | "scheduled" // есть дата/время/врач
+  | "pending"   // заявка отправлена
+  | "in_review" // на рассмотрении
+  | "scheduled" // запланирована
   | "done"      // проведена
-  | "cancelled"; // отменена (кем бы ни было, деталь можно указать отдельно)
+  | "cancelled";
 
 export type ConsultationCardProps = {
-  id: string; // например "req1" или "c123"
-  createdAt: string; // ISO-строка
+  id: string;
+  createdAt: string;      // когда создана заявка
   petName: string;
   serviceName?: string;
   doctorName?: string;
   doctorId?: string;
-  dateTime?: string; // ISO-строка для назначенного времени
+  dateTime?: string;      // когда назначена консультация (если есть)
   status: ConsultationStatus;
   cancelReason?: string;
-  isFollowUp?: boolean; // повторная консультация по рекомендации врача
+  isFollowUp?: boolean;   // повторная консультация по рекомендации врача
   showPetLink?: boolean;
   petId?: string;
 };
@@ -120,7 +120,7 @@ export function ConsultationCard(props: ConsultationCardProps) {
         </span>
       </div>
 
-      {/* Время создания / питомец / услуга / врач */}
+      {/* Основная информация */}
       <div className="text-[12px] text-slate-500">{createdLabel}</div>
 
       <div className="text-[12px] text-slate-600">
@@ -177,16 +177,16 @@ export function ConsultationCard(props: ConsultationCardProps) {
         </p>
       )}
 
-      {/* Причина отмены, если есть */}
+      {/* Причина отмены */}
       {status === "cancelled" && cancelReason && (
         <p className="mt-1 text-[11px] text-slate-500">
           Причина отмены: {cancelReason}
         </p>
       )}
 
-      {/* Низ: действия (пока только навигация/CTA — логику добавим позже) */}
+      {/* Низ: действия (пока заглушки) */}
       <div className="mt-2 flex flex-wrap gap-2 text-[12px]">
-        {status === "pending" || status === "in_review" ? (
+        {status === "pending" && (
           <>
             <Link
               href="/booking"
@@ -194,14 +194,8 @@ export function ConsultationCard(props: ConsultationCardProps) {
             >
               Дополнить данные
             </Link>
-            <button
-              type="button"
-              className="px-3 py-1.5 rounded-full border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 transition"
-            >
-              Отменить заявку
-            </button>
           </>
-        ) : null}
+        )}
 
         {status === "scheduled" && (
           <>
