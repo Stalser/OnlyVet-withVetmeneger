@@ -1,0 +1,2 @@
+// lib/mockBookings.ts
+export const mockBookings: any[] = [];
