@@ -7,6 +7,9 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { AccountNav } from "@/components/AccountNav";
 
+// =============================
+// 🔹 Типы данных
+// =============================
 type PetRecord = {
   id: string;
   name: string;
@@ -33,7 +36,9 @@ type PetDocument = {
   description?: string;
 };
 
-// Демонстрационные данные — потом будут приходить из БД/Vetmanager.
+// =============================
+// 🔹 Демоданные
+// =============================
 const demoPets: PetRecord[] = [
   {
     id: "pet1",
@@ -42,7 +47,7 @@ const demoPets: PetRecord[] = [
     age: "2 года",
     sex: "самка",
     color: "голубой",
-    notes: "Хронический гастрит, эпизодические рвоты, на лечебной диете.",
+    notes: "Хронический гастрит, периодические эпизоды рвоты. Наблюдается.",
   },
   {
     id: "pet2",
@@ -51,8 +56,7 @@ const demoPets: PetRecord[] = [
     age: "6 лет",
     sex: "самец",
     color: "чёрно-рыжий",
-    notes:
-      "Перенесён острый панкреатит, требуется контроль диеты, веса и анализов крови.",
+    notes: "Перенесён острый панкреатит, требуется контроль диеты и анализов.",
   },
 ];
 
@@ -62,14 +66,14 @@ const demoVisits: Record<string, PetVisit[]> = {
       id: "v1",
       date: "2025-01-10",
       doctor: "Эльвин Мазагирович",
-      summary: "Обострение гастрита, коррекция диеты, назначение терапии.",
+      summary: "Обострение гастрита, коррекция диеты, назначена терапия.",
       status: "done",
     },
     {
       id: "v2",
       date: "2025-02-05",
       doctor: "Диана Чемерилова",
-      summary: "Плановый контроль, динамика положительная.",
+      summary: "Плановый контроль. Динамика положительная.",
       status: "done",
     },
   ],
@@ -78,7 +82,7 @@ const demoVisits: Record<string, PetVisit[]> = {
       id: "v3",
       date: "2024-12-20",
       doctor: "Диана Чемерилова",
-      summary: "После панкреатита, подбор поддерживающей схемы.",
+      summary: "Постпанкреатитное наблюдение, корректировки схемы.",
       status: "done",
     },
   ],
@@ -89,21 +93,21 @@ const demoDocs: Record<string, PetDocument[]> = {
     {
       id: "d1",
       category: "analyzes",
-      title: "Биохимический анализ крови",
+      title: "Биохимия крови",
       date: "2025-01-09",
-      description: "Повышены ALT/AST, лёгкая гипопротеинемия.",
+      description: "ALT/AST слегка повышены. Лёгкая гипопротеинемия.",
     },
     {
       id: "d2",
       category: "imaging",
       title: "УЗИ брюшной полости",
       date: "2025-01-09",
-      description: "Признаки гастрита, другие органы без особенностей.",
+      description: "Признаки гастрита. Остальные органы без особенностей.",
     },
     {
       id: "d3",
       category: "discharge",
-      title: "Выписка по итогам консультации",
+      title: "Выписка после консультации",
       date: "2025-01-10",
     },
   ],
@@ -111,7 +115,7 @@ const demoDocs: Record<string, PetDocument[]> = {
     {
       id: "d4",
       category: "analyzes",
-      title: "Биохимический анализ крови",
+      title: "Анализ крови (биохимия)",
       date: "2024-12-19",
       description: "Амилаза/липаза в верхней границе нормы.",
     },
@@ -124,15 +128,16 @@ const demoDocs: Record<string, PetDocument[]> = {
   ],
 };
 
+// =============================
+// 🔹 Основная логика
+// =============================
 function getPetById(id: string): PetRecord | undefined {
   return demoPets.find((p) => p.id === id);
 }
 
 export default function PetPage({ params }: { params: { id: string } }) {
   const pet = getPetById(params.id);
-  if (!pet) {
-    notFound();
-  }
+  if (!pet) return notFound();
 
   const visits = demoVisits[pet.id] || [];
   const docs = demoDocs[pet.id] || [];
@@ -142,11 +147,15 @@ export default function PetPage({ params }: { params: { id: string } }) {
   const discharge = docs.filter((d) => d.category === "discharge");
   const other = docs.filter((d) => d.category === "other");
 
+  // =============================
+  // 🔹 Рендер
+  // =============================
   return (
     <>
       <Header />
-      <main className="flex-1 py-8 bg-slate-50/70">
-        <div className="container mx-auto max-w-5xl px-4 space-y-6">
+
+      <main className="flex-1 bg-slate-50/70 py-8">
+        <div className="container mx-auto max-w-5xl px-4 space-y-7">
           {/* Хлебные крошки */}
           <nav className="text-[12px] text-slate-500">
             <Link href="/" className="hover:text-onlyvet-coral">
@@ -163,23 +172,25 @@ export default function PetPage({ params }: { params: { id: string } }) {
             / <span className="text-slate-700">{pet.name}</span>
           </nav>
 
-          {/* Шапка карточки питомца */}
-          <section className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          {/* Шапка: имя, вид, кнопки */}
+          <section className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-3xl bg-onlyvet-teal/10 flex items-center justify-center text-onlyvet-navy text-xl font-semibold">
+              <div className="w-16 h-16 rounded-3xl bg-onlyvet-teal/10 border border-slate-200 flex items-center justify-center text-onlyvet-navy text-xl font-semibold">
                 {pet.name[0]}
               </div>
+
               <div>
                 <h1 className="text-xl md:text-2xl font-semibold mb-1">
                   {pet.name}
                 </h1>
                 <div className="text-[13px] text-slate-600">
-                  {pet.kind} · {pet.age}
-                  {pet.sex && ` · ${pet.sex}`}
-                  {pet.color && ` · окрас: ${pet.color}`}
+                  {pet.kind} • {pet.age}
+                  {pet.sex && ` • ${pet.sex}`}
+                  {pet.color && ` • окрас: ${pet.color}`}
                 </div>
               </div>
             </div>
+
             <div className="flex flex-col sm:flex-row gap-2 text-[12px]">
               <Link
                 href={`/booking?petId=${pet.id}`}
@@ -196,15 +207,17 @@ export default function PetPage({ params }: { params: { id: string } }) {
             </div>
           </section>
 
-          {/* Основные блоки: информация + медкарта */}
-          <section className="grid gap-4 md:grid-cols-[1.4fr,1fr] items-start">
-            {/* Краткая информация о питомце */}
-            <div className="space-y-4">
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5">
-                <h2 className="text-[15px] font-semibold mb-2">
+          {/* Две колонки */}
+          <section className="grid gap-5 md:grid-cols-[1.4fr,1fr] items-start">
+            {/* Левая колонка */}
+            <div className="space-y-5">
+              {/* Краткая информация */}
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-6">
+                <h2 className="text-[15px] font-semibold mb-3">
                   Краткая информация
                 </h2>
-                <div className="space-y-1 text-[13px] text-slate-700">
+
+                <div className="space-y-1 text-[13px] leading-relaxed text-slate-700">
                   <p>
                     <span className="text-slate-500">Вид и порода: </span>
                     {pet.kind}
@@ -226,7 +239,7 @@ export default function PetPage({ params }: { params: { id: string } }) {
                     </p>
                   )}
                   {pet.notes && (
-                    <p className="mt-2">
+                    <p className="pt-1">
                       <span className="text-slate-500">
                         Особенности здоровья:{" "}
                       </span>
@@ -236,35 +249,38 @@ export default function PetPage({ params }: { params: { id: string } }) {
                 </div>
               </div>
 
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5">
-                <h2 className="text-[15px] font-semibold mb-2">
+              {/* Медкарта */}
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-6">
+                <h2 className="text-[15px] font-semibold mb-3">
                   Медицинская карта (демо)
                 </h2>
+
                 {visits.length === 0 ? (
                   <p className="text-[13px] text-slate-600">
-                    Записей пока нет. После проведения консультаций здесь будут
-                    отображаться краткие резюме приёмов.
+                    Записей пока нет. После консультаций здесь появятся краткие
+                    резюме приёмов.
                   </p>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {visits.map((v) => (
                       <div
                         key={v.id}
-                        className="rounded-2xl border border-slate-200 bg-onlyvet-bg px-3 py-2 text-[12px]"
+                        className="rounded-2xl border border-slate-200 bg-onlyvet-bg px-4 py-3"
                       >
                         <div className="flex justify-between items-center mb-1">
-                          <span className="font-medium text-slate-800">
+                          <span className="font-medium text-[13px] text-slate-800">
                             {new Date(v.date).toLocaleDateString("ru-RU", {
                               day: "2-digit",
                               month: "short",
                               year: "numeric",
                             })}
                           </span>
+
                           <span
                             className={
                               v.status === "done"
-                                ? "px-2 py-[2px] rounded-full bg-teal-50 text-teal-700"
-                                : "px-2 py-[2px] rounded-full bg-amber-50 text-amber-700"
+                                ? "px-2 py-[2px] rounded-full bg-teal-50 text-teal-700 text-[11px]"
+                                : "px-2 py-[2px] rounded-full bg-amber-50 text-amber-700 text-[11px]"
                             }
                           >
                             {v.status === "done"
@@ -272,97 +288,90 @@ export default function PetPage({ params }: { params: { id: string } }) {
                               : "Запланирована"}
                           </span>
                         </div>
-                        <div className="text-slate-600 mb-1">
+
+                        <div className="text-[12px] text-slate-600 mb-1">
                           Врач: {v.doctor}
                         </div>
-                        <div className="text-slate-700">{v.summary}</div>
+                        <div className="text-[12px] text-slate-800">
+                          {v.summary}
+                        </div>
                       </div>
                     ))}
                   </div>
                 )}
-                <p className="mt-2 text-[11px] text-slate-500">
-                  В боевой версии данные медкарты будут подтягиваться из
-                  Vetmanager и синхронизироваться с онлайн-консультациями.
+
+                <p className="mt-3 text-[11px] text-slate-500">
+                  В будущем данные будут синхронизироваться с Vetmanager.
                 </p>
               </div>
             </div>
 
-            {/* Документы питомца */}
-            <div className="space-y-4">
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5">
-                <h3 className="text-[15px] font-semibold mb-2">
+            {/* Правая колонка: документы */}
+            <div className="space-y-5">
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-6">
+                <h3 className="text-[15px] font-semibold mb-3">
                   Документы питомца
                 </h3>
-                <p className="text-[12px] text-slate-600 mb-2">
-                  Здесь сгруппированы документы по основным категориям: анализы,
-                  результаты исследований, выписки и прочее.
+                <p className="text-[12px] text-slate-600 mb-3 leading-relaxed">
+                  Документы распределены по категориям: анализы, исследования,
+                  выписки и другие материалы.
                 </p>
 
-                <div className="space-y-2 text-[12px] text-slate-700">
-                  <DocCategoryBlock
-                    title="Анализы"
-                    docs={analyzes}
-                    emptyText="Анализы пока не добавлены."
-                  />
-                  <DocCategoryBlock
-                    title="Исследования (УЗИ, рентген и т.д.)"
-                    docs={imaging}
-                    emptyText="Исследования пока не добавлены."
-                  />
-                  <DocCategoryBlock
-                    title="Выписки и заключения"
-                    docs={discharge}
-                    emptyText="Выписки пока не добавлены."
-                  />
-                  <DocCategoryBlock
-                    title="Прочие документы"
-                    docs={other}
-                    emptyText="Прочие документы пока не добавлены."
-                  />
+                <div className="space-y-3">
+                  <DocCategory title="Анализы" docs={analyzes} />
+                  <DocCategory title="Исследования" docs={imaging} />
+                  <DocCategory title="Выписки" docs={discharge} />
+                  <DocCategory title="Прочее" docs={other} />
                 </div>
 
-                <p className="mt-2 text-[11px] text-slate-500">
-                  В будущем сюда можно будет загружать файлы напрямую из
-                  личного кабинета и из Vetmanager.
+                <p className="mt-3 text-[11px] text-slate-500">
+                  Позже можно будет загружать документы прямо здесь.
                 </p>
               </div>
             </div>
           </section>
         </div>
       </main>
+
       <Footer />
     </>
   );
 }
 
-function DocCategoryBlock({
+// =============================
+// 🔹 Компонент категории документов
+// =============================
+function DocCategory({
   title,
   docs,
-  emptyText,
 }: {
   title: string;
   docs: PetDocument[];
-  emptyText: string;
 }) {
   return (
-    <div className="border border-slate-200 rounded-2xl bg-onlyvet-bg px-3 py-2">
-      <div className="text-[12px] font-semibold text-slate-800 mb-1">
+    <div className="border border-slate-200 rounded-2xl bg-onlyvet-bg px-4 py-3">
+      <div className="text-[13px] font-semibold text-slate-800 mb-2">
         {title}
       </div>
+
       {docs.length === 0 ? (
-        <div className="text-[11px] text-slate-500">{emptyText}</div>
+        <div className="text-[12px] text-slate-500">Документов пока нет.</div>
       ) : (
-        <ul className="space-y-1">
+        <ul className="space-y-2">
           {docs.map((d) => (
-            <li key={d.id} className="flex justify-between gap-2">
+            <li
+              key={d.id}
+              className="flex justify-between items-start gap-3 text-[12px]"
+            >
               <div className="flex-1">
-                <div className="font-medium">{d.title}</div>
+                <div className="font-medium text-slate-800">{d.title}</div>
                 {d.description && (
-                  <div className="text-[11px] text-slate-600">
+                  <div className="text-[11px] text-slate-600 leading-tight mt-[2px]">
                     {d.description}
                   </div>
                 )}
               </div>
+
               <div className="text-[11px] text-slate-500 whitespace-nowrap">
                 {new Date(d.date).toLocaleDateString("ru-RU", {
                   day: "2-digit",
@@ -378,6 +387,9 @@ function DocCategoryBlock({
   );
 }
 
+// =============================
+// 🔹 Генерация статических маршрутов
+// =============================
 export function generateStaticParams() {
   return demoPets.map((p) => ({ id: p.id }));
 }
