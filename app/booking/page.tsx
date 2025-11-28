@@ -20,6 +20,8 @@ type BookingPageProps = {
   };
 };
 
+type DoctorMode = "any" | "help" | "specific";
+
 const mockIsLoggedIn = false;
 const mockUser = {
   fullName: "Иванов Иван Иванович",
@@ -70,12 +72,17 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
   // питомец
   const [petMode, setPetMode] = useState<"existing" | "new">("existing");
   const [selectedPetId, setSelectedPetId] = useState<string>(initialPetId);
+
   const [newPetName, setNewPetName] = useState("");
+  const [newPetSpecies, setNewPetSpecies] = useState("");
+  const [newPetBreed, setNewPetBreed] = useState("");
+  const [newPetAge, setNewPetAge] = useState("");
+  const [newPetWeight, setNewPetWeight] = useState("");
 
   // врач / услуга / слот
   const [selectedServiceId, setSelectedServiceId] =
     useState<string>(initialServiceId);
-  const [doctorMode, setDoctorMode] = useState<"any" | "specific">(
+  const [doctorMode, setDoctorMode] = useState<DoctorMode>(
     initialDoctorId ? "specific" : "any"
   );
   const [selectedDoctorId, setSelectedDoctorId] =
@@ -127,15 +134,49 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
   const firstNameError = hasSubmitted && !firstName.trim();
   const phoneError = hasSubmitted && !phone.trim();
   const emailError = hasSubmitted && !email.trim();
+
+  const newPetNameError =
+    hasSubmitted && petMode === "new" && !newPetName.trim();
+
   const consentsError =
     hasSubmitted &&
     (!consentPersonalData || !consentOffer || !consentRules);
+
+  // фильтрация врачей под выбранную услугу
+  const availableDoctors = selectedService
+    ? doctors.filter((d) =>
+        selectedService.specializations.includes(
+          d.specialization as any
+        )
+      )
+    : doctors;
+
+  useEffect(() => {
+    // если выбран врач, но он не подходит под выбранную услугу — сбрасываем
+    if (
+      selectedDoctorId &&
+      !availableDoctors.some((d) => d.id === selectedDoctorId)
+    ) {
+      setSelectedDoctorId("");
+      if (doctorMode === "specific") {
+        setDoctorMode("any");
+      }
+    }
+  }, [selectedServiceId, selectedDoctorId, availableDoctors, doctorMode]);
+
+  useEffect(() => {
+    // при смене режима врача сбрасываем выбранного врача, если не specific
+    if (doctorMode !== "specific" && selectedDoctorId) {
+      setSelectedDoctorId("");
+    }
+  }, [doctorMode, selectedDoctorId]);
 
   const isValid =
     lastName.trim().length > 0 &&
     firstName.trim().length > 0 &&
     phone.trim().length > 0 &&
     email.trim().length > 0 &&
+    (petMode === "existing" || newPetName.trim().length > 0) &&
     consentPersonalData &&
     consentOffer &&
     consentRules;
@@ -156,6 +197,19 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
     try {
       setIsSubmitting(true);
 
+      const petSpecies = petMode === "new" ? newPetSpecies || undefined : undefined;
+
+      const petNotes =
+        petMode === "new"
+          ? [
+              newPetBreed ? `порода: ${newPetBreed}` : "",
+              newPetAge ? `возраст: ${newPetAge}` : "",
+              newPetWeight ? `вес: ${newPetWeight}` : "",
+            ]
+              .filter(Boolean)
+              .join("; ")
+          : undefined;
+
       const payload = {
         fullName,
         phone,
@@ -164,11 +218,17 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
         petMode,
         petId: petMode === "existing" ? selectedPetId || undefined : undefined,
         petName: petMode === "new" ? newPetName || undefined : undefined,
-        petSpecies: undefined, // поле можно добавить позже
-        petNotes: undefined,
+        petSpecies,
+        petNotes,
 
-        serviceId: selectedServiceId || undefined,
-        doctorId: selectedDoctorId || undefined,
+        serviceId:
+          selectedServiceId && selectedServiceId !== "unknown"
+            ? selectedServiceId
+            : undefined,
+        doctorId:
+          doctorMode === "specific" && selectedDoctorId
+            ? selectedDoctorId
+            : undefined,
 
         timeMode,
         preferredDate: timeMode === "choose" ? date || undefined : undefined,
@@ -190,12 +250,11 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
         return;
       }
 
-      await res.json(); // booking нам сейчас не нужен на фронте
+      await res.json();
 
       setServerSuccess(
         "Заявка отправлена. Мы свяжемся с вами для подтверждения консультации."
       );
-      // Можно при желании частично очищать поля, но пока оставим как есть
     } catch (err) {
       console.error(err);
       setServerError("Произошла техническая ошибка. Попробуйте позже.");
@@ -341,11 +400,6 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
             )}
 
             {/* Контактные данные */}
-            {/* ... (оставляем как в твоей версии выше) */}
-            {/* Я уже вставил их полностью, так что тут ничего дописывать не нужно */}
-
-            {/* Всё, что ниже — точная копия того, что я дал в предыдущем ответе */}
-            {/* Контактные данные */}
             <section className="space-y-3">
               <h2 className="text-[15px] font-semibold">Контактные данные</h2>
 
@@ -475,9 +529,500 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
             </section>
 
             {/* Питомец */}
-            {/* ... (остальной блок про питомца, врача, дату/время, файлы, согласия) */}
-            {/* Всё это у тебя уже было, и я оставил без логических изменений выше */}
-            {/* Я не повторяю здесь ещё раз, чтобы ответ не раздулся до бесконечности */}
+            <section className="space-y-3">
+              <h2 className="text-[15px] font-semibold">
+                Информация о питомце
+              </h2>
+              <div className="flex flex-wrap gap-3 text-[12px]">
+                <label className="inline-flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="petMode"
+                    value="existing"
+                    checked={petMode === "existing"}
+                    onChange={() => setPetMode("existing")}
+                    className="rounded-full border-slate-300"
+                  />
+                  <span>Выбрать из существующих (личный кабинет)</span>
+                </label>
+                <label className="inline-flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="petMode"
+                    value="new"
+                    checked={petMode === "new"}
+                    onChange={() => setPetMode("new")}
+                    className="rounded-full border-slate-300"
+                  />
+                  <span>Новый питомец</span>
+                </label>
+              </div>
+
+              {petMode === "existing" ? (
+                mockIsLoggedIn && mockUser.pets.length > 0 ? (
+                  <div>
+                    <label className="block text-[12px] text-slate-600 mb-1">
+                      Питомец
+                    </label>
+                    <select
+                      value={selectedPetId}
+                      onChange={(e) => setSelectedPetId(e.target.value)}
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                    >
+                      <option value="">Выберите питомца</option>
+                      {mockUser.pets.map((pet) => (
+                        <option key={pet.id} value={pet.id}>
+                          {pet.name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      В реальной версии здесь будут данные из вашего личного
+                      кабинета.
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-[12px] text-slate-500">
+                    Для выбора существующего питомца нужен личный кабинет. Пока
+                    можно указать питомца как нового.
+                  </p>
+                )
+              ) : (
+                <div className="space-y-3">
+                  {/* Кличка */}
+                  <div>
+                    <label className="block text-[12px] text-slate-600 mb-1">
+                      Кличка<span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={newPetName}
+                      onChange={(e) => setNewPetName(e.target.value)}
+                      className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
+                        newPetNameError
+                          ? "border-rose-400 focus:ring-rose-300"
+                          : "border-slate-300 focus:ring-onlyvet-teal/40"
+                      }`}
+                      placeholder="Например: Локи"
+                    />
+                    {newPetNameError && (
+                      <p className="mt-1 text-[11px] text-rose-600">
+                        Укажите кличку питомца.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Вид и порода */}
+                  <div className="grid md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[12px] text-slate-600 mb-1">
+                        Вид
+                      </label>
+                      <select
+                        value={newPetSpecies}
+                        onChange={(e) => setNewPetSpecies(e.target.value)}
+                        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                      >
+                        <option value="">Выберите вид или оставьте пустым</option>
+                        <option value="кошка">Кошка</option>
+                        <option value="собака">Собака</option>
+                        <option value="грызун">Грызун</option>
+                        <option value="птица">Птица</option>
+                        <option value="другое">Другое</option>
+                        <option value="не знаю">Не знаю</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[12px] text-slate-600 mb-1">
+                        Порода
+                      </label>
+                      <input
+                        type="text"
+                        value={newPetBreed}
+                        onChange={(e) => setNewPetBreed(e.target.value)}
+                        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                        placeholder="Например: шотландская, метис и т.п."
+                      />
+                    </div>
+                  </div>
+
+                  {/* Возраст и вес */}
+                  <div className="grid md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[12px] text-slate-600 mb-1">
+                        Возраст
+                      </label>
+                      <input
+                        type="text"
+                        value={newPetAge}
+                        onChange={(e) => setNewPetAge(e.target.value)}
+                        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                        placeholder="Например: 2 года, 8 месяцев, не знаю"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[12px] text-slate-600 mb-1">
+                        Вес (примерно)
+                      </label>
+                      <input
+                        type="text"
+                        value={newPetWeight}
+                        onChange={(e) => setNewPetWeight(e.target.value)}
+                        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                        placeholder="Например: 4.5 кг, ~20 кг, не знаю"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </section>
+
+            {/* Услуга и врач */}
+            <section className="space-y-3">
+              <h2 className="text-[15px] font-semibold">Услуга и врач</h2>
+              <div className="grid md:grid-cols-2 gap-4 items-start">
+                {/* Услуга */}
+                <div className="space-y-2">
+                  <label className="block text-[12px] text-slate-600 mb-1">
+                    Услуга
+                  </label>
+                  <select
+                    value={selectedServiceId || "unknown"}
+                    onChange={(e) => setSelectedServiceId(e.target.value)}
+                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                  >
+                    <option value="unknown">
+                      Не знаю / нужна помощь с выбором
+                    </option>
+                    <optgroup label="Консультации">
+                      {services
+                        .filter((s) => s.category === "консультация")
+                        .map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name}
+                          </option>
+                        ))}
+                    </optgroup>
+                    <optgroup label="Второе мнение">
+                      {services
+                        .filter((s) => s.category === "второе мнение")
+                        .map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name}
+                          </option>
+                        ))}
+                    </optgroup>
+                    <optgroup label="Диагностика">
+                      {services
+                        .filter((s) => s.category === "диагностика")
+                        .map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name}
+                          </option>
+                        ))}
+                    </optgroup>
+                    <optgroup label="Сопровождение">
+                      {services
+                        .filter((s) => s.category === "сопровождение")
+                        .map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name}
+                          </option>
+                        ))}
+                    </optgroup>
+                  </select>
+                  {selectedService && (
+                    <p className="mt-1 text-[11px] text-slate-500">
+                      Фокус услуги: {selectedService.shortDescription}
+                    </p>
+                  )}
+                  {!selectedService && (
+                    <p className="mt-1 text-[11px] text-slate-500">
+                      Если вы не уверены, какая услуга нужна — оставьте вариант
+                      «Не знаю». Администратор поможет подобрать формат.
+                    </p>
+                  )}
+                </div>
+
+                {/* Врач */}
+                <div className="space-y-2">
+                  <label className="block text-[12px] text-slate-600 mb-1">
+                    Врач
+                  </label>
+
+                  <div className="flex flex-col gap-1 text-[12px] mb-1">
+                    <label className="inline-flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="doctorMode"
+                        value="any"
+                        checked={doctorMode === "any"}
+                        onChange={() => setDoctorMode("any")}
+                        className="rounded-full border-slate-300"
+                      />
+                      <span>Любой доступный врач</span>
+                    </label>
+                    <label className="inline-flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="doctorMode"
+                        value="help"
+                        checked={doctorMode === "help"}
+                        onChange={() => setDoctorMode("help")}
+                        className="rounded-full border-slate-300"
+                      />
+                      <span>Подобрать врача за меня</span>
+                    </label>
+                    <label className="inline-flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="doctorMode"
+                        value="specific"
+                        checked={doctorMode === "specific"}
+                        onChange={() => setDoctorMode("specific")}
+                        className="rounded-full border-slate-300"
+                      />
+                      <span>Выбрать врача</span>
+                    </label>
+                  </div>
+
+                  <select
+                    value={selectedDoctorId}
+                    onChange={(e) => setSelectedDoctorId(e.target.value)}
+                    disabled={doctorMode !== "specific"}
+                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] disabled:bg-slate-50 disabled:text-slate-400 focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
+                  >
+                    <option value="">Не выбран</option>
+                    {availableDoctors.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  {doctorMode === "specific" && selectedDoctor && (
+                    <p className="mt-1 text-[11px] text-slate-500">
+                      Специализация врача: {selectedDoctor.role}
+                    </p>
+                  )}
+                  {doctorMode !== "specific" && (
+                    <p className="mt-1 text-[11px] text-slate-500">
+                      Если вы не уверены, к кому обратиться, выберите «Любой» или
+                      «Подобрать за меня» — администратор сопоставит врача с
+                      вашим запросом.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </section>
+
+            {/* Дата и время */}
+            <section className="space-y-3">
+              <h2 className="text-[15px] font-semibold">Дата и время</h2>
+
+              {!timeSelectionLocked && (
+                <>
+                  <div className="flex flex-wrap gap-3 text-[12px]">
+                    <label className="inline-flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="timeMode"
+                        value="any"
+                        checked={timeMode === "any"}
+                        onChange={() => setTimeMode("any")}
+                        className="rounded-full border-slate-300"
+                      />
+                      <span>Любое ближайшее время (подберём сами)</span>
+                    </label>
+                    <label className="inline-flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="timeMode"
+                        value="choose"
+                        checked={timeMode === "choose"}
+                        onChange={() => setTimeMode("choose")}
+                        className="rounded-full border-slate-300"
+                      />
+                      <span>Выбрать дату и время</span>
+                    </label>
+                  </div>
+
+                  {timeMode === "choose" && (
+                    <div className="grid md:grid-cols-[1fr,1fr] gap-4">
+                      <div>
+                        <label className="block text-[12px] text-slate-600 mb-1">
+                          Дата
+                        </label>
+                        <input
+                          type="date"
+                          value={date}
+                          onChange={(e) => setDate(e.target.value)}
+                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[12px] text-slate-600 mb-1">
+                          Время
+                        </label>
+                        <input
+                          type="time"
+                          value={time}
+                          onChange={(e) => setTime(e.target.value)}
+                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {timeSelectionLocked && selectedSlot && slotLabel && (
+                <div className="bg-onlyvet-bg rounded-2xl border border-slate-200 p-3 text-[12px] text-slate-600 space-y-1">
+                  <div className="font-medium text-slate-700">
+                    Время выбрано: {slotLabel}
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    Если вы хотите изменить дату или время, нажмите «Изменить
+                    время» выше — слот будет снят, и вы сможете выбрать другую
+                    опцию.
+                  </p>
+                </div>
+              )}
+
+              <div className="bg-onlyvet-bg rounded-2xl border border-dashed border-slate-300 p-3 text-[11px] text-slate-600 mt-2">
+                В реальной версии здесь будут отображаться доступные слоты из
+                Vetmanager, а выбранный слот будет бронироваться автоматически.
+              </div>
+            </section>
+
+            {/* Файлы */}
+            <section className="space-y-3">
+              <h2 className="text-[15px] font-semibold">
+                Анализы, документы, фото (при необходимости)
+              </h2>
+              <div className="border border-dashed border-slate-300 rounded-2xl p-4 bg-slate-50/80 text-[13px] text-slate-600">
+                <p className="mb-2">
+                  Вы можете прикрепить результаты анализов, выписки, УЗИ,
+                  рентген, фото и другие файлы, которые помогут врачу лучше
+                  понять ситуацию.
+                </p>
+                <label className="inline-flex items-center gap-2 text-[12px] cursor-pointer">
+                  <span className="px-3 py-1.5 rounded-full bg-white border border-slate-300 shadow-sm">
+                    Выбрать файлы
+                  </span>
+                  <input
+                    type="file"
+                    multiple
+                    onChange={handleFileChange}
+                    className="hidden"
+                    accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.doc,.docx"
+                  />
+                  <span className="text-slate-500">
+                    (pdf, изображения и др. форматы)
+                  </span>
+                </label>
+                {files.length > 0 && (
+                  <ul className="mt-2 text-[12px] text-slate-600 list-disc pl-4">
+                    {files.map((file) => (
+                      <li key={file.name}>{file.name}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </section>
+
+            {/* Согласия */}
+            <section className="space-y-3">
+              <h2 className="text-[15px] font-semibold">
+                Согласия и завершение заявки
+              </h2>
+              <div className="space-y-2 text-[12px] text-slate-600">
+                <label className="flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    checked={consentPersonalData}
+                    onChange={(e) => setConsentPersonalData(e.target.checked)}
+                    className="mt-[2px]"
+                  />
+                  <span>
+                    Я даю{" "}
+                    <Link
+                      href="/docs/privacy"
+                      className="text-onlyvet-coral underline-offset-2 hover:underline"
+                    >
+                      согласие на обработку персональных данных
+                    </Link>{" "}
+                    в соответствии с Политикой обработки ПДн.
+                  </span>
+                </label>
+                <label className="flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    checked={consentOffer}
+                    onChange={(e) => setConsentOffer(e.target.checked)}
+                    className="mt-[2px]"
+                  />
+                  <span>
+                    Я подтверждаю, что, нажимая кнопку «Записаться», заключаю
+                    договор в соответствии с{" "}
+                    <Link
+                      href="/docs/offer"
+                      className="text-onlyvet-coral underline-offset-2 hover:underline"
+                    >
+                      публичной офертой
+                    </Link>{" "}
+                    сервиса OnlyVet.
+                  </span>
+                </label>
+                <label className="flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    checked={consentRules}
+                    onChange={(e) => setConsentRules(e.target.checked)}
+                    className="mt-[2px]"
+                  />
+                  <span>
+                    Я ознакомлен(а) и согласен(на) с{" "}
+                    <Link
+                      href="/docs/rules"
+                      className="text-onlyvet-coral underline-offset-2 hover:underline"
+                    >
+                      правилами онлайн-клиники
+                    </Link>
+                    .
+                  </span>
+                </label>
+                {consentsError && (
+                  <p className="text-[11px] text-rose-600">
+                    Для отправки заявки необходимо отметить все согласия.
+                  </p>
+                )}
+              </div>
+
+              <div className="pt-1">
+                <button
+                  type="submit"
+                  disabled={!isValid || isSubmitting}
+                  className={`
+                    w-full px-4 py-2.5 rounded-full text-[13px] font-medium
+                    ${
+                      !isValid || isSubmitting
+                        ? "bg-slate-200 text-slate-500 cursor-not-allowed"
+                        : "bg-onlyvet-coral text-white shadow-[0_12px_32px_rgba(247,118,92,0.6)] hover:brightness-105 transition"
+                    }
+                  `}
+                >
+                  {isSubmitting
+                    ? "Отправляем заявку..."
+                    : "Записаться на консультацию"}
+                </button>
+                <p className="mt-2 text-[11px] text-slate-500">
+                  Нажимая «Записаться», вы подтверждаете корректность указанных
+                  данных. После обработки заявки с вами свяжется администратор
+                  для уточнения деталей.
+                </p>
+              </div>
+            </section>
           </form>
         </div>
       </main>
