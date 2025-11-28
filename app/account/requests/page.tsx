@@ -1,11 +1,17 @@
 // app/account/requests/page.tsx
 
+"use client";
+
 import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { AccountNav } from "@/components/AccountNav";
 import { doctors } from "@/data/doctors";
 import { services } from "@/data/services";
+import {
+  ConsultationCard,
+  type ConsultationStatus,
+} from "@/components/ConsultationCard";
 
 type RequestStatus = "pending" | "scheduled" | "done";
 
@@ -43,25 +49,11 @@ const mockRequests: Request[] = [
   },
 ];
 
-function statusMeta(status: RequestStatus) {
-  switch (status) {
-    case "pending":
-      return {
-        label: "Ожидает обработки",
-        className: "bg-amber-50 text-amber-700",
-      };
-    case "scheduled":
-      return {
-        label: "Запланирована",
-        className: "bg-teal-50 text-teal-700",
-      };
-    case "done":
-    default:
-      return {
-        label: "Проведена",
-        className: "bg-slate-100 text-slate-700",
-      };
-  }
+function mapStatus(status: RequestStatus): ConsultationStatus {
+  // пока прямое соответствие, позже можно добавить "in_review"/"cancelled"
+  if (status === "pending") return "pending";
+  if (status === "scheduled") return "scheduled";
+  return "done";
 }
 
 export default function RequestsPage() {
@@ -71,7 +63,6 @@ export default function RequestsPage() {
   const getServiceName = (id?: string) =>
     id ? services.find((s) => s.id === id)?.name : undefined;
 
-  // Разделим заявки на активные и завершённые
   const active = mockRequests.filter(
     (r) => r.status === "pending" || r.status === "scheduled"
   );
@@ -148,7 +139,6 @@ export default function RequestsPage() {
               </div>
             )}
 
-            {/* Активные / прошедшие заявки */}
             {hasAny && (
               <div className="space-y-5">
                 {/* Активные */}
@@ -172,68 +162,23 @@ export default function RequestsPage() {
                   ) : (
                     <div className="space-y-2">
                       {active.map((req) => {
-                        const dt = new Date(req.createdAt).toLocaleString(
-                          "ru-RU",
-                          {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          }
-                        );
-                        const meta = statusMeta(req.status);
                         const doctorName = getDoctorName(req.doctorId);
                         const serviceName = getServiceName(req.serviceId);
 
                         return (
-                          <article
+                          <ConsultationCard
                             key={req.id}
-                            className="bg-white rounded-2xl border border-slate-200 shadow-soft p-4 flex flex-col gap-1 text-[13px]"
-                          >
-                            <div className="flex justify-between items-center mb-1">
-                              <div className="font-semibold text-onlyvet-navy">
-                                Заявка #{req.id.toUpperCase()}
-                              </div>
-                              <span
-                                className={`px-2 py-[2px] rounded-full text-[11px] ${meta.className}`}
-                              >
-                                {meta.label}
-                              </span>
-                            </div>
-
-                            <div className="text-[12px] text-slate-500">
-                              {dt}
-                            </div>
-                            <div className="text-[12px] text-slate-600">
-                              Питомец:{" "}
-                              <span className="font-medium">
-                                {req.petName}
-                              </span>
-                            </div>
-                            {doctorName && (
-                              <div className="text-[12px] text-slate-600">
-                                Врач:{" "}
-                                <Link
-                                  href={`/doctors/${req.doctorId}`}
-                                  className="text-onlyvet-coral hover:underline"
-                                >
-                                  {doctorName}
-                                </Link>
-                              </div>
-                            )}
-                            {serviceName && (
-                              <div className="text-[12px] text-slate-600">
-                                Услуга:{" "}
-                                <Link
-                                  href={`/services/${req.serviceId}`}
-                                  className="text-onlyvet-coral hover:underline"
-                                >
-                                  {serviceName}
-                                </Link>
-                              </div>
-                            )}
-                          </article>
+                            id={req.id}
+                            createdAt={req.createdAt}
+                            petName={req.petName}
+                            doctorName={doctorName}
+                            doctorId={req.doctorId}
+                            serviceName={serviceName}
+                            // пока нет отдельного поля для даты консультации — используем createdAt
+                            dateTime={req.createdAt}
+                            status={mapStatus(req.status)}
+                            showPetLink={false}
+                          />
                         );
                       })}
                     </div>
@@ -261,68 +206,22 @@ export default function RequestsPage() {
                   ) : (
                     <div className="space-y-2">
                       {done.map((req) => {
-                        const dt = new Date(req.createdAt).toLocaleString(
-                          "ru-RU",
-                          {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          }
-                        );
-                        const meta = statusMeta(req.status);
                         const doctorName = getDoctorName(req.doctorId);
                         const serviceName = getServiceName(req.serviceId);
 
                         return (
-                          <article
+                          <ConsultationCard
                             key={req.id}
-                            className="bg-white rounded-2xl border border-slate-200 shadow-soft p-4 flex flex-col gap-1 text-[13px]"
-                          >
-                            <div className="flex justify-between items-center mb-1">
-                              <div className="font-semibold text-onlyvet-navy">
-                                Заявка #{req.id.toUpperCase()}
-                              </div>
-                              <span
-                                className={`px-2 py-[2px] rounded-full text-[11px] ${meta.className}`}
-                              >
-                                {meta.label}
-                              </span>
-                            </div>
-
-                            <div className="text-[12px] text-slate-500">
-                              {dt}
-                            </div>
-                            <div className="text-[12px] text-slate-600">
-                              Питомец:{" "}
-                              <span className="font-medium">
-                                {req.petName}
-                              </span>
-                            </div>
-                            {doctorName && (
-                              <div className="text-[12px] text-slate-600">
-                                Врач:{" "}
-                                <Link
-                                  href={`/doctors/${req.doctorId}`}
-                                  className="text-onlyvet-coral hover:underline"
-                                >
-                                  {doctorName}
-                                </Link>
-                              </div>
-                            )}
-                            {serviceName && (
-                              <div className="text-[12px] text-slate-600">
-                                Услуга:{" "}
-                                <Link
-                                  href={`/services/${req.serviceId}`}
-                                  className="text-onlyvet-coral hover:underline"
-                                >
-                                  {serviceName}
-                                </Link>
-                              </div>
-                            )}
-                          </article>
+                            id={req.id}
+                            createdAt={req.createdAt}
+                            petName={req.petName}
+                            doctorName={doctorName}
+                            doctorId={req.doctorId}
+                            serviceName={serviceName}
+                            dateTime={req.createdAt}
+                            status={mapStatus(req.status)}
+                            showPetLink={false}
+                          />
                         );
                       })}
                     </div>
