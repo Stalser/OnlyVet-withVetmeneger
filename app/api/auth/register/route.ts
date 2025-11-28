@@ -1,17 +1,26 @@
 // app/api/auth/register/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { createUser, getUserByPhone, normalizePhone } from "@/lib/db";
+import { createUser, getUserByPhone, getUserByEmail, normalizePhone } from "@/lib/db";
 import { hashPassword, isPasswordStrong } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { phone, fullName, password, password2, email, telegram } = body;
+    const {
+      phone,
+      email,
+      lastName,
+      firstName,
+      middleName,
+      password,
+      password2,
+      telegram,
+    } = body;
 
-    if (!phone || !password || !password2) {
+    if (!phone || !email || !password || !password2 || !lastName || !firstName) {
       return NextResponse.json(
-        { error: "Телефон и пароль обязательны" },
+        { error: "Фамилия, имя, телефон, email и пароль обязательны" },
         { status: 400 }
       );
     }
@@ -31,31 +40,40 @@ export async function POST(req: NextRequest) {
     }
 
     const normPhone = normalizePhone(phone);
-    const existing = await getUserByPhone(normPhone);
-    if (existing) {
+
+    const existingByPhone = await getUserByPhone(normPhone);
+    if (existingByPhone) {
       return NextResponse.json(
         { error: "Пользователь с таким телефоном уже существует" },
         { status: 409 }
       );
     }
 
+    const existingByEmail = await getUserByEmail(email);
+    if (existingByEmail) {
+      return NextResponse.json(
+        { error: "Пользователь с таким email уже существует" },
+        { status: 409 }
+      );
+    }
+
     const password_hash = await hashPassword(password);
+    const full_name = [lastName, firstName, middleName].filter(Boolean).join(" ");
 
     const user = await createUser({
-      phone: normPhone,
+      phone,
       email,
       password_hash,
-      full_name: fullName,
+      full_name,
       telegram,
     });
 
-    // TODO: здесь можно сразу создать сессию (cookie) и логинить пользователя.
-    // Пока просто возвращаем информацию об аккаунте.
     return NextResponse.json(
       {
         user: {
           id: user.id,
           phone: user.phone,
+          email: user.email,
           full_name: user.full_name,
         },
       },
@@ -63,11 +81,17 @@ export async function POST(req: NextRequest) {
     );
   } catch (err: any) {
     console.error("[API] /auth/register error:", err);
-    const msg =
-      err?.message === "USER_DUPLICATE_PHONE"
-        ? "Пользователь с таким телефоном уже есть"
-        : "Internal error";
-    const status = err?.message === "USER_DUPLICATE_PHONE" ? 409 : 500;
+    let msg = "Internal error";
+    let status = 500;
+
+    if (err?.message === "USER_DUPLICATE_PHONE") {
+      msg = "Пользователь с таким телефоном уже есть";
+      status = 409;
+    } else if (err?.message === "USER_DUPLICATE_EMAIL") {
+      msg = "Пользователь с таким email уже есть";
+      status = 409;
+    }
+
     return NextResponse.json({ error: msg }, { status });
   }
 }
