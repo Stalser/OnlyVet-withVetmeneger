@@ -1,28 +1,25 @@
 // lib/auth.ts
 //
-// Хэширование и проверка пароля.
-// Требуется: npm install bcryptjs
+// ВРЕМЕННЫЙ, НЕБЕЗОПАСНЫЙ вариант для прототипа.
+// НИКОГДА не используй это в реальном продакшне.
+// Когда будете подключать настоящую БД и авторизацию,
+// сюда нужно будет вернуть bcrypt или другой надёжный хэш.
 
-import bcrypt from "bcryptjs";
-
-const SALT_ROUNDS = 10;
-
-// Сгенерировать хэш пароля
 export async function hashPassword(password: string): Promise<string> {
-  return await bcrypt.hash(password, SALT_ROUNDS);
+  // В демо-режиме просто возвращаем пароль как "хэш".
+  // (Так делать нельзя в реальном проекте!)
+  return password;
 }
 
-// Проверить пароль
 export async function verifyPassword(
   password: string,
   hash: string
 ): Promise<boolean> {
-  return await bcrypt.compare(password, hash);
+  // В демо считаем, что "хэш" — это сам пароль.
+  return password === hash;
 }
 
-// Простейшая проверка сложности пароля
 export function isPasswordStrong(password: string): boolean {
   if (password.length < 8) return false;
-  // при желании можно добавить проверку на цифры/буквы/символы
   return true;
 }
