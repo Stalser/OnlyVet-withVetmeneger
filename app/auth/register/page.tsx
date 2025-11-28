@@ -1,26 +1,61 @@
-// app/auth/register/page.tsx
 "use client";
 
-import { useState } from "react";
+import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 
 export default function RegisterPage() {
-  const [phone, setPhone] = useState("");
+  const router = useRouter();
+
   const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
 
-  // заглушка — здесь потом будет запрос на backend/БД
-  const handleSubmit = (e: React.FormEvent) => {
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    setError(null);
+
     if (password !== password2) {
-      alert("Пароли не совпадают.");
+      setError("Пароли не совпадают.");
       return;
     }
-    alert("Здесь будет реальная регистрация пользователя в БД.");
+
+    try {
+      setLoading(true);
+
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone,
+          fullName,
+          password,
+          password2,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Ошибка регистрации");
+        return;
+      }
+
+      // Здесь можно сразу логинить, но пока просто шлём на страницу входа
+      router.push("/auth/login");
+    } catch (err) {
+      console.error(err);
+      setError("Произошла техническая ошибка. Попробуйте позже.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -43,8 +78,8 @@ export default function RegisterPage() {
                 </h1>
                 <p className="text-[13px] text-slate-600">
                   Личный кабинет позволит вам видеть заявки, историю
-                  консультаций и питомцев. Сейчас это каркас интерфейса —
-                  позже он будет связан с реальной базой данных.
+                  консультаций и питомцев. Сейчас это каркас — позже он будет
+                  связан с реальной базой данных и Vetmanager.
                 </p>
               </div>
 
@@ -106,11 +141,24 @@ export default function RegisterPage() {
                   </div>
                 </div>
 
+                {error && (
+                  <div className="text-[12px] text-rose-600 bg-rose-50 border border-rose-100 rounded-xl px-3 py-2">
+                    {error}
+                  </div>
+                )}
+
                 <button
                   type="submit"
-                  className="w-full mt-1 px-4 py-2.5 rounded-full bg-onlyvet-coral text-white text-[13px] font-medium shadow-[0_10px_26px_rgба(247,118,92,0.45)] hover:brightness-105 transition"
+                  disabled={loading}
+                  className="
+                    w-full mt-1 px-4 py-2.5 rounded-full 
+                    bg-onlyvet-coral text-white text-[13px] font-medium 
+                    shadow-[0_10px_26px_rgba(247,118,92,0.45)]
+                    hover:brightness-105 transition
+                    disabled:bg-slate-300 disabled:shadow-none disabled:cursor-not-allowed
+                  "
                 >
-                  Зарегистрироваться
+                  {loading ? "Регистрация..." : "Зарегистрироваться"}
                 </button>
 
                 <div className="text-[12px] text-slate-600 mt-2">
@@ -125,10 +173,10 @@ export default function RegisterPage() {
               </form>
 
               <p className="text-[11px] text-slate-500">
-                В демонстрационном режиме регистрация не создаёт реального
-                пользователя в базе данных. На следующем этапе мы подключим
-                полноценную БД (PostgreSQL / Supabase) и свяжем её с этим
-                интерфейсом.
+                В демонстрационном режиме эта форма отправляет данные на
+                внутренний API `/api/auth/register`. Позже этот API будет
+                создавать реального пользователя в базе данных и связывать его
+                с клиентом в Vetmanager.
               </p>
             </div>
           </div>
