@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import type { BookingRequest, BookingStatus } from "@/lib/types";
-import { mockBookings } from "@/lib/mockBookings";
+import { mockBookings } from "../../../lib/mockBookings";
 
 // POST /api/booking — создать новую заявку
 export async function POST(req: NextRequest) {
