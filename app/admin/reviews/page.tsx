@@ -8,7 +8,6 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { AdminNav } from "@/components/AdminNav";
 import { reviews } from "@/data/reviews";
-import type { Review } from "@/data/reviews";
 import { ReviewCard } from "@/components/ReviewCard";
 
 type ModerationStatus = "pending" | "approved" | "rejected";
@@ -45,19 +44,29 @@ export default function AdminReviewsPage() {
   const statusLabel = (status: ModerationStatus) => {
     switch (status) {
       case "pending":
-        return { label: "На модерации", className: "bg-amber-50 text-amber-700" };
+        return {
+          label: "На модерации",
+          className: "bg-amber-50 text-amber-700",
+        };
       case "approved":
-        return { label: "Опубликован", className: "bg-teal-50 text-teal-700" };
+        return {
+          label: "Опубликован",
+          className: "bg-teal-50 text-teal-700",
+        };
       case "rejected":
-        return { label: "Отклонён", className: "bg-rose-50 text-rose-700" };
+        return {
+          label: "Отклонён",
+          className: "bg-rose-50 text-rose-700",
+        };
     }
   };
 
   return (
     <>
       <Header />
-      <main className="flex-1 py-8 bg-slate-50/70">
-        <div className="container mx-auto max-w-5xl px-4 space-y-5">
+
+      <main className="flex-1 bg-slate-50/70 py-8">
+        <div className="container mx-auto max-w-5xl px-4 space-y-7">
           {/* Заголовок */}
           <div className="space-y-3">
             <nav className="text-[12px] text-slate-500 mb-1">
@@ -67,15 +76,15 @@ export default function AdminReviewsPage() {
               /{" "}
               <span className="text-slate-700">Отзывы (модерация)</span>
             </nav>
-            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
               <div>
                 <h1 className="text-xl md:text-2xl font-semibold mb-1">
                   Модерация отзывов
                 </h1>
-                <p className="text-[13px] text-slate-600 max-w-2xl">
+                <p className="text-[13px] text-slate-600 max-w-2xl leading-relaxed">
                   Здесь можно просматривать новые отзывы, одобрять их к
-                  публикации или отклонять. Пока статус хранится только в
-                  интерфейсе (без сохранения в базу).
+                  публикации или отклонять. В демо-версии статус хранится только
+                  в интерфейсе, без записи в базу.
                 </p>
               </div>
               <AdminNav />
@@ -83,7 +92,7 @@ export default function AdminReviewsPage() {
           </div>
 
           {/* Фильтр по статусу */}
-          <section className="space-y-3">
+          <section className="space-y-4">
             <div className="flex flex-wrap items-center gap-2 text-[12px]">
               <span className="text-slate-500 mr-1">Статус:</span>
               {[
@@ -96,9 +105,7 @@ export default function AdminReviewsPage() {
                   key={btn.key}
                   type="button"
                   onClick={() =>
-                    setFilter(
-                      btn.key as "all" | ModerationStatus
-                    )
+                    setFilter(btn.key as "all" | ModerationStatus)
                   }
                   className={`px-3 py-1.5 rounded-full border transition ${
                     filter === btn.key
@@ -116,10 +123,11 @@ export default function AdminReviewsPage() {
               {filteredReviews.map((rev) => {
                 const status = modState[rev.id] ?? "pending";
                 const smeta = statusLabel(status);
+
                 return (
                   <article
                     key={rev.id}
-                    className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4 flex flex-col gap-2"
+                    className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4 md:p-5 flex flex-col gap-3"
                   >
                     <div className="flex justify-between items-center">
                       <div className="text-[12px] text-slate-500">
@@ -132,6 +140,7 @@ export default function AdminReviewsPage() {
                       </span>
                     </div>
 
+                    {/* Карточка отзыва в компактном виде */}
                     <ReviewCard review={rev} truncate />
 
                     <div className="flex flex-wrap gap-2 pt-1 text-[12px]">
@@ -158,7 +167,7 @@ export default function AdminReviewsPage() {
                       </button>
                       <Link
                         href={`/reviews/${rev.id}`}
-                        className="ml-auto text-onlyvet-coral font-medium"
+                        className="ml-auto text-onlyvet-coral font-medium hover:underline"
                       >
                         Открыть на сайте →
                       </Link>
@@ -166,6 +175,7 @@ export default function AdminReviewsPage() {
                   </article>
                 );
               })}
+
               {filteredReviews.length === 0 && (
                 <div className="text-[13px] text-slate-500 col-span-full">
                   По выбранному статусу пока нет отзывов.
@@ -175,6 +185,7 @@ export default function AdminReviewsPage() {
           </section>
         </div>
       </main>
+
       <Footer />
     </>
   );
