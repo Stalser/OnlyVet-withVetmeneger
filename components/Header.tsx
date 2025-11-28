@@ -44,6 +44,7 @@ export function Header() {
           >
             Главная
           </Link>
+
           <Link
             href="/doctors"
             className={cn(
@@ -53,6 +54,7 @@ export function Header() {
           >
             Врачи
           </Link>
+
           <Link
             href="/services"
             className={cn(
@@ -62,6 +64,7 @@ export function Header() {
           >
             Услуги
           </Link>
+
           <Link
             href="/reviews"
             className={cn(
@@ -71,6 +74,27 @@ export function Header() {
           >
             Отзывы
           </Link>
+
+          <Link
+            href="/how-it-works"
+            className={cn(
+              "text-slate-300 hover:text-white transition-colors",
+              isActive("/how-it-works") && "text-white font-medium"
+            )}
+          >
+            Как это работает
+          </Link>
+
+          <Link
+            href="/faq"
+            className={cn(
+              "text-slate-300 hover:text-white transition-colors",
+              isActive("/faq") && "text-white font-medium"
+            )}
+          >
+            FAQ
+          </Link>
+
           <Link
             href="/docs"
             className={cn(
