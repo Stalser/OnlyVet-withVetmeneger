@@ -1,27 +1,31 @@
 // app/api/auth/login/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { getUserByPhone, normalizePhone } from "@/lib/db";
+import { getUserByPhone, getUserByEmail } from "@/lib/db";
 import { verifyPassword } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { phone, password } = body;
+    const { identifier, password } = body;
 
-    if (!phone || !password) {
+    if (!identifier || !password) {
       return NextResponse.json(
-        { error: "Телефон и пароль обязательны" },
+        { error: "Телефон/email и пароль обязательны" },
         { status: 400 }
       );
     }
 
-    const normPhone = normalizePhone(phone);
-    const user = await getUserByPhone(normPhone);
+    const trimmed = String(identifier).trim();
+
+    const isEmail = trimmed.includes("@");
+    const user = isEmail
+      ? await getUserByEmail(trimmed)
+      : await getUserByPhone(trimmed);
 
     if (!user) {
       return NextResponse.json(
-        { error: "Пользователь с таким телефоном не найден" },
+        { error: "Пользователь с такими данными не найден" },
         { status: 401 }
       );
     }
@@ -34,13 +38,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // TODO: здесь нужно создать сессию (httpOnly cookie / JWT).
-    // Пока просто возвращаем данные пользователя.
+    // TODO: создать сессию (cookie) и возвращать только нужные данные
     return NextResponse.json(
       {
         user: {
           id: user.id,
           phone: user.phone,
+          email: user.email,
           full_name: user.full_name,
           role: user.role,
         },
