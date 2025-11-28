@@ -1,8 +1,8 @@
 // lib/db.ts
 //
 // ВРЕМЕННЫЙ слой "БД в памяти" для прототипа.
-// В будущем этот файл нужно будет заменить на реальную работу с Postgres/Yandex Cloud,
-// но интерфейс функций (getUserByPhone, createUser) можно сохранить прежним.
+// В будущем нужно будет заменить на работу с Postgres/Yandex Cloud,
+// но интерфейс функций (getUserByPhone, getUserByEmail, createUser) останется тем же.
 
 export type UserRole = "user" | "admin";
 
@@ -19,7 +19,7 @@ export interface User {
   updated_at: string;
 }
 
-// in-memory store — живёт, пока работает сервер
+// in-memory store — живёт, пока работает сервер процесса
 const users: User[] = [];
 
 // Нормализация телефона: убираем всё, кроме цифр, приводим к виду 7XXXXXXXXXX
@@ -34,10 +34,17 @@ export function normalizePhone(phone: string): string {
   return digits;
 }
 
-// Сгенерировать простой id (пока вместо uuid)
+function normalizeEmail(email?: string | null): string | null {
+  if (!email) return null;
+  return email.trim().toLowerCase() || null;
+}
+
+// простой id для прототипа (в будущем UUID из БД)
 function genId(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
+
+// === Функции для работы с пользователями ===
 
 // Найти пользователя по телефону
 export async function getUserByPhone(phone: string): Promise<User | null> {
@@ -46,28 +53,48 @@ export async function getUserByPhone(phone: string): Promise<User | null> {
   return found ?? null;
 }
 
+// Найти пользователя по email
+export async function getUserByEmail(email: string): Promise<User | null> {
+  const norm = normalizeEmail(email);
+  if (!norm) return null;
+  const found = users.find(
+    (u) => u.email && u.email.toLowerCase() === norm
+  );
+  return found ?? null;
+}
+
 // Создать пользователя
 export async function createUser(opts: {
   phone: string;
-  email?: string;
+  email: string;
   password_hash: string;
   full_name?: string;
   telegram?: string;
   role?: UserRole;
 }): Promise<User> {
   const now = new Date().toISOString();
-  const norm = normalizePhone(opts.phone);
+  const normPhone = normalizePhone(opts.phone);
+  const normEmail = normalizeEmail(opts.email);
 
-  // защита от дублей
-  if (users.some((u) => u.phone === norm)) {
+  // защита от дублей по телефону
+  if (users.some((u) => u.phone === normPhone)) {
     const err = new Error("USER_DUPLICATE_PHONE");
+    throw err;
+  }
+
+  // защита от дублей по email
+  if (
+    normEmail &&
+    users.some((u) => u.email && u.email.toLowerCase() === normEmail)
+  ) {
+    const err = new Error("USER_DUPLICATE_EMAIL");
     throw err;
   }
 
   const user: User = {
     id: genId(),
-    phone: norm,
-    email: opts.email ?? null,
+    phone: normPhone,
+    email: normEmail,
     password_hash: opts.password_hash,
     full_name: opts.full_name ?? null,
     telegram: opts.telegram ?? null,
@@ -80,6 +107,3 @@ export async function createUser(opts: {
   users.push(user);
   return user;
 }
-
-// На будущее: сюда же можно будет добавить методы для обновления профиля,
-// поиска по id и т.д.
