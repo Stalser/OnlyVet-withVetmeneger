@@ -1,0 +1,243 @@
+-- ===================================================================
+--  OnlyVet — базовая схема БД (PostgreSQL / Supabase / Yandex PG)
+-- ===================================================================
+
+-- Если ты используешь Supabase, часть вещей (auth.users) будет уже создана,
+-- здесь я даю полный self‐contained вариант, который можно адаптировать.
+
+-- ===========================
+-- 1. Пользователи (аккаунты)
+-- ===========================
+
+create extension if not exists "pgcrypto"; -- для gen_random_uuid, если нет
+
+create table if not exists users (
+  id uuid primary key default gen_random_uuid(),
+
+  phone text not null unique,        -- логин
+  email text unique,                 -- опционально
+  password_hash text not null,       -- ХЭШ пароля (НЕ сам пароль)
+  full_name text,
+  telegram text,
+
+  role text not null default 'user', -- 'user' | 'admin'
+  vetmanager_client_id integer,      -- ID клиента в Vetmanager (Client.id)
+
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create index if not exists users_phone_idx on users (phone);
+create index if not exists users_vm_client_idx on users (vetmanager_client_id);
+
+
+-- ===========================
+-- 2. Питомцы
+-- ===========================
+
+create table if not exists pets (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+
+  name text not null,          -- кличка
+  species text,                -- кошка / собака / др.
+  breed text,
+  sex text,                    -- 'm' | 'f' | 'unknown'
+  birthdate date,
+  notes text,
+
+  vetmanager_patient_id integer,  -- ID пациента в Vetmanager (Pet.id)
+
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create index if not exists pets_user_id_idx on pets (user_id);
+create index if not exists pets_vm_patient_idx on pets (vetmanager_patient_id);
+
+-- Анти-дубликация питомцев у одного владельца:
+-- (условно считаем, что у одного пользователя не должно быть двух питомцев
+--  с одинаковой кличкой и датой рождения; можно убрать/изменить по вкусу)
+create unique index if not exists pets_user_name_birthdate_uniq
+  on pets (user_id, lower(name), birthdate);
+
+
+-- ===================================
+-- 3. Справочник врачей (по желанию)
+-- ===================================
+
+-- Сейчас врачи у тебя в TS-файле, но рано или поздно можно вынести в БД.
+-- Пока это опционально.
+
+create table if not exists doctors (
+  id text primary key,             -- "elvin", "diana", "oleg"
+  full_name text not null,
+  role text,                      -- краткое описание, что сейчас в data/doctors
+  specialization text,            -- "терапия" / "диагностика" / "эксперт" / "онкология"
+  vetmanager_doctor_id integer,   -- ID врача в Vetmanager (Doctor.id)
+  created_at timestamptz default now()
+);
+
+create index if not exists doctors_vm_id_idx on doctors (vetmanager_doctor_id);
+
+
+-- ===================================
+-- 4. Справочник услуг (по желанию)
+-- ===================================
+
+create table if not exists services_catalog (
+  id text primary key,               -- "online-consult", "second-opinion" и т.п.
+  name text not null,
+  category text,                     -- "консультация" / "второе мнение" / ...
+  short_description text,
+  vetmanager_service_id integer,     -- ID услуги/манипуляции в Vetmanager, если есть
+  created_at timestamptz default now()
+);
+
+
+-- ===========================
+-- 5. Заявки с сайта (/booking)
+-- ===========================
+
+do $$ begin
+  create type booking_status as enum ('pending', 'in_review', 'approved', 'rejected');
+exception
+  when duplicate_object then null;
+end $$;
+
+create table if not exists booking_requests (
+  id uuid primary key default gen_random_uuid(),
+
+  user_id uuid references users(id),   -- может быть null, если аноним/гость
+  created_at timestamptz default now(),
+
+  full_name text not null,
+  phone text not null,
+  telegram text,
+  email text,
+
+  pet_mode text not null default 'new',   -- 'existing' | 'new'
+  pet_id uuid references pets(id),
+  pet_name text,
+  pet_species text,
+  pet_notes text,
+
+  service_id text references services_catalog(id),
+  doctor_id text references doctors(id),
+
+  time_mode text not null default 'any',  -- 'any' | 'choose'
+  preferred_date date,
+  preferred_time time,
+
+  vm_slot_id text,                        -- ID слота Vetmanager (при выборе из календаря)
+
+  vetmanager_client_id integer,           -- Client.id
+  vetmanager_patient_id integer,          -- Pet.id
+  vetmanager_appointment_id integer,      -- Admission/Appointment.id
+
+  status booking_status default 'pending',
+
+  internal_notes text,                    -- заметки админа
+  extra jsonb                             -- любые дополнительные поля формы
+);
+
+create index if not exists booking_requests_user_idx on booking_requests (user_id);
+create index if not exists booking_requests_status_idx on booking_requests (status);
+create index if not exists booking_requests_vm_client_idx on booking_requests (vetmanager_client_id);
+create index if not exists booking_requests_vm_appt_idx on booking_requests (vetmanager_appointment_id);
+
+
+-- ===========================
+-- 6. Консультации (история приёмов)
+-- ===========================
+
+do $$ begin
+  create type consultation_status as enum ('scheduled', 'done', 'cancelled');
+exception
+  when duplicate_object then null;
+end $$;
+
+create table if not exists consultations (
+  id uuid primary key default gen_random_uuid(),
+
+  user_id uuid references users(id),
+  pet_id uuid references pets(id),
+  booking_request_id uuid references booking_requests(id),
+
+  doctor_id text references doctors(id),
+  service_id text references services_catalog(id),
+
+  vetmanager_appointment_id integer,   -- ID приёма в Vetmanager
+
+  start_time timestamptz,
+  end_time timestamptz,
+  status consultation_status default 'scheduled',
+
+  summary_for_owner text,              -- человеческое резюме, которое показываем в ЛК
+  raw_data jsonb,                      -- сюда можно складывать "сырые" данные от Vetmanager
+
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create index if not exists consultations_user_idx on consultations (user_id);
+create index if not exists consultations_pet_idx on consultations (pet_id);
+create index if not exists consultations_vm_appt_idx on consultations (vetmanager_appointment_id);
+
+
+-- ===========================
+-- 7. Отзывы (с модерацией)
+-- ===========================
+
+do $$ begin
+  create type review_source as enum ('yandex', '2gis', 'google', 'site');
+exception
+  when duplicate_object then null;
+end $$;
+
+do $$ begin
+  create type review_state as enum ('pending', 'approved', 'rejected');
+exception
+  when duplicate_object then null;
+end $$;
+
+create table if not exists reviews_site (
+  id uuid primary key default gen_random_uuid(),
+
+  user_id uuid references users(id),      -- если отзыв оставлен из ЛК
+  client_name text,                       -- если отзыв импортирован/анонимный
+  pet_name text,
+
+  doctor_id text references doctors(id),
+  service_id text references services_catalog(id),
+
+  rating integer check (rating between 1 and 5),
+  text text not null,
+
+  source review_source default 'site',    -- 'site' / 'yandex' / '2gis' / 'google'
+  state review_state default 'pending',   -- модерация
+
+  created_at timestamptz default now(),
+  published_at timestamptz
+);
+
+create index if not exists reviews_state_idx on reviews_site (state);
+create index if not exists reviews_doctor_idx on reviews_site (doctor_id);
+create index if not exists reviews_service_idx on reviews_site (service_id);
+
+
+-- ===========================
+-- 8. Таблица для восстановления пароля (на будущее)
+-- ===========================
+
+create table if not exists password_reset_tokens (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  token text not null unique,        -- случайный токен
+  expires_at timestamptz not null,
+  used boolean default false,
+  created_at timestamptz default now()
+);
+
+create index if not exists password_reset_tokens_user_idx on password_reset_tokens (user_id);
+create index if not exists password_reset_tokens_token_idx on password_reset_tokens (token);
