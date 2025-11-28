@@ -26,7 +26,7 @@ export default function HowItWorksPage() {
             <h1 className="text-xl md:text-2xl font-semibold">
               Как проходит онлайн-консультация в OnlyVet
             </h1>
-            <p className="text-[13px] text-slate-600 max-w-2xl">
+            <p className="text-[13px] text-slate-600 max-w-2xl leading-relaxed">
               Онлайн-приём устроен так, чтобы врачу было достаточно данных для
               принятия решения, а вам — максимально спокойно и понятно на всех
               этапах. Ниже — пошагово, что будет происходить.
@@ -59,7 +59,9 @@ export default function HowItWorksPage() {
               <div className="text-[11px] uppercase tracking-[0.14em] text-slate-400">
                 Шаг 2
               </div>
-              <h2 className="text-[15px] font-semibold">Во время консультации</h2>
+              <h2 className="text-[15px] font-semibold">
+                Во время консультации
+              </h2>
               <ul className="text-[13px] text-slate-700 space-y-1 list-disc pl-4">
                 <li>
                   Врач последовательно собирает анамнез, расспрашивает о
@@ -107,7 +109,8 @@ export default function HowItWorksPage() {
                   Помочь выбрать тактику в сложной или неоднозначной ситуации.
                 </li>
                 <li>
-                  Составить план дообследований и дальнейших шагов в офлайн-клинике.
+                  Составить план дообследований и дальнейших шагов в
+                  офлайн-клинике.
                 </li>
                 <li>
                   Дать второе мнение перед серьёзными решениями (операция,
@@ -129,12 +132,11 @@ export default function HowItWorksPage() {
                   месте.
                 </li>
                 <li>
-                  Не ставит диагноз «вслепую» без минимально необходимых
-                  данных.
+                  Не ставит диагноз «вслепую» без минимально необходимых данных.
                 </li>
                 <li>
-                  Не подменяет собой лечащего врача в вашей офлайн-клинике,
-                  а дополняет его.
+                  Не подменяет лечащего врача в вашей офлайн-клинике, а
+                  дополняет его.
                 </li>
               </ul>
               <p className="text-[11px] text-slate-500 mt-2">
@@ -151,10 +153,13 @@ export default function HowItWorksPage() {
               Как подготовиться к онлайн-консультации
             </h2>
             <ul className="text-[13px] text-slate-700 list-disc pl-4 space-y-1">
-              <li>Запишите основные жалобы и в какой последовательности они появлялись.</li>
               <li>
-                Соберите результаты анализов, УЗИ, выписок по текущему диагнозу —
-                загрузите их при записи или заранее отправьте администратору.
+                Запишите основные жалобы и в какой последовательности они
+                появлялись.
+              </li>
+              <li>
+                Соберите результаты анализов, УЗИ, выписок по текущему диагнозу
+                — загрузите их при записи или заранее отправьте администратору.
               </li>
               <li>
                 Подготовьте список препаратов, которые сейчас получает питомец
@@ -208,13 +213,13 @@ export default function HowItWorksPage() {
               <div className="font-semibold text-[14px]">
                 Готовы к приёму?
               </div>
-              <p className="text-slate-600">
-                Если вы понимаете формат и он вам подходит, можно перейти к
-                записи и выбрать удобное время и врача.
+              <p className="text-slate-600 leading-relaxed">
+                Если формат консультации вам подходит, можно перейти к записи и
+                выбрать удобное время и врача.
               </p>
               <Link
                 href="/booking"
-                className="w-full px-4 py-2.5 rounded-full bg-onlyvet-coral text-white text-[13px] font-medium shadow-[0_12px_32px_rgба(247,118,92,0.6)] hover:brightness-105 transition text-center"
+                className="w-full px-4 py-2.5 rounded-full bg-onlyvet-coral text-white text-[13px] font-medium shadow-[0_12px_32px_rgba(247,118,92,0.6)] hover:brightness-105 transition text-center"
               >
                 Записаться на консультацию
               </Link>
