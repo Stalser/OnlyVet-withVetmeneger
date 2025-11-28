@@ -3,10 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import type { BookingRequest, BookingStatus } from "@/lib/types";
-
-// пока — in-memory store вместо БД (для прототипа)
-// потом это заменится на вызовы к Postgres / Supabase
-const mockBookings: BookingRequest[] = [];
+import { mockBookings } from "@/lib/mockBookings";
 
 // POST /api/booking — создать новую заявку
 export async function POST(req: NextRequest) {
@@ -87,7 +84,7 @@ export async function POST(req: NextRequest) {
 }
 
 // GET /api/booking — список заявок
-// В будущем здесь должно быть:
+// В будущем здесь:
 //  - если запрос от клиента — только его заявки (по userId из сессии)
 //  - если запрос от админа — все заявки или с фильтрами
 export async function GET(_req: NextRequest) {
