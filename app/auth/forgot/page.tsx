@@ -1,3 +1,4 @@
+// app/auth/forgot/page.tsx
 "use client";
 
 import { FormEvent, useState } from "react";
@@ -11,16 +12,19 @@ export default function ForgotPasswordPage() {
   const router = useRouter();
 
   const [identifier, setIdentifier] = useState(""); // телефон или email
-  const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+
+  const identifierError = hasSubmitted && !identifier.trim();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    setHasSubmitted(true);
     setError(null);
 
     if (!identifier.trim()) {
-      setError("Укажите телефон или email, который вы использовали при регистрации.");
       return;
     }
 
@@ -69,8 +73,9 @@ export default function ForgotPasswordPage() {
                 </h1>
                 <p className="text-[13px] text-slate-600">
                   Укажите номер телефона или email, которые вы использовали при
-                  регистрации. Мы отправим инструкцию по восстановлению, как
-                  только подключим почтовый сервис.
+                  регистрации. Мы покажем, сохранён ли запрос. В боевой версии
+                  сюда будет подключена отправка письма/ссылки для сброса
+                  пароля.
                 </p>
               </div>
 
@@ -78,13 +83,13 @@ export default function ForgotPasswordPage() {
                 <div className="space-y-3 text-[13px]">
                   <div className="text-[13px] text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2">
                     Если в нашей системе есть аккаунт с указанным телефоном или
-                    email, мы отправим на него инструкции по восстановлению
-                    пароля.
+                    email, на него будут отправлены инструкции по восстановлению
+                    доступа.
                   </div>
                   <button
                     type="button"
                     onClick={() => router.push("/auth/login")}
-                    className="w-full px-4 py-2.5 rounded-full bg-onlyvet-coral text-white text-[13px] font-medium shadow-[0_10px_26px_rgba(247,118,92,0.45)] hover:brightness-105 transition"
+                    className="w-full px-4 py-2.5 rounded-full bg-onlyvet-coral text-white text-[13px] font-medium shadow-[0_10px_26px_rgба(247,118,92,0.45)] hover:brightness-105 transition"
                   >
                     Вернуться ко входу
                   </button>
@@ -99,9 +104,19 @@ export default function ForgotPasswordPage() {
                       type="text"
                       value={identifier}
                       onChange={(e) => setIdentifier(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                      className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
+                        identifierError
+                          ? "border-rose-400 focus:ring-rose-300"
+                          : "border-slate-300 focus:ring-onlyvet-teal/40"
+                      }`}
                       placeholder="+7 ... или example@mail.ru"
                     />
+                    {identifierError && (
+                      <p className="mt-1 text-[11px] text-rose-600">
+                        Укажите номер телефона или email, который вы
+                        использовали при регистрации.
+                      </p>
+                    )}
                   </div>
 
                   {error && (
@@ -116,7 +131,7 @@ export default function ForgotPasswordPage() {
                     className="
                       w-full px-4 py-2.5 rounded-full 
                       bg-onlyvet-coral text-white text-[13px] font-medium 
-                      shadow-[0_10px_26px_rgba(247,118,92,0.45)]
+                      shadow-[0_10px_26px_rgба(247,118,92,0.45)]
                       hover:brightness-105 transition
                       disabled:bg-slate-300 disabled:shadow-none disabled:cursor-not-allowed
                     "
@@ -138,9 +153,9 @@ export default function ForgotPasswordPage() {
 
               <p className="text-[11px] text-slate-500">
                 Сейчас эта форма работает в демонстрационном режиме и не шлёт
-                реальные письма. На следующем этапе мы подключим SMTP или другой
-                почтовый сервис и будем отправлять уникальную ссылку для
-                восстановления пароля.
+                реальные письма. Как только будет подключен почтовый сервис,
+                здесь появится полноценный сценарий сброса пароля с уникальной
+                ссылкой.
               </p>
             </div>
           </div>
