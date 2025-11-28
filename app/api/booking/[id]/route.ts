@@ -2,7 +2,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import type { BookingStatus } from "@/lib/types";
-import { mockBookings, findBookingById } from "../../../../lib/mockBookings";
+import { mockBookings } from "@/lib/mockBookings";
 
 // GET /api/booking/:id — получить одну заявку
 export async function GET(
