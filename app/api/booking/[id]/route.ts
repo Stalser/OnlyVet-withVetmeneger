@@ -2,14 +2,14 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import type { BookingStatus } from "@/lib/types";
-import { findBookingById } from "../mockStore";
+import { mockBookings } from "../mockStore";
 
 // GET /api/booking/:id — получить одну заявку
 export async function GET(
   _req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const booking = findBookingById(params.id);
+  const booking = mockBookings.find((b) => b.id === params.id);
   if (!booking) {
     return NextResponse.json({ error: "Booking not found" }, { status: 404 });
   }
@@ -26,7 +26,7 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const booking = findBookingById(params.id);
+    const booking = mockBookings.find((b) => b.id === params.id);
     if (!booking) {
       return NextResponse.json({ error: "Booking not found" }, { status: 404 });
     }
