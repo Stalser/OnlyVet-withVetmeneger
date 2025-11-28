@@ -620,7 +620,7 @@ function SocialBlock() {
 
 function FeedbackBlock() {
   return (
-    <section className="py-7">
+    <section className="py-7" id="contact">
       <div className="container mx-auto max-w-5xl px-4">
         <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 md:p-6 flex flex-col md:flex-row gap-6 items-start">
           <div className="flex-1">
