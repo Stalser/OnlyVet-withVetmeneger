@@ -9,6 +9,8 @@ const NAV_ITEMS = [
   { href: "/account", label: "Обзор" },
   { href: "/account/pets", label: "Питомцы" },
   { href: "/account/requests", label: "Консультации и заявки" },
+  { href: "/account/documents", label: "Документы" },
+  { href: "/account/trusted", label: "Доверенные лица" },
   { href: "/account/profile", label: "Профиль" },
 ];
 
@@ -28,14 +30,11 @@ export function AccountNav() {
           <Link
             key={item.href}
             href={item.href}
-            className={`
-              px-3 py-1.5 rounded-full transition
-              ${
-                active
-                  ? "bg-onlyvet-navy text-white shadow-sm"
-                  : "text-slate-600 hover:bg-slate-100"
-              }
-            `}
+            className={`px-3 py-1.5 rounded-full transition ${
+              active
+                ? "bg-onlyvet-navy text-white shadow-sm"
+                : "text-slate-600 hover:bg-slate-100"
+            }`}
           >
             {item.label}
           </Link>
