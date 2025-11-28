@@ -32,18 +32,11 @@ export default function DoctorPage({ params }: PageProps) {
 
   const firstName = name.split(" ")[0] ?? "врачу";
 
-  const doctorSlots = slots
-    .filter((s) => s.doctorId === id && s.status === "free")
-    .sort(
-      (a, b) =>
-        new Date(a.start).getTime() - new Date(b.start).getTime()
-    )
-    .slice(0, 6); // ограничимся первыми 6
-
   return (
     <>
       <Header />
-      <main className="flex-1 py-8">
+
+      <main className="flex-1 bg-slate-50/70 py-8">
         <div className="container mx-auto max-w-5xl px-4 space-y-6">
           {/* Хлебные крошки */}
           <nav className="text-[12px] text-slate-500">
@@ -83,16 +76,18 @@ export default function DoctorPage({ params }: PageProps) {
                 {servicesShort}
               </div>
 
-              <div className="flex flex-wrap gap-1">
-                {tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="px-2 py-[2px] rounded-full text-[11px] bg-slate-100 text-slate-700"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
+              {tags.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="px-2 py-[2px] rounded-full text-[11px] bg-slate-100 text-slate-700"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Боковой блок записи */}
@@ -100,7 +95,7 @@ export default function DoctorPage({ params }: PageProps) {
               <h2 className="text-[15px] font-semibold">
                 Записаться к {firstName}
               </h2>
-              <p className="text-[13px] text-slate-600">
+              <p className="text-[13px] text-slate-600 leading-relaxed">
                 Выберите удобный слот или оставьте заявку на ближайшее доступное
                 время. Администратор свяжется с вами для подтверждения.
               </p>
@@ -128,7 +123,7 @@ export default function DoctorPage({ params }: PageProps) {
           <section className="grid gap-6 md:grid-cols-[1.4fr,1fr] items-start">
             {/* С какими запросами работает */}
             <div className="space-y-4">
-              <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm">
+              <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-soft">
                 <h2 className="text-[15px] font-semibold mb-2">
                   С какими запросами обычно обращаются
                 </h2>
@@ -148,7 +143,7 @@ export default function DoctorPage({ params }: PageProps) {
                 </div>
               </div>
 
-              <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm">
+              <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-soft">
                 <h2 className="text-[15px] font-semibold mb-2">
                   Подход к консультации
                 </h2>
@@ -163,7 +158,7 @@ export default function DoctorPage({ params }: PageProps) {
 
             {/* Правая колонка */}
             <div className="space-y-4">
-              <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm">
+              <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-soft">
                 <h3 className="text-[15px] font-semibold mb-2">
                   Ключевые компетенции
                 </h3>
@@ -177,21 +172,27 @@ export default function DoctorPage({ params }: PageProps) {
                     </span>
                   ))}
                 </div>
+                <p className="text-[11px] text-slate-500">
+                  В дальнейшем сюда можно будет добавить дополнительные
+                  компетенции, сертификаты и направления работы.
+                </p>
               </div>
 
-              <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm">
+              <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-soft">
                 <h3 className="text-[15px] font-semibold mb-2">
                   Образование и опыт (будет заполнено)
                 </h3>
                 <p className="text-[13px] text-slate-700 leading-relaxed">
-                  Здесь в дальнейшем можно будет разместить информацию об
-                  образовании, дополнительных курсах и опыте работы врача.
+                  В этом блоке можно будет разместить информацию об образовании,
+                  дополнительных курсах и опыте работы врача, включая
+                  конференции и профессиональные интересы.
                 </p>
               </div>
             </div>
           </section>
         </div>
       </main>
+
       <Footer />
     </>
   );
@@ -204,7 +205,7 @@ function DoctorSlots({ doctorId }: { doctorId: string }) {
       (a, b) =>
         new Date(a.start).getTime() - new Date(b.start).getTime()
     )
-    .slice(0, 6);
+    .slice(0, 6); // ограничимся первыми 6
 
   if (doctorSlots.length === 0) {
     return (
