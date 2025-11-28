@@ -104,6 +104,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
   const isValid =
     fullName.trim().length > 0 &&
     phone.trim().length > 0 &&
+    email.trim().length > 0 &&
     consentPersonalData &&
     consentOffer &&
     consentRules;
@@ -305,8 +306,8 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                     type="text"
                     value={telegram}
                     onChange={(e) => setTelegram(e.target.value)}
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
-                    placeholder="@username"
+                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                    placeholder="@username (необязательно)"
                   />
                   <p className="text-[11px] text-slate-500 mt-1">
                     По возможности используем Telegram для связи.
@@ -314,14 +315,14 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                 </div>
                 <div>
                   <label className="block text-[12px] text-slate-600 mb-1">
-                    Email
+                    Email<span className="text-red-500">*</span>
                   </label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
-                    placeholder="опционально"
+                    placeholder="example@mail.ru"
                   />
                 </div>
               </div>
@@ -374,8 +375,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                       ))}
                     </select>
                     <p className="text-[11px] text-slate-500 mt-1">
-                      В реальной версии здесь будут данные из вашего личного
-                      кабинета.
+                      В реальной версии здесь будут данные из личного кабинета.
                     </p>
                   </div>
                 ) : (
@@ -505,7 +505,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                         value="choose"
                         checked={timeMode === "choose"}
                         onChange={() => setTimeMode("choose")}
-                        className="rounded-full border-slate-300"
+                        className="rounded-full border-сlate-300"
                       />
                       <span>Выбрать дату и время</span>
                     </label>
@@ -514,7 +514,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                   {timeMode === "choose" && (
                     <div className="grid md:grid-cols-[1fr,1fr] gap-4">
                       <div>
-                        <label className="block text-[12px] text-сlate-600 mb-1">
+                        <label className="block text-[12px] text-slate-600 mb-1">
                           Дата
                         </label>
                         <input
@@ -545,7 +545,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                   <div className="font-medium text-slate-700">
                     Время выбрано: {slotLabel}
                   </div>
-                  <p className="text-[11px] text-сlate-500">
+                  <p className="text-[11px] text-slate-500">
                     Если вы хотите изменить дату или время, нажмите «Изменить
                     время» выше — слот будет снят, и вы сможете выбрать другую
                     опцию.
@@ -553,7 +553,6 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                 </div>
               )}
 
-              {/* Пояснение про реальные слоты */}
               <div className="bg-onlyvet-bg rounded-2xl border border-dashed border-slate-300 p-3 text-[11px] text-slate-600 mt-2">
                 В реальной версии здесь будут отображаться доступные слоты из
                 Vetmanager, а выбранный слот будет бронироваться автоматически.
@@ -572,7 +571,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                   понять ситуацию.
                 </p>
                 <label className="inline-flex items-center gap-2 text-[12px] cursor-pointer">
-                  <span className="px-3 py-1.5 rounded-full bg-white border border-сlate-300 shadow-sm">
+                  <span className="px-3 py-1.5 rounded-full bg-white border border-slate-300 shadow-sm">
                     Выбрать файлы
                   </span>
                   <input
@@ -587,7 +586,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                   </span>
                 </label>
                 {files.length > 0 && (
-                  <ul className="mt-2 text-[12px] text-сlate-600 list-disc pl-4">
+                  <ul className="mt-2 text-[12px] text-slate-600 list-disc pl-4">
                     {files.map((file) => (
                       <li key={file.name}>{file.name}</li>
                     ))}
@@ -601,7 +600,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
               <h2 className="text-[15px] font-semibold">
                 Согласия и завершение заявки
               </h2>
-              <div className="space-y-2 text-[12px] text-сlate-600">
+              <div className="space-y-2 text-[12px] text-slate-600">
                 <label className="flex items-start gap-2">
                   <input
                     type="checkbox"
@@ -667,14 +666,14 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                     w-full px-4 py-2.5 rounded-full text-[13px] font-medium
                     ${
                       isValid
-                        ? "bg-onlyvet-coral text-white shadow-[0_12px_32px_rgба(247,118,92,0.6)] hover:brightness-105 transition"
+                        ? "bg-onlyvet-coral text-white shadow-[0_12px_32px_rgba(247,118,92,0.6)] hover:brightness-105 transition"
                         : "bg-slate-200 text-slate-500 cursor-not-allowed"
                     }
                   `}
                 >
                   Записаться на консультацию
                 </button>
-                <p className="mt-2 text-[11px] text-сlate-500">
+                <p className="mt-2 text-[11px] text-slate-500">
                   Нажимая «Записаться», вы подтверждаете корректность указанных
                   данных. После обработки заявки с вами свяжется администратор
                   для уточнения деталей.
