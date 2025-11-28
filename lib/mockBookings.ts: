@@ -1,6 +1,13 @@
 // lib/mockBookings.ts
 //
-// ВРЕМЕННЫЙ МОДУЛЬ, чтобы не падала сборка.
-// Потом это будет заменено на реальную работу с БД.
+// Временное хранилище заявок в памяти — для прототипа.
+// Потом это заменится на нормальную БД (Postgres / Supabase).
 
-export const mockBookings: any[] = [];
+import type { BookingRequest } from "@/lib/types";
+
+export const mockBookings: BookingRequest[] = [];
+
+// Утилита для поиска заявки по id
+export function findBookingById(id: string): BookingRequest | undefined {
+  return mockBookings.find((b) => b.id === id);
+}
