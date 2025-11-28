@@ -106,7 +106,7 @@ export default function AccountDashboardPage() {
             </div>
           </section>
 
-          {/* Быстрые разделы */}
+                    {/* Быстрые разделы */}
           <section className="grid gap-4 md:grid-cols-3">
             <Link
               href="/account/pets"
@@ -128,11 +128,44 @@ export default function AccountDashboardPage() {
               <div className="text-[13px] font-semibold mb-1">
                 Консультации и заявки
               </div>
-              <p className="text-[12px] text-сlate-600">
+              <p className="text-[12px] text-slate-600">
                 Журнал онлайн-консультаций и статусы заявок.
               </p>
               <span className="text-[12px] text-onlyvet-coral font-medium mt-auto">
                 Смотреть историю →
+              </span>
+            </Link>
+
+            <Link
+              href="/account/documents"
+              className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4 flex flex-col gap-2 hover:-translate-y-[2px] hover:shadow-[0_18px_40px_rgба(15,23,42,0.08)] transition"
+            >
+              <div className="text-[13px] font-semibold mb-1">Документы</div>
+              <p className="text-[12px] text-slate-600">
+                Договоры, счета, чеки и другие документы, связанные с
+                консультациями.
+              </p>
+              <span className="text-[12px] text-onlyvet-coral font-medium mt-auto">
+                Перейти к документам →
+              </span>
+            </Link>
+          </section>
+
+          {/* Второй ряд быстрых разделов (опционально) */}
+          <section className="grid gap-4 md:grid-cols-2">
+            <Link
+              href="/account/trusted"
+              className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4 flex flex-col gap-2 hover:-translate-y-[2px] hover:shadow-[0_18px_40px_rgба(15,23,42,0.08)] transition"
+            >
+              <div className="text-[13px] font-semibold mb-1">
+                Доверенные лица
+              </div>
+              <p className="text-[12px] text-slate-600">
+                Люди, которым вы доверяете доступ к информации о питомцах и
+                записям на консультации.
+              </p>
+              <span className="text-[12px] text-onlyvet-coral font-medium mt-auto">
+                Управлять доверенными лицами →
               </span>
             </Link>
 
@@ -143,8 +176,8 @@ export default function AccountDashboardPage() {
               <div className="text-[13px] font-semibold mb-1">
                 Настройки профиля
               </div>
-              <p className="text-[12px] text-сlate-600">
-                Контактные данные, способ связи и согласия.
+              <p className="text-[12px] text-slate-600">
+                Контактные данные, способ связи и согласия на уведомления.
               </p>
               <span className="text-[12px] text-onlyvet-coral font-medium mt-auto">
                 Перейти к настройкам →
