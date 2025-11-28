@@ -1,12 +1,14 @@
 // app/api/booking/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
-import type { BookingRequest } from "@/lib/types";
+import type { BookingRequest, BookingStatus } from "@/lib/types";
 
 // пока — in-memory store вместо БД (для прототипа)
 // потом это заменится на вызовы к Postgres / Supabase
 const mockBookings: BookingRequest[] = [];
 
+// POST /api/booking — создать новую заявку
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -29,6 +31,7 @@ export async function POST(req: NextRequest) {
       vmSlotId,
     } = body;
 
+    // минимальная валидация
     if (!fullName || !phone) {
       return NextResponse.json(
         { error: "fullName и phone обязательны" },
@@ -38,6 +41,8 @@ export async function POST(req: NextRequest) {
 
     const id = randomUUID();
     const now = new Date().toISOString();
+
+    const status: BookingStatus = "pending";
 
     const booking: BookingRequest = {
       id,
@@ -62,11 +67,14 @@ export async function POST(req: NextRequest) {
       preferredTime,
       vmSlotId,
 
-      status: "pending",
+      status,
     };
 
     // TODO: заменить на запись в БД
     mockBookings.push(booking);
+
+    // TODO (позже): отправить письма клиенту и регистратуре
+    // TODO (позже): создать / обновить клиента и питомца в Vetmanager, создать черновой приём
 
     return NextResponse.json({ booking }, { status: 201 });
   } catch (err: any) {
@@ -78,8 +86,11 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Дополнительно можно реализовать GET для списка заявок пользователя
-export async function GET(req: NextRequest) {
+// GET /api/booking — список заявок
+// В будущем здесь должно быть:
+//  - если запрос от клиента — только его заявки (по userId из сессии)
+//  - если запрос от админа — все заявки или с фильтрами
+export async function GET(_req: NextRequest) {
   // TODO: фильтровать по userId из сессии
   return NextResponse.json({ bookings: mockBookings }, { status: 200 });
 }
