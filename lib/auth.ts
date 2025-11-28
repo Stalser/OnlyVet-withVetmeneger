@@ -6,17 +6,19 @@
 // сюда нужно будет вернуть bcrypt или другой надёжный хэш.
 
 export async function hashPassword(password: string): Promise<string> {
-  return password; // временно
+  // В демо-режиме просто возвращаем пароль как "хэш".
+  // (Так делать нельзя в реальном проекте!)
+  return password;
 }
 
 export async function verifyPassword(
   password: string,
   hash: string
 ): Promise<boolean> {
+  // В демо считаем, что "хэш" — это сам пароль.
   return password === hash;
 }
 
 export function isPasswordStrong(password: string): boolean {
   return password.length >= 8;
-}
 }
