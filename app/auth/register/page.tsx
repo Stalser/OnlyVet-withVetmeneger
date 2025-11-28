@@ -22,23 +22,31 @@ export default function RegisterPage() {
 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+
+  const lastNameError = hasSubmitted && !lastName.trim();
+  const firstNameError = hasSubmitted && !firstName.trim();
+  const phoneError = hasSubmitted && !phone.trim();
+  const emailError = hasSubmitted && !email.trim();
+  const passwordError =
+    hasSubmitted && (!password || password.length < 8);
+  const password2Error =
+    hasSubmitted && (!password2 || password2 !== password);
+
+  const isValid =
+    lastName.trim().length > 0 &&
+    firstName.trim().length > 0 &&
+    phone.trim().length > 0 &&
+    email.trim().length > 0 &&
+    password.length >= 8 &&
+    password2 === password;
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    setHasSubmitted(true);
     setError(null);
 
-    if (!lastName.trim() || !firstName.trim()) {
-      setError("Заполните фамилию и имя.");
-      return;
-    }
-    if (!phone.trim() || !email.trim()) {
-      setError("Телефон и email обязательны.");
-      return;
-    }
-    if (password !== password2) {
-      setError("Пароли не совпадают.");
-      return;
-    }
+    if (!isValid) return;
 
     try {
       setLoading(true);
@@ -99,7 +107,7 @@ export default function RegisterPage() {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-3 text-[13px]">
-                {/* ФИО */}
+                {/* Фамилия / Имя / Отчество */}
                 <div className="grid md:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-[12px] text-slate-600 mb-1">
@@ -109,9 +117,18 @@ export default function RegisterPage() {
                       type="text"
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                      className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
+                        lastNameError
+                          ? "border-rose-400 focus:ring-rose-300"
+                          : "border-slate-300 focus:ring-onlyvet-teal/40"
+                      }`}
                       placeholder="Иванов"
                     />
+                    {lastNameError && (
+                      <p className="mt-1 text-[11px] text-rose-600">
+                        Укажите фамилию.
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-[12px] text-slate-600 mb-1">
@@ -121,9 +138,18 @@ export default function RegisterPage() {
                       type="text"
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                      className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
+                        firstNameError
+                          ? "border-rose-400 focus:ring-rose-300"
+                          : "border-slate-300 focus:ring-onlyvet-teal/40"
+                      }`}
                       placeholder="Иван"
                     />
+                    {firstNameError && (
+                      <p className="mt-1 text-[11px] text-rose-600">
+                        Укажите имя.
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-[12px] text-slate-600 mb-1">
@@ -149,9 +175,18 @@ export default function RegisterPage() {
                       type="tel"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                      className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
+                        phoneError
+                          ? "border-rose-400 focus:ring-rose-300"
+                          : "border-slate-300 focus:ring-onlyvet-teal/40"
+                      }`}
                       placeholder="+7 ..."
                     />
+                    {phoneError && (
+                      <p className="mt-1 text-[11px] text-rose-600">
+                        Телефон обязателен для входа и связи.
+                      </p>
+                    )}
                     <p className="text-[11px] text-slate-500 mt-1">
                       По этому номеру будет выполняться вход в личный кабинет.
                     </p>
@@ -164,9 +199,19 @@ export default function RegisterPage() {
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                      className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
+                        emailError
+                          ? "border-rose-400 focus:ring-rose-300"
+                          : "border-slate-300 focus:ring-onlyvet-teal/40"
+                      }`}
                       placeholder="example@mail.ru"
                     />
+                    {emailError && (
+                      <p className="mt-1 text-[11px] text-rose-600">
+                        Email обязателен для уведомлений и восстановления
+                        доступа.
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -183,7 +228,7 @@ export default function RegisterPage() {
                     placeholder="@username (необязательно)"
                   />
                   <p className="text-[11px] text-slate-500 mt-1">
-                    При наличии, по Telegram удобнее всего коммуницировать.
+                    При наличии нам проще и быстрее связываться через Telegram.
                   </p>
                 </div>
 
@@ -197,9 +242,18 @@ export default function RegisterPage() {
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                      className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
+                        passwordError
+                          ? "border-rose-400 focus:ring-rose-300"
+                          : "border-slate-300 focus:ring-onlyvet-teal/40"
+                      }`}
                       placeholder="Не короче 8 символов"
                     />
+                    {passwordError && (
+                      <p className="mt-1 text-[11px] text-rose-600">
+                        Пароль должен быть не короче 8 символов.
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-[12px] text-slate-600 mb-1">
@@ -209,9 +263,18 @@ export default function RegisterPage() {
                       type="password"
                       value={password2}
                       onChange={(e) => setPassword2(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                      className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
+                        password2Error
+                          ? "border-rose-400 focus:ring-rose-300"
+                          : "border-slate-300 focus:ring-onlyvet-teal/40"
+                      }`}
                       placeholder="Повторите пароль"
                     />
+                    {password2Error && (
+                      <p className="mt-1 text-[11px] text-rose-600">
+                        Пароли должны совпадать.
+                      </p>
+                    )}
                   </div>
                 </div>
 
