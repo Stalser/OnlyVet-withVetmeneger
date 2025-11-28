@@ -1,20 +1,49 @@
-// app/auth/login/page.tsx
 "use client";
 
-import { useState } from "react";
+import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 
 export default function LoginPage() {
+  const router = useRouter();
+
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
 
-  // Заглушка — здесь потом будет реальный submit на backend
-  const handleSubmit = (e: React.FormEvent) => {
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    alert("Здесь будет реальный вход по телефону и паролю.");
+    setError(null);
+
+    try {
+      setLoading(true);
+
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Ошибка входа");
+        return;
+      }
+
+      // TODO: когда появятся сессии, пользователь будет попадать в ЛК уже авторизованным
+      router.push("/account");
+    } catch (err) {
+      console.error(err);
+      setError("Произошла техническая ошибка. Попробуйте позже.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -36,8 +65,9 @@ export default function LoginPage() {
                   Вход в личный кабинет
                 </h1>
                 <p className="text-[13px] text-slate-600">
-                  Используйте номер телефона и пароль, которые вы указали при
-                  регистрации. Позже здесь появится полноценная система входа.
+                  Используйте номер телефона и пароль, указанные при
+                  регистрации. Позже здесь появится полноценная система входа с
+                  сессиями и восстановлением доступа.
                 </p>
               </div>
 
@@ -67,11 +97,24 @@ export default function LoginPage() {
                   />
                 </div>
 
+                {error && (
+                  <div className="text-[12px] text-rose-600 bg-rose-50 border border-rose-100 rounded-xl px-3 py-2">
+                    {error}
+                  </div>
+                )}
+
                 <button
                   type="submit"
-                  className="w-full mt-1 px-4 py-2.5 rounded-full bg-onlyvet-coral text-white text-[13px] font-medium shadow-[0_10px_26px_rgba(247,118,92,0.45)] hover:brightness-105 transition"
+                  disabled={loading}
+                  className="
+                    w-full mt-1 px-4 py-2.5 rounded-full 
+                    bg-onlyvet-coral text-white text-[13px] font-medium 
+                    shadow-[0_10px_26px_rgba(247,118,92,0.45)]
+                    hover:brightness-105 transition
+                    disabled:bg-slate-300 disabled:shadow-none disabled:cursor-not-allowed
+                  "
                 >
-                  Войти
+                  {loading ? "Вход..." : "Войти"}
                 </button>
 
                 <div className="flex flex-col gap-1 text-[12px] text-slate-600 mt-2">
@@ -94,9 +137,9 @@ export default function LoginPage() {
               </form>
 
               <p className="text-[11px] text-slate-500">
-                В демонстрационной версии вход не привязан к реальной базе
-                данных. Позже здесь появится полноценная авторизация с
-                проверкой пароля, восстановлением и т.д.
+                Сейчас эта форма обращается к API `/api/auth/login`, который
+                проверяет телефон и пароль. Как только мы подключим настоящую
+                БД и сессии, вход будет полностью рабочим.
               </p>
             </div>
           </div>
