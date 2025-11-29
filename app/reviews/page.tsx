@@ -27,8 +27,12 @@ export default function ReviewsPage() {
   const [modalOpen, setModalOpen] = useState(false);
 
   const filtered = useMemo(() => {
-    let list = [...reviews];
+    // 1. Сначала берём только одобренные отзывы
+    let list = reviews.filter(
+      (r) => !r.status || r.status === "approved"
+    );
 
+    // 2. Применяем фильтры
     if (source !== "all") {
       list = list.filter((r) => r.source === source);
     }
@@ -44,6 +48,7 @@ export default function ReviewsPage() {
       if (rating === "3+") list = list.filter((r) => r.rating >= 3);
     }
 
+    // 3. Сортировка по дате
     list.sort((a, b) => {
       const da = new Date(a.date).getTime();
       const db = new Date(b.date).getTime();
