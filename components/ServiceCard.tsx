@@ -1,5 +1,6 @@
 // components/ServiceCard.tsx
 
+import Link from "next/link";
 import type { Service } from "@/data/services";
 
 interface ServiceCardProps {
@@ -7,7 +8,10 @@ interface ServiceCardProps {
   showDetailsButton?: boolean;
 }
 
-export function ServiceCard({ service, showDetailsButton = true }: ServiceCardProps) {
+export function ServiceCard({
+  service,
+  showDetailsButton = true,
+}: ServiceCardProps) {
   return (
     <article
       className="
@@ -58,10 +62,22 @@ export function ServiceCard({ service, showDetailsButton = true }: ServiceCardPr
         <span className="font-medium text-onlyvet-navy">
           {service.priceLabel}
         </span>
+
         {showDetailsButton && (
-          <span className="text-[12px] text-onlyvet-coral font-medium">
-            Подробнее →
-          </span>
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/services/${service.id}`}
+              className="text-onlyvet-coral font-medium hover:underline"
+            >
+              Подробнее →
+            </Link>
+            <Link
+              href={`/booking?serviceId=${service.id}`}
+              className="text-onlyvet-coral font-medium hover:underline"
+            >
+              Записаться
+            </Link>
+          </div>
         )}
       </div>
     </article>
