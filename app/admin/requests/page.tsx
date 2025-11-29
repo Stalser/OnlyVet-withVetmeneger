@@ -1,7 +1,7 @@
 // app/admin/requests/page.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 import { Header } from "@/components/Header";
@@ -48,26 +48,27 @@ export default function AdminRequestsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  const loadBookings = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await fetch("/api/booking", { cache: "no-store" });
+      if (!res.ok) throw new Error("Не удалось загрузить заявки");
+      const data = await res.json();
+      setBookings(data.bookings || []);
+    } catch (err: any) {
+      console.error(err);
+      setError(err?.message || "Ошибка загрузки заявок");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const res = await fetch("/api/booking", { cache: "no-store" });
-        if (!res.ok) throw new Error("Не удалось загрузить заявки");
-        const data = await res.json();
-        setBookings(data.bookings || []);
-      } catch (err: any) {
-        console.error(err);
-        setError(err?.message || "Ошибка загрузки заявок");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    load();
-  }, []);
+    loadBookings();
+  }, [loadBookings]);
 
   const {
     total,
@@ -122,6 +123,29 @@ export default function AdminRequestsPage() {
       minute: "2-digit",
     });
 
+  const updateStatus = async (id: string, status: BookingStatus) => {
+    try {
+      setUpdatingId(id);
+      const res = await fetch(`/api/booking/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(
+          data?.error || "Не удалось обновить статус заявки"
+        );
+      }
+      await loadBookings();
+    } catch (err: any) {
+      console.error(err);
+      alert(err?.message || "Ошибка при изменении статуса");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   return (
     <>
       <Header />
@@ -142,9 +166,8 @@ export default function AdminRequestsPage() {
                 </h1>
                 <p className="text-[13px] text-slate-600 max-w-2xl leading-relaxed">
                   Здесь отображаются заявки, отправленные через форму записи на
-                  сайте. В боевом режиме эти данные будут синхронизироваться с
-                  Vetmanager, но уже сейчас можно использовать их как рабочий
-                  журнал для обработки обращений.
+                  сайте. В дальнейшем здесь же можно будет отслеживать их
+                  синхронизацию с Vetmanager и состоянием приёмов.
                 </p>
               </div>
               <AdminNav />
@@ -307,18 +330,58 @@ export default function AdminRequestsPage() {
                         )}
                       </div>
 
+                      {/* Кнопки управления статусом */}
                       <div className="mt-2 flex flex-wrap gap-2 text-[12px]">
+                        {req.status !== "in_review" && req.status !== "approved" && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateStatus(req.id, "in_review")
+                            }
+                            disabled={updatingId === req.id}
+                            className="px-3 py-1.5 rounded-full bg-sky-600 text-white hover:bg-sky-700 transition disabled:opacity-60"
+                          >
+                            {updatingId === req.id
+                              ? "Обновляем…"
+                              : "В работу"}
+                          </button>
+                        )}
+
+                        {req.status !== "approved" && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateStatus(req.id, "approved")
+                            }
+                            disabled={updatingId === req.id}
+                            className="px-3 py-1.5 rounded-full bg-teal-600 text-white hover:bg-teal-700 transition disabled:opacity-60"
+                          >
+                            {updatingId === req.id
+                              ? "Обновляем…"
+                              : "Подтвердить"}
+                          </button>
+                        )}
+
+                        {req.status !== "rejected" && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateStatus(req.id, "rejected")
+                            }
+                            disabled={updatingId === req.id}
+                            className="px-3 py-1.5 rounded-full bg-rose-600 text-white hover:bg-rose-700 transition disabled:opacity-60"
+                          >
+                            {updatingId === req.id
+                              ? "Обновляем…"
+                              : "Отклонить"}
+                          </button>
+                        )}
+
                         <Link
                           href={`/admin/requests/${req.id}`}
-                          className="px-3 py-1.5 rounded-full border border-slate-300 bg-white hover:bg-slate-50 transition"
+                          className="px-3 py-1.5 rounded-full border border-slate-300 bg-white hover:bg-slate-50 transition ml-auto"
                         >
-                          Открыть карточку заявки
-                        </Link>
-                        <Link
-                          href={`/booking?doctorId=${req.doctorId ?? ""}&serviceId=${req.serviceId ?? ""}`}
-                          className="px-3 py-1.5 rounded-full border border-slate-200 bg-slate-50 hover:bg-slate-100 transition"
-                        >
-                          Открыть форму записи с этими параметрами
+                          Открыть карточку
                         </Link>
                       </div>
                     </article>
@@ -331,21 +394,19 @@ export default function AdminRequestsPage() {
           {/* Пояснение про mock-состояние */}
           <section className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 md:p-6 text-[12px] text-slate-600 space-y-2">
             <div className="font-semibold text-[13px] text-slate-800">
-              Текущее состояние интеграции
+              Важно про текущее состояние
             </div>
             <p>
-              Сейчас заявки хранятся во временном in-memory хранилище на сервере
-              (аналогично <code>mockBookings</code>). Это значит, что при
-              перезапуске деплоя данные могут сбрасываться. Архитектура
-              страницы уже рассчитана на подключение постоянной базы данных
-              и/или Vetmanager.
+              Сейчас заявки и их статусы хранятся во временном in-memory
+              хранилище (аналог <code>mockBookings</code>). При перезапуске
+              деплоя данные могут сбрасываться. Архитектура страницы уже готова
+              к подключению постоянной базы данных и/или Vetmanager.
             </p>
             <p>
-              В дальнейшем здесь можно будет:
-              <br />— изменять статус заявки (новая / в работе / подтверждена /
-              отклонена);<br />— привязывать заявку к клиенту и питомцу из
-              Vetmanager;<br />— автоматически создавать приём в расписании
-              врача.
+              В дальнейшем изменение статуса здесь может:
+              <br />— создавать/обновлять приём в Vetmanager;<br />— отправлять
+              уведомления клиенту и врачу;<br />— фиксировать историю обработки
+              заявки в журнале.
             </p>
           </section>
         </div>
