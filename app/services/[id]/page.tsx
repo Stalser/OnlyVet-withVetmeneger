@@ -18,8 +18,15 @@ export default function ServicePage({ params }: PageProps) {
     notFound();
   }
 
-  const { name, shortDescription, fullDescription, category, priceLabel, tags } =
-    service!;
+  const {
+    id, // важно: нужен для ссылки на /booking
+    name,
+    shortDescription,
+    fullDescription,
+    category,
+    priceLabel,
+    tags,
+  } = service!;
 
   return (
     <>
@@ -51,9 +58,7 @@ export default function ServicePage({ params }: PageProps) {
                   : "Сопровождение"}
               </div>
               <h1 className="text-xl md:text-2xl font-semibold">{name}</h1>
-              <p className="text-[13px] text-slate-600">
-                {shortDescription}
-              </p>
+              <p className="text-[13px] text-slate-600">{shortDescription}</p>
 
               <div className="flex flex-wrap gap-1">
                 {tags.map((tag) => (
@@ -76,12 +81,21 @@ export default function ServicePage({ params }: PageProps) {
               <div className="text-[13px] font-medium text-onlyvet-navy">
                 Стоимость: {priceLabel}
               </div>
-              <button
-                type="button"
-                className="w-full px-4 py-2.5 rounded-full bg-onlyvet-coral text-white text-[13px] font-medium shadow-[0_12px_32px_rgba(247,118,92,0.6)] hover:brightness-105 transition"
+
+              <Link
+                href={`/booking?serviceId=${id}`}
+                className="
+                  w-full px-4 py-2.5 rounded-full 
+                  bg-onlyvet-coral text-white text-[13px] font-medium 
+                  shadow-[0_12px_32px_rgba(247,118,92,0.6)] 
+                  hover:brightness-105 
+                  transition 
+                  inline-flex items-center justify-center
+                "
               >
                 Записаться
-              </button>
+              </Link>
+
               <p className="text-[11px] text-slate-500">
                 В экстренных состояниях необходимо немедленно обращаться в
                 ближайшую круглосуточную клинику.
