@@ -1,6 +1,5 @@
 // components/ServiceCard.tsx
 
-import Link from "next/link";
 import type { Service } from "@/data/services";
 
 interface ServiceCardProps {
@@ -62,22 +61,10 @@ export function ServiceCard({
         <span className="font-medium text-onlyvet-navy">
           {service.priceLabel}
         </span>
-
         {showDetailsButton && (
-          <div className="flex items-center gap-2">
-            <Link
-              href={`/services/${service.id}`}
-              className="text-onlyvet-coral font-medium hover:underline"
-            >
-              Подробнее →
-            </Link>
-            <Link
-              href={`/booking?serviceId=${service.id}`}
-              className="text-onlyvet-coral font-medium hover:underline"
-            >
-              Записаться
-            </Link>
-          </div>
+          <span className="text-[12px] text-onlyvet-coral font-medium">
+            Подробнее →
+          </span>
         )}
       </div>
     </article>
