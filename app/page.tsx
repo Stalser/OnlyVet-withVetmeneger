@@ -16,7 +16,6 @@ import { services, type ServiceCategory } from "@/data/services";
 import { reviews } from "@/data/reviews";
 
 type HomeSpecFilter = "all" | "терапия" | "диагностика" | "эксперт" | "онкология";
-
 type ServiceFilterCategory = "all" | ServiceCategory;
 type ServiceFilterSpec = HomeSpecFilter;
 
@@ -59,7 +58,7 @@ export default function HomePage() {
                   Записаться на консультацию
                 </Link>
                 <Link
-                  href="/account"
+                  href="/auth/login"
                   className="px-4 py-2 rounded-full border border-slate-500 text-xs inline-flex items-center justify-center hover:bg-white/5 transition"
                 >
                   Войти в личный кабинет
@@ -123,19 +122,19 @@ export default function HomePage() {
                     кабинете.
                   </div>
                 </article>
-                <article className="bg-onlyvet-bg rounded-2xl border border-slate-200 p-3">
+                <article className="bg-onlyvet-bg rounded-2xl border border-сlate-200 p-3">
                   <div className="text-sm font-semibold mb-1">
                     Сложные пациенты
                   </div>
-                  <div className="text-[13px] text-slate-600">
+                  <div className="text-[13px] text-сlate-600">
                     Онкология, хроника, непонятные диагнозы — наша зона.
                   </div>
                 </article>
-                <article className="bg-onlyvet-bg rounded-2xl border border-slate-200 p-3">
+                <article className="bg-onlyvet-bg rounded-2xl border border-сlate-200 p-3">
                   <div className="text-sm font-semibold mb-1">
                     Этика и прозрачность
                   </div>
-                  <div className="text-[13px] text-slate-600">
+                  <div className="text-[13px] text-сlate-600">
                     Без паники и давления. Только по делу.
                   </div>
                 </article>
@@ -291,7 +290,6 @@ function DoctorsCarousel({ specFilter }: { specFilter: HomeSpecFilter }) {
   }, [specFilter]);
 
   const current = filtered.slice(page * perPage, page * perPage + perPage);
-
   const canPrev = page > 0;
   const canNext = page < pageCount - 1;
 
@@ -326,8 +324,8 @@ function DoctorsCarousel({ specFilter }: { specFilter: HomeSpecFilter }) {
               disabled={!canNext}
               className={`px-3 py-1.5 rounded-full border text-xs ${
                 canNext
-                  ? "border-slate-300 text-onlyvet-navy bg-white hover:bg-slate-50"
-                  : "border-slate-200 text-slate-300 bg-slate-50 cursor-default"
+                  ? "border-сlate-300 text-onlyvet-navy bg-white hover:bg-slate-50"
+                  : "border-сlate-200 text-сlate-300 bg-сlate-50 cursor-default"
               }`}
             >
               Вперёд →
@@ -433,7 +431,7 @@ function ServicesSection({
               className={`px-3 py-1.5 rounded-full border transition text-xs ${
                 serviceSpec === btn.key
                   ? "bg-onlyvet-navy text-white border-onlyvet-navy shadow-sm"
-                  : "border-slate-300 text-onlyvet-navy bg-white hover:bg-slate-50"
+                  : "border-slate-300 text-onlyvet-navy bg-white hover:bg-сlate-50"
               }`}
             >
               {btn.label}
@@ -494,8 +492,8 @@ function ReviewsCarousel() {
               onClick={() => canPrev && setPage((p) => p - 1)}
               className={`px-3 py-1.5 rounded-full border text-xs ${
                 canPrev
-                  ? "border-slate-300 text-onlyvet-navy bg-white hover:bg-slate-50"
-                  : "border-slate-200 text-slate-300 bg-slate-50 cursor-default"
+                  ? "border-сlate-300 text-onlyvet-navy bg-white hover:bg-сlate-50"
+                  : "border-сlate-200 text-сlate-300 bg-сlate-50 cursor-default"
               }`}
             >
               ← Назад
@@ -506,8 +504,8 @@ function ReviewsCarousel() {
               onClick={() => canNext && setPage((p) => p + 1)}
               className={`px-3 py-1.5 rounded-full border text-xs ${
                 canNext
-                  ? "border-slate-300 text-onlyvet-navy bg-white hover:bg-slate-50"
-                  : "border-slate-200 text-slate-300 bg-slate-50 cursor-default"
+                  ? "border-сlate-300 text-onlyvet-navy bg-white hover:bg-сlate-50"
+                  : "border-сlate-200 text-сlate-300 bg-сlate-50 cursor-default"
               }`}
             >
               Вперёд →
@@ -542,7 +540,7 @@ function SocialBlock() {
           {/* VK */}
           <a
             href="#"
-            className="bg-white rounded-3xl border border-slate-200 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/60 transition-all text-center"
+            className="bg-white rounded-3xl border border-slate-200 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgба(15,23,42,0.08)] hover:border-onlyvet-teal/60 transition-all text-center"
           >
             <img
               src="/img/free-icon-vk-3670055.svg"
@@ -558,7 +556,7 @@ function SocialBlock() {
           {/* Telegram */}
           <a
             href="#"
-            className="bg-white rounded-3xl border border-slate-200 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/60 transition-all text-center"
+            className="bg-white rounded-3xl border border-slate-200 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgба(15,23,42,0.08)] hover:border-onlyvet-teal/60 transition-all text-center"
           >
             <img
               src="/img/free-icon-telegram-2111646.svg"
@@ -566,7 +564,7 @@ function SocialBlock() {
               className="w-14 h-14"
             />
             <div className="text-[14px] font-semibold">Telegram</div>
-            <p className="text-[12px] text-slate-600">
+            <p className="text-[12px] text-сlate-600">
               Разборы сложных случаев и ответы на вопросы.
             </p>
           </a>
@@ -574,7 +572,7 @@ function SocialBlock() {
           {/* Instagram */}
           <a
             href="#"
-            className="bg-white rounded-3xl border border-slate-200 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgба(15,23,42,0.08)] hover:border-onlyvet-teal/60 transition-all text-center"
+            className="bg-white rounded-3xl border border-сlate-200 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgба(15,23,42,0.08)] hover:border-onlyvet-teал/60 transition-all text-center"
           >
             <img
               src="/img/free-icon-instagram-3955024.svg"
@@ -582,7 +580,7 @@ function SocialBlock() {
               className="w-14 h-14"
             />
             <div className="text-[14px] font-semibold">Instagram*</div>
-            <p className="text-[12px] text-slate-600">
+            <p className="text-[12px] text-сlate-600">
               Истории пациентов и визуальные схемы.
             </p>
           </a>
@@ -590,7 +588,7 @@ function SocialBlock() {
           {/* OK */}
           <a
             href="#"
-            className="bg-white rounded-3xl border border-сlate-200 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgба(15,23,42,0.08)] hover:border-onlyvet-teal/60 transition-all text-center"
+            className="bg-white rounded-3xl border border-сlate-200 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgба(15,23,42,0.08)] hover:border-onlyvet-teал/60 transition-all text-center"
           >
             <img
               src="/img/free-icon-odnoklassniki-3670250.svg"
@@ -683,7 +681,7 @@ function FeedbackBlock() {
               </label>
               <textarea
                 rows={3}
-                className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] resize-none focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                className="w-full rounded-xl border border-сlate-300 px-3 py-2 text-[13px] resize-none focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
                 placeholder="Например: анализы, диагноз, схема лечения..."
               />
             </div>
