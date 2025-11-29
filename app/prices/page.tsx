@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { services } from "@/data/services";
 
 type PriceKind = "main" | "extra";
 
@@ -51,6 +52,20 @@ export default function PricesPage() {
     () => items.filter((i) => i.kind === "extra" && i.isActive),
     [items]
   );
+
+  // помогает привязать прайс к услугам:
+  const getRelatedServices = (priceItem: PriceItem) => {
+    const nameNorm = priceItem.name.toLowerCase().trim();
+    return services.filter((s) => {
+      const serviceName = s.name.toLowerCase().trim();
+      // простая эвристика: совпадение имени или включение
+      return (
+        serviceName === nameNorm ||
+        serviceName.includes(nameNorm) ||
+        nameNorm.includes(serviceName)
+      );
+    });
+  };
 
   return (
     <>
@@ -102,26 +117,47 @@ export default function PricesPage() {
 
             {!loading && !error && main.length > 0 && (
               <div className="bg-white rounded-3xl border border-slate-200 shadow-soft divide-y divide-slate-100">
-                {main.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-4 py-3"
-                  >
-                    <div className="space-y-1">
-                      <div className="text-[13px] font-semibold text-slate-800">
-                        {item.name}
+                {main.map((item) => {
+                  const related = getRelatedServices(item);
+                  return (
+                    <div
+                      key={item.id}
+                      className="px-4 py-3 space-y-1"
+                    >
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                        <div className="space-y-1">
+                          <div className="text-[13px] font-semibold text-slate-800">
+                            {item.name}
+                          </div>
+                          {item.shortDescription && (
+                            <div className="text-[12px] text-slate-600">
+                              {item.shortDescription}
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-[13px] font-semibold text-onlyvet-navy whitespace-nowrap">
+                          {item.priceLabel}
+                        </div>
                       </div>
-                      {item.shortDescription && (
-                        <div className="text-[12px] text-slate-600">
-                          {item.shortDescription}
+                      {related.length > 0 && (
+                        <div className="text-[11px] text-slate-500">
+                          Связанная услуга:{" "}
+                          {related.map((s, idx) => (
+                            <span key={s.id}>
+                              {idx > 0 && ", "}
+                              <Link
+                                href={`/services/${s.id}`}
+                                className="text-onlyvet-coral hover:underline"
+                              >
+                                {s.name}
+                              </Link>
+                            </span>
+                          ))}
                         </div>
                       )}
                     </div>
-                    <div className="text-[13px] font-semibold text-onlyvet-navy whitespace-nowrap">
-                      {item.priceLabel}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
@@ -151,20 +187,22 @@ export default function PricesPage() {
                 {extra.map((item) => (
                   <div
                     key={item.id}
-                    className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-4 py-3"
+                    className="px-4 py-3 space-y-1"
                   >
-                    <div className="space-y-1">
-                      <div className="text-[13px] font-semibold text-slate-800">
-                        {item.name}
-                      </div>
-                      {item.shortDescription && (
-                        <div className="text-[12px] text-slate-600">
-                          {item.shortDescription}
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                      <div className="space-y-1">
+                        <div className="text-[13px] font-semibold text-slate-800">
+                          {item.name}
                         </div>
-                      )}
-                    </div>
-                    <div className="text-[13px] font-semibold text-onlyvet-navy whitespace-nowrap">
-                      {item.priceLabel}
+                        {item.shortDescription && (
+                          <div className="text-[12px] text-slate-600">
+                            {item.shortDescription}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-[13px] font-semibold text-onlyvet-navy whitespace-nowrap">
+                        {item.priceLabel}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -179,13 +217,13 @@ export default function PricesPage() {
 
             <p className="text-[11px] text-slate-500 max-w-xl">
               Конкретная необходимость и стоимость дополнительных услуг всегда
-              согласуется с вами до назначения. Мы не практикуем навязанные
+              согласуются с вами до назначения. Мы не практикуем навязанные
               услуги и придерживаемся принципов прозрачной, этичной
               коммуникации.
             </p>
           </section>
 
-          {/* Небольшая памятка — как это связано с заявкой */}
+          {/* Небольшая памятка — связь с заявкой */}
           <section className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 md:p-6 space-y-2 text-[13px] text-slate-700">
             <div className="font-semibold text-[14px]">
               Как формируется итоговая стоимость
@@ -193,14 +231,71 @@ export default function PricesPage() {
             <p className="leading-relaxed">
               При оформлении заявки вы выбираете основной формат работы
               (консультация, второе мнение, разбор анализов и т.п.). Если в
-              процессе разборы выяснится, что нужен другой формат или
+              процессе разбора выяснится, что нужен другой формат или
               дополнительные действия, врач сначала объяснит, зачем это нужно,
               и только потом предложит изменить или расширить услугу.
             </p>
             <p className="text-[11px] text-slate-500">
-              Вы всегда можете задать вопросы по стоимости до начала работы — в
-              заявке или через форму обратной связи.
+              Вы всегда можете задать вопросы по стоимости до начала работы —
+              в заявке или через форму обратной связи.
             </p>
+          </section>
+
+          {/* Частые вопросы про оплату и дополнительные услуги */}
+          <section className="space-y-3">
+            <h2 className="text-[15px] md:text-[16px] font-semibold">
+              Частые вопросы о стоимости
+            </h2>
+            <div className="grid gap-3 md:grid-cols-2 text-[13px] text-slate-700">
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4 space-y-1">
+                <div className="font-semibold">
+                  Могут ли цена или формат измениться после начала консультации?
+                </div>
+                <p className="text-[13px] leading-relaxed">
+                  Иногда в процессе становится понятно, что случай сложнее, чем
+                  казалось по заявке, или требует другого формата работы.
+                  Врач всегда проговаривает это отдельно: что именно он
+                  предлагает, чем это отличается по стоимости и можно ли
+                  обойтись без дополнительных шагов.
+                </p>
+              </div>
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4 space-y-1">
+                <div className="font-semibold">
+                  Можно ли отказаться от дополнительной услуги?
+                </div>
+                <p className="text-[13px] leading-relaxed">
+                  Да. Дополнительные действия (письменное заключение, план
+                  сопровождения, повторный приём) — это предложение врача, а не
+                  обязательное условие. Вы сами принимаете решение, и врач
+                  объяснит, какие риски будут, если ограничиться только
+                  базовой консультацией.
+                </p>
+              </div>
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4 space-y-1">
+                <div className="font-semibold">
+                  Что делать, если после оплаты консультации планы изменились?
+                </div>
+                <p className="text-[13px] leading-relaxed">
+                  Варианты переноса и возврата зависят от времени до консультации
+                  и уже выполненного объёма работы (например, если врач
+                  успел изучить большую часть анализов). Конкретные условия
+                  будут прописаны в публичной оферте и могут обсуждаться
+                  индивидуально с администратором.
+                </p>
+              </div>
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4 space-y-1">
+                <div className="font-semibold">
+                  Если случай очень сложный и затяжной, не выйдет ли «в копеечку»?
+                </div>
+                <p className="text-[13px] leading-relaxed">
+                  Для сложных хронических пациентов мы стараемся выстраивать
+                  прогнозируемую тактику: обозначать, какие шаги ожидаются,
+                  с какой периодичностью может понадобиться повторный контакт.
+                  Если вы заранее предупредите, что бюджет ограничен, врач
+                  будет учитывать это при выборе вариантов.
+                </p>
+              </div>
+            </div>
           </section>
 
           {/* CTA */}
@@ -212,7 +307,7 @@ export default function PricesPage() {
               <p className="text-slate-600 max-w-md">
                 Можно сразу оформить заявку на онлайн-консультацию или сначала
                 кратко описать ситуацию — это поможет врачу лучше подготовиться к
-                приёму.
+                приёму и точнее оценить объём работы.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
