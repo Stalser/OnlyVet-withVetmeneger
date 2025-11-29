@@ -17,7 +17,10 @@ export default function RootLayout({
   return (
     <html lang="ru">
       <body className="bg-onlyvet-bg text-slate-900">
-        <div className="min-h-screen flex flex-col">{children}</div>
+        <div className="min-h-screen flex flex-col">
+          {children}
+        </div>
+        {/* Глобальный баннер про cookie */}
         <CookieBanner />
       </body>
     </html>
