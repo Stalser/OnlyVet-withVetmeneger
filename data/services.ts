@@ -9,19 +9,22 @@ export type ServiceCategory =
   | "сопровождение";
 
 export type Service = {
-  id: string;
+  id: string;                         // внутренний id сайта (для URL)
+  vmId?: string;                      // ID услуги в Vetmanager
   name: string;
-  shortDescription: string;   // кратко, 1–2 строки
-  fullDescription: string[];  // подробности для детальной страницы
+  shortDescription: string;           // кратко, 1–2 строки
+  fullDescription: string[];          // подробности для детальной страницы
   category: ServiceCategory;
   specializations: DoctorSpecialization[]; // какие врачи ведут эту услугу
   tags: string[];
-  priceLabel: string;
+  priceLabel: string;                 // отображаемая цена (“от 2 500 ₽”)
+  showOnSite?: boolean;               // можно скрыть услугу с сайта
 };
 
 export const services: Service[] = [
   {
     id: "online-consult",
+    vmId: "VM-S-1", // временный код под Vetmanager
     name: "Онлайн-консультация",
     shortDescription:
       "Первичный или повторный приём: разбираем жалобы, историю заболевания и текущие назначения.",
@@ -33,9 +36,11 @@ export const services: Service[] = [
     specializations: ["терапия", "эксперт"],
     tags: ["Кошки и собаки", "Первичный приём", "Повторный приём"],
     priceLabel: "от 2 500 ₽",
+    showOnSite: true,
   },
   {
     id: "second-opinion",
+    vmId: "VM-S-2",
     name: "Второе мнение по диагнозу",
     shortDescription:
       "Помогаем разобраться с уже поставленным диагнозом и назначенным лечением, без паники и давления.",
@@ -47,9 +52,11 @@ export const services: Service[] = [
     specializations: ["эксперт", "онкология", "терапия"],
     tags: ["Сложные случаи", "Онкология", "Хроника"],
     priceLabel: "от 3 000 ₽",
+    showOnSite: true,
   },
   {
     id: "labs-ultrasound",
+    vmId: "VM-S-3",
     name: "Разбор анализов и УЗИ",
     shortDescription:
       "Подробное объяснение лабораторных показателей и УЗИ: что это значит именно для вашего пациента.",
@@ -61,9 +68,11 @@ export const services: Service[] = [
     specializations: ["диагностика", "эксперт"],
     tags: ["Анализы", "УЗИ", "Контроль динамики"],
     priceLabel: "от 1 800 ₽",
+    showOnSite: true,
   },
   {
     id: "long-term",
+    vmId: "VM-S-4",
     name: "Долгосрочное сопровождение",
     shortDescription:
       "Системное ведение хронических пациентов: контроль динамики, корректировка схем, планирование обследований.",
@@ -75,5 +84,6 @@ export const services: Service[] = [
     specializations: ["эксперт", "терапия", "онкология"],
     tags: ["Хронические пациенты", "Онкология", "Длительное ведение"],
     priceLabel: "индивидуально",
+    showOnSite: true,
   },
 ];
