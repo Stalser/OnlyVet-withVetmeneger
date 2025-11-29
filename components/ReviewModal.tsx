@@ -21,36 +21,69 @@ export function ReviewModal({
   const [text, setText] = useState("");
   const [consent, setConsent] = useState(false);
 
+  const [submitting, setSubmitting] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
+
   if (!open) return null;
 
   const isValid = text.trim().length > 0 && consent;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isValid) return;
+    if (!isValid || submitting) return;
 
-    // Здесь будет отправка на backend / модерацию
-    console.log("Новый отзыв (на модерации):", {
-      clientName,
-      petName,
-      doctorId,
-      serviceId,
-      rating,
-      text,
-    });
+    try {
+      setSubmitting(true);
+      setServerError(null);
 
-    alert(
-      "Спасибо! Ваш отзыв отправлен на модерацию и появится на сайте после проверки."
-    );
+      const payload = {
+        clientName: clientName.trim() || undefined,
+        petName: petName.trim() || undefined,
+        doctorId: doctorId || undefined,
+        serviceId: serviceId || undefined,
+        rating,
+        text,
+      };
 
-    setClientName("");
-    setPetName("");
-    setDoctorId("");
-    setServiceId("");
-    setRating(5);
-    setText("");
-    setConsent(false);
-    onClose();
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setServerError(
+          data?.error ||
+            "Не удалось отправить отзыв. Попробуйте ещё раз чуть позже."
+        );
+        return;
+      }
+
+      // Успешно отправили — сообщаем пользователю
+      alert(
+        data?.message ||
+          "Спасибо! Ваш отзыв отправлен на модерацию и появится на сайте после проверки."
+      );
+
+      // Сбрасываем форму
+      setClientName("");
+      setPetName("");
+      setDoctorId("");
+      setServiceId("");
+      setRating(5);
+      setText("");
+      setConsent(false);
+      setServerError(null);
+
+      onClose();
+    } catch (err: any) {
+      console.error("[ReviewModal] submit error:", err);
+      setServerError("Произошла техническая ошибка. Попробуйте позже.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -61,7 +94,7 @@ export function ReviewModal({
             <h2 className="text-[16px] font-semibold">Оставить отзыв</h2>
             <p className="text-[12px] text-slate-500">
               Отзыв не публикуется автоматически — сначала мы проверяем его на
-              корректность (по форме, а не по сути).
+              корректность по форме (без цензуры по содержанию).
             </p>
           </div>
           <button
@@ -74,6 +107,7 @@ export function ReviewModal({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3 text-[13px]">
+          {/* Имя + питомец */}
           <div className="grid md:grid-cols-2 gap-3">
             <div>
               <label className="block text-[12px] text-slate-600 mb-1">
@@ -99,6 +133,7 @@ export function ReviewModal({
             </div>
           </div>
 
+          {/* Врач + услуга */}
           <div className="grid md:grid-cols-2 gap-3">
             <div>
               <label className="block text-[12px] text-slate-600 mb-1">
@@ -136,6 +171,7 @@ export function ReviewModal({
             </div>
           </div>
 
+          {/* Оценка */}
           <div>
             <label className="block text-[12px] text-slate-600 mb-1">
               Оценка
@@ -153,6 +189,7 @@ export function ReviewModal({
             </select>
           </div>
 
+          {/* Текст отзыва */}
           <div>
             <label className="block text-[12px] text-slate-600 mb-1">
               Отзыв *
@@ -166,6 +203,7 @@ export function ReviewModal({
             />
           </div>
 
+          {/* Согласие */}
           <label className="flex items-start gap-2 text-[11px] text-slate-600">
             <input
               type="checkbox"
@@ -179,6 +217,12 @@ export function ReviewModal({
             </span>
           </label>
 
+          {/* Ошибка сервера, если что-то пошло не так */}
+          {serverError && (
+            <p className="text-[11px] text-rose-600">{serverError}</p>
+          )}
+
+          {/* Кнопки */}
           <div className="pt-1 flex justify-end gap-2">
             <button
               type="button"
@@ -189,14 +233,14 @@ export function ReviewModal({
             </button>
             <button
               type="submit"
-              disabled={!isValid}
+              disabled={!isValid || submitting}
               className={`px-4 py-2 rounded-full text-[12px] ${
-                isValid
-                  ? "bg-onlyvet-coral text-white shadow-lg"
-                  : "bg-slate-200 text-slate-500 cursor-not-allowed"
+                !isValid || submitting
+                  ? "bg-slate-200 text-slate-500 cursor-not-allowed"
+                  : "bg-onlyvet-coral text-white shadow-lg hover:brightness-105 transition"
               }`}
             >
-              Отправить отзыв
+              {submitting ? "Отправляем…" : "Отправить отзыв"}
             </button>
           </div>
         </form>
