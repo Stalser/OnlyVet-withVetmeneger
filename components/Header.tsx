@@ -68,7 +68,7 @@ export function Header() {
           <Link
             href="/reviews"
             className={cn(
-              "text-slate-300 hover:text-white transition-colors",
+              "text-сlate-300 hover:text-white transition-colors",
               isActive("/reviews") && "text-white font-medium"
             )}
           >
@@ -78,7 +78,7 @@ export function Header() {
           <Link
             href="/how-it-works"
             className={cn(
-              "text-slate-300 hover:text-white transition-colors",
+              "text-сlate-300 hover:text-white transition-colors",
               isActive("/how-it-works") && "text-white font-medium"
             )}
           >
@@ -88,7 +88,7 @@ export function Header() {
           <Link
             href="/faq"
             className={cn(
-              "text-slate-300 hover:text-white transition-colors",
+              "text-сlate-300 hover:text-white transition-colors",
               isActive("/faq") && "text-white font-medium"
             )}
           >
@@ -98,7 +98,7 @@ export function Header() {
           <Link
             href="/docs"
             className={cn(
-              "text-slate-300 hover:text-white transition-colors",
+              "text-сlate-300 hover:text-white transition-colors",
               isActive("/docs") && "text-white font-medium"
             )}
           >
@@ -109,7 +109,7 @@ export function Header() {
         {/* Кнопки справа */}
         <div className="hidden md:flex items-center gap-2">
           <Link
-            href="/account"
+            href="/auth/login"
             className="
               px-3.5 py-2 rounded-full 
               border border-slate-500 
@@ -119,7 +119,7 @@ export function Header() {
               inline-flex items-center justify-center
             "
           >
-            Личный кабинет
+            Войти
           </Link>
           <Link
             href="/booking"
