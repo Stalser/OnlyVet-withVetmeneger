@@ -109,7 +109,7 @@ export function Header() {
         {/* Кнопки справа */}
         <div className="hidden md:flex items-center gap-2">
           <Link
-            href="/auth/login"
+            href="/account"
             className="
               px-3.5 py-2 rounded-full 
               border border-slate-500 
@@ -119,7 +119,7 @@ export function Header() {
               inline-flex items-center justify-center
             "
           >
-            Войти
+            Личный кабинет
           </Link>
           <Link
             href="/booking"
