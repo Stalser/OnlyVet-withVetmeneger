@@ -6,6 +6,8 @@
 // approved  — принято решение проводить консультацию (подтверждена / запланирована)
 // rejected  — заявка не будет выполнена (отменена / отклонена)
 export type BookingStatus = "pending" | "in_review" | "approved" | "rejected";
+// Статус заявки с сайта
+export type BookingStatus = "pending" | "in_review" | "approved" | "rejected";
 
 // Заявка с сайта (то, что сейчас заполняется на /booking)
 export interface BookingRequest {
@@ -30,6 +32,8 @@ export interface BookingRequest {
   preferredDate?: string;  // YYYY-MM-DD
   preferredTime?: string;  // HH:MM
   vmSlotId?: string;       // id слота Vetmanager, если выбран
+
+  complaint?: string;      // 🔹 НОВОЕ: жалобы / краткое описание проблемы
 
   status: BookingStatus;
   cancelReason?: string;
