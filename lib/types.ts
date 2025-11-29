@@ -6,8 +6,6 @@
 // approved  — принято решение проводить консультацию (подтверждена / запланирована)
 // rejected  — заявка не будет выполнена (отменена / отклонена)
 export type BookingStatus = "pending" | "in_review" | "approved" | "rejected";
-// Статус заявки с сайта
-export type BookingStatus = "pending" | "in_review" | "approved" | "rejected";
 
 // Заявка с сайта (то, что сейчас заполняется на /booking)
 export interface BookingRequest {
@@ -23,17 +21,18 @@ export interface BookingRequest {
   petMode: "existing" | "new";
   petId?: string;          // id нашего питомца, если существует
   petName?: string;        // для нового
-  petSpecies?: string;
-  petNotes?: string;
+  petSpecies?: string;     // вид
+  petNotes?: string;       // порода / возраст / вес в виде текста
 
   serviceId?: string;      // id из data/services или таблицы services
   doctorId?: string;       // id из data/doctors или таблицы doctors
+
   timeMode: "any" | "choose";
   preferredDate?: string;  // YYYY-MM-DD
   preferredTime?: string;  // HH:MM
   vmSlotId?: string;       // id слота Vetmanager, если выбран
 
-  complaint?: string;      // 🔹 НОВОЕ: жалобы / краткое описание проблемы
+  complaint?: string;      // кратко о проблеме (жалобы), если есть
 
   status: BookingStatus;
   cancelReason?: string;
@@ -61,5 +60,5 @@ export interface Consultation {
   endTime?: string;         // ISO
   status: ConsultationStatus;
 
-  summaryForOwner?: string;
+  summaryForOwner?: string; // краткое резюме для владельца
 }
