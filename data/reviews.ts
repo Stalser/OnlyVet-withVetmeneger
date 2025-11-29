@@ -2,6 +2,8 @@
 
 export type ReviewSource = "yandex" | "2gis" | "google" | "site";
 
+export type ReviewModerationStatus = "pending" | "approved" | "rejected";
+
 export type Review = {
   id: string;
   clientName: string;
@@ -13,6 +15,7 @@ export type Review = {
   doctorId?: string;     // id из data/doctors
   serviceId?: string;    // id из data/services
   source: ReviewSource;
+  status?: ReviewModerationStatus; // если нет — считаем approved (для старых отзывов)
 };
 
 export const reviews: Review[] = [
@@ -29,6 +32,7 @@ export const reviews: Review[] = [
     doctorId: "elvin",
     serviceId: "second-opinion",
     source: "yandex",
+    status: "approved",
   },
   {
     id: "rev2",
@@ -44,6 +48,7 @@ export const reviews: Review[] = [
     doctorId: "diana",
     serviceId: "online-consult",
     source: "2gis",
+    status: "approved",
   },
   {
     id: "rev3",
@@ -57,6 +62,7 @@ export const reviews: Review[] = [
     doctorId: "oleg",
     serviceId: "labs-ultrasound",
     source: "google",
+    status: "approved",
   },
   {
     id: "rev4",
@@ -70,5 +76,6 @@ export const reviews: Review[] = [
     doctorId: "elvin",
     serviceId: "long-term",
     source: "site",
+    status: "approved",
   },
 ];
