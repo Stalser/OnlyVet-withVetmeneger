@@ -1,4 +1,4 @@
-// app/admin/reviews/page.tsx
+// app/reviews/page.tsx
 "use client";
 
 import { useMemo, useState } from "react";
@@ -6,170 +6,97 @@ import Link from "next/link";
 
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { AdminNav } from "@/components/AdminNav";
 import { ReviewCard } from "@/components/ReviewCard";
-import { reviews, type Review, type ReviewModerationStatus } from "@/data/reviews";
+import { ReviewModal } from "@/components/ReviewModal";
+import { reviews } from "@/data/reviews";
+import { doctors } from "@/data/doctors";
+import { services } from "@/data/services";
 
-type StatusFilter = "all" | ReviewModerationStatus;
 type SourceFilter = "all" | "yandex" | "2gis" | "google" | "site";
+type DoctorFilter = "all" | string;
+type ServiceFilter = "all" | string;
+type RatingFilter = "all" | "5" | "4+" | "3+";
+type SortOrder = "newest" | "oldest";
 
-function getInitialStatus(r: Review): ReviewModerationStatus {
-  // если статус не задан — считаем, что он уже одобрен (для старых отзывов)
-  return r.status ?? "approved";
-}
+export default function ReviewsPage() {
+  const [source, setSource] = useState<SourceFilter>("all");
+  const [doctorId, setDoctorId] = useState<DoctorFilter>("all");
+  const [serviceId, setServiceId] = useState<ServiceFilter>("all");
+  const [rating, setRating] = useState<RatingFilter>("all");
+  const [order, setOrder] = useState<SortOrder>("newest");
+  const [modalOpen, setModalOpen] = useState(false);
 
-export default function AdminReviewsPage() {
-  // локальное состояние модерации (поверх данных)
-  const [state, setState] = useState<Record<string, ReviewModerationStatus>>(
-    () =>
-      reviews.reduce((acc, r) => {
-        acc[r.id] = getInitialStatus(r);
-        return acc;
-      }, {} as Record<string, ReviewModerationStatus>)
-  );
+  const filtered = useMemo(() => {
+    let list = [...reviews];
 
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("pending");
-  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
-
-  const {
-    total,
-    pendingCount,
-    approvedCount,
-    rejectedCount,
-    filtered,
-  } = useMemo(() => {
-    const total = reviews.length;
-    let pendingCount = 0;
-    let approvedCount = 0;
-    let rejectedCount = 0;
-
-    const withStatus = reviews.map((r) => {
-      const s = state[r.id] ?? getInitialStatus(r);
-      if (s === "pending") pendingCount++;
-      if (s === "approved") approvedCount++;
-      if (s === "rejected") rejectedCount++;
-      return { review: r, status: s };
-    });
-
-    let list = withStatus;
-
-    // фильтр по статусу
-    if (statusFilter !== "all") {
-      list = list.filter((item) => item.status === statusFilter);
+    if (source !== "all") {
+      list = list.filter((r) => r.source === source);
+    }
+    if (doctorId !== "all") {
+      list = list.filter((r) => r.doctorId === doctorId);
+    }
+    if (serviceId !== "all") {
+      list = list.filter((r) => r.serviceId === serviceId);
+    }
+    if (rating !== "all") {
+      if (rating === "5") list = list.filter((r) => r.rating === 5);
+      if (rating === "4+") list = list.filter((r) => r.rating >= 4);
+      if (rating === "3+") list = list.filter((r) => r.rating >= 3);
     }
 
-    // фильтр по источнику
-    if (sourceFilter !== "all") {
-      list = list.filter((item) => item.review.source === sourceFilter);
-    }
-
-    // сортируем по дате — сначала новые
     list.sort((a, b) => {
-      const da = new Date(a.review.date).getTime();
-      const db = new Date(b.review.date).getTime();
-      return db - da;
+      const da = new Date(a.date).getTime();
+      const db = new Date(b.date).getTime();
+      return order === "newest" ? db - da : da - db;
     });
 
-    return {
-      total,
-      pendingCount,
-      approvedCount,
-      rejectedCount,
-      filtered: list,
-    };
-  }, [state, statusFilter, sourceFilter]);
-
-  const setReviewStatus = (id: string, status: ReviewModerationStatus) => {
-    setState((prev) => ({
-      ...prev,
-      [id]: status,
-    }));
-  };
+    return list;
+  }, [source, doctorId, serviceId, rating, order]);
 
   return (
     <>
       <Header />
-      <main className="flex-1 bg-slate-50/70 py-8">
-        <div className="container mx-auto max-w-5xl px-4 space-y-6">
-          {/* Хлебные крошки + заголовок */}
-          <div className="space-y-3">
-            <nav className="text-[12px] text-slate-500 mb-1">
-              <Link href="/admin" className="hover:text-onlyvet-coral">
-                Админ-панель
-              </Link>{" "}
-              / <span className="text-slate-700">Отзывы (модерация)</span>
-            </nav>
-            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
-              <div>
-                <h1 className="text-xl md:text-2xl font-semibold mb-1">
-                  Модерация отзывов
-                </h1>
-                <p className="text-[13px] text-slate-600 max-w-2xl leading-relaxed">
-                  Здесь можно просматривать отзывы, менять их статус (на
-                  модерации / опубликован / отклонён) и смотреть, откуда они
-                  пришли (Яндекс, 2ГИС, Google или с сайта OnlyVet). Публикация
-                  на витрине сайта происходит только для одобренных отзывов.
-                </p>
-              </div>
-              <AdminNav />
+      <main className="flex-1 py-8 bg-slate-50/70">
+        <div className="container mx-auto max-w-5xl px-4 space-y-5">
+          {/* Заголовок + верхние действия */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <h1 className="text-xl md:text-2xl font-semibold">
+                Отзывы владельцев
+              </h1>
+              <p className="text-[13px] text-slate-600 max-w-2xl">
+                Реальные истории владельцев, которые воспользовались
+                онлайн-консультациями OnlyVet.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setModalOpen(true)}
+                className="
+                  inline-flex items-center gap-2 px-4 py-2 rounded-full 
+                  border border-slate-300 bg-white text-[13px] text-onlyvet-navy
+                  hover:bg-slate-50 transition
+                "
+              >
+                Написать отзыв
+              </button>
+              <Link
+                href="/booking"
+                className="
+                  inline-flex items-center gap-2 px-4 py-2 rounded-full 
+                  bg-onlyvet-coral text-white text-[13px] font-medium
+                  shadow-[0_12px_30px_rgba(247,118,92,0.5)] hover:brightness-105 transition
+                "
+              >
+                Записаться на консультацию
+              </Link>
             </div>
           </div>
 
-          {/* Статистика */}
-          <section className="grid gap-3 md:grid-cols-4 text-[13px]">
-            <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4">
-              <div className="text-[12px] text-slate-500">Всего отзывов</div>
-              <div className="text-[22px] font-semibold text-onlyvet-navy">
-                {total}
-              </div>
-            </div>
-            <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4">
-              <div className="text-[12px] text-slate-500">На модерации</div>
-              <div className="text-[22px] font-semibold text-amber-700">
-                {pendingCount}
-              </div>
-            </div>
-            <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4">
-              <div className="text-[12px] text-slate-500">Опубликованы</div>
-              <div className="text-[22px] font-semibold text-emerald-700">
-                {approvedCount}
-              </div>
-            </div>
-            <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4">
-              <div className="text-[12px] text-slate-500">Отклонены</div>
-              <div className="text-[22px] font-semibold text-rose-700">
-                {rejectedCount}
-              </div>
-            </div>
-          </section>
-
-          {/* Фильтры по статусу и источнику */}
-          <section className="space-y-3 text-[12px]">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-slate-500 mr-1">Статус:</span>
-              {[
-                { key: "pending", label: "На модерации" },
-                { key: "approved", label: "Опубликованы" },
-                { key: "rejected", label: "Отклонённые" },
-                { key: "all", label: "Все" },
-              ].map((btn) => (
-                <button
-                  key={btn.key}
-                  type="button"
-                  onClick={() =>
-                    setStatusFilter(btn.key as StatusFilter)
-                  }
-                  className={`px-3 py-1.5 rounded-full border transition ${
-                    statusFilter === btn.key
-                      ? "bg-onlyvet-navy text-white border-onlyvet-navy shadow-sm text-xs"
-                      : "border-slate-300 text-onlyvet-navy bg-white hover:bg-slate-50 text-xs"
-                  }`}
-                >
-                  {btn.label}
-                </button>
-              ))}
-            </div>
-
+          {/* Фильтры */}
+          <div className="space-y-3 text-[12px]">
+            {/* Источник */}
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-slate-500 mr-1">Источник:</span>
               {[
@@ -182,11 +109,9 @@ export default function AdminReviewsPage() {
                 <button
                   key={btn.key}
                   type="button"
-                  onClick={() =>
-                    setSourceFilter(btn.key as SourceFilter)
-                  }
+                  onClick={() => setSource(btn.key as SourceFilter)}
                   className={`px-3 py-1.5 rounded-full border transition ${
-                    sourceFilter === btn.key
+                    source === btn.key
                       ? "bg-onlyvet-navy text-white border-onlyvet-navy shadow-sm text-xs"
                       : "border-slate-300 text-onlyvet-navy bg-white hover:bg-slate-50 text-xs"
                   }`}
@@ -195,124 +120,89 @@ export default function AdminReviewsPage() {
                 </button>
               ))}
             </div>
-          </section>
 
-          {/* Список отзывов с действиями */}
-          <section className="space-y-3">
-            <div className="grid gap-4 md:grid-cols-2 items-stretch">
-              {filtered.map(({ review, status }) => (
-                <article
-                  key={review.id}
-                  className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4 flex flex-col gap-3"
+            {/* Врач */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-slate-500 mr-1">Врач:</span>
+              <select
+                value={doctorId}
+                onChange={(e) => setDoctorId(e.target.value as DoctorFilter)}
+                className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-[12px] text-onlyvet-navy focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+              >
+                <option value="all">Все врачи</option>
+                {doctors.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Услуга */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-slate-500 mr-1">Услуга:</span>
+              <select
+                value={serviceId}
+                onChange={(e) => setServiceId(e.target.value as ServiceFilter)}
+                className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-[12px] text-onlyvet-navy focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+              >
+                <option value="all">Все услуги</option>
+                {services.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Оценка + сортировка */}
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-slate-500 mr-1">Оценка:</span>
+                <select
+                  value={rating}
+                  onChange={(e) => setRating(e.target.value as RatingFilter)}
+                  className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-[12px] text-onlyvet-navy focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
                 >
-                  {/* Верх: статус + краткая инфа */}
-                  <div className="flex items-center justify-between gap-2 text-[11px]">
-                    <div className="px-2 py-[2px] rounded-full border border-slate-200 bg-slate-50 text-slate-600">
-                      ID: {review.id}
-                    </div>
-                    <StatusBadge status={status} />
-                  </div>
-
-                  {/* Карточка отзыва (как видит клиент, но в мини-сетке) */}
-                  <ReviewCard review={review} truncate />
-
-                  {/* Действия модерации */}
-                  <div className="flex flex-wrap gap-2 text-[12px]">
-                    {status !== "approved" && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setReviewStatus(review.id, "approved")
-                        }
-                        className="px-3 py-1.5 rounded-full bg-emerald-600 text-white hover:bg-emerald-700 transition"
-                      >
-                        Одобрить
-                      </button>
-                    )}
-                    {status !== "rejected" && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setReviewStatus(review.id, "rejected")
-                        }
-                        className="px-3 py-1.5 rounded-full bg-rose-600 text-white hover:bg-rose-700 transition"
-                      >
-                        Отклонить
-                      </button>
-                    )}
-                    {status !== "pending" && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setReviewStatus(review.id, "pending")
-                        }
-                        className="px-3 py-1.5 rounded-full border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition"
-                      >
-                        Вернуть на модерацию
-                      </button>
-                    )}
-                    <Link
-                      href={`/reviews/${review.id}`}
-                      className="ml-auto text-onlyvet-coral font-medium"
-                    >
-                      Открыть на сайте →
-                    </Link>
-                  </div>
-                </article>
-              ))}
-              {filtered.length === 0 && (
-                <div className="text-[13px] text-slate-500 col-span-full">
-                  По выбранным фильтрам отзывов пока нет.
-                </div>
-              )}
+                  <option value="all">Любая</option>
+                  <option value="5">Только 5</option>
+                  <option value="4+">4 и выше</option>
+                  <option value="3+">3 и выше</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-slate-500 mr-1">Сортировка:</span>
+                <select
+                  value={order}
+                  onChange={(e) => setOrder(e.target.value as SortOrder)}
+                  className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-[12px] text-onlyvet-navy focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                >
+                  <option value="newest">Сначала новые</option>
+                  <option value="oldest">Сначала старые</option>
+                </select>
+              </div>
             </div>
-          </section>
+          </div>
 
-          {/* Пояснение про сохранение */}
-          <section className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 md:p-6 text-[12px] text-slate-600 space-y-2">
-            <div className="font-semibold text-[13px] text-slate-800">
-              Важно про текущее состояние модерации
-            </div>
-            <p>
-              Сейчас статусы отзывов в этой панели хранятся только в памяти
-              браузера (state). Это демо-режим: при перезагрузке страницы
-              изменения не сохраняются обратно в <code>data/reviews.ts</code>,
-              так как нет подключённой базы данных или API.
-            </p>
-            <p>
-              Когда появится постоянное хранилище (например, база или
-              интеграция с Vetmanager / отдельным backend), эти же статусы
-              можно будет сохранять и использовать напрямую на витрине сайта.
-              Структура уже готова: поле <code>status</code> в{" "}
-              <code>Review</code> и фильтрация на странице{" "}
-              <code>/reviews</code>.
-            </p>
-          </section>
+          {/* Список отзывов */}
+          <div className="grid gap-4 md:grid-cols-3 sm:grid-cols-2 items-stretch mt-4">
+            {filtered.map((rev) => (
+              <Link key={rev.id} href={`/reviews/${rev.id}`} className="h-full">
+                <ReviewCard review={rev} truncate />
+              </Link>
+            ))}
+            {filtered.length === 0 && (
+              <div className="text-[13px] text-slate-500 col-span-full">
+                По выбранным параметрам пока нет отзывов.
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* модалка “Написать отзыв” */}
+        <ReviewModal open={modalOpen} onClose={() => setModalOpen(false)} />
       </main>
       <Footer />
     </>
-  );
-}
-
-function StatusBadge({ status }: { status: ReviewModerationStatus }) {
-  if (status === "pending") {
-    return (
-      <span className="px-2 py-[2px] rounded-full bg-amber-50 text-amber-700 text-[11px]">
-        На модерации
-      </span>
-    );
-  }
-  if (status === "approved") {
-    return (
-      <span className="px-2 py-[2px] rounded-full bg-emerald-50 text-emerald-700 text-[11px]">
-        Опубликован
-      </span>
-    );
-  }
-  return (
-    <span className="px-2 py-[2px] rounded-full bg-rose-50 text-rose-700 text-[11px]">
-      Отклонён
-    </span>
   );
 }
