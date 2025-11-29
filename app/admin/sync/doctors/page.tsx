@@ -7,10 +7,7 @@ import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { AdminNav } from "@/components/AdminNav";
-import { doctors } from "@/data/doctors";
-
-// Тип врача на сайте
-type SiteDoctor = (typeof doctors)[number];
+import { doctors, type Doctor } from "@/data/doctors";
 
 // Тип врача из Vetmanager (пока мок)
 type RemoteDoctor = {
@@ -20,26 +17,28 @@ type RemoteDoctor = {
   active: boolean;
 };
 
-// ⚠️ Моковые данные “врачей Vetmanager”.
-// Потом здесь будет реальный вызов API Vetmanager.
-const remoteDoctorsMock: RemoteDoctor[] = doctors.map((doc, idx) => ({
-  vmId: `VM-D-${idx + 1}`,
+// ⚠️ Мок “врачей Vetmanager”: в будущем тут будет реальный API вызов.
+const remoteDoctorsMock: RemoteDoctor[] = doctors.map((doc) => ({
+  vmId: doc.vmId ?? `VM-D-${doc.id}`,
   fullName: doc.name,
-  specialization: (doc as any).role ?? undefined,
+  specialization: doc.role,
   active: true,
 }));
 
-// Ключ для сопоставления — пока по имени.
-// В будущем заменим на vmId, когда появится реальная связка.
-function getKeyForSync(d: SiteDoctor | RemoteDoctor): string {
-  return ("name" in d ? d.name : d.fullName).trim().toLowerCase();
+// Ключ — vmId, если есть, иначе имя.
+function getKeyFromSiteDoctor(d: Doctor): string {
+  return (d.vmId || d.name).toString().trim().toLowerCase();
+}
+
+function getKeyFromRemoteDoctor(d: RemoteDoctor): string {
+  return d.vmId.toString().trim().toLowerCase();
 }
 
 export default function AdminSyncDoctorsPage() {
   const siteByKey = useMemo(() => {
-    const m = new Map<string, SiteDoctor>();
+    const m = new Map<string, Doctor>();
     for (const d of doctors) {
-      m.set(getKeyForSync(d), d);
+      m.set(getKeyFromSiteDoctor(d), d);
     }
     return m;
   }, []);
@@ -47,7 +46,7 @@ export default function AdminSyncDoctorsPage() {
   const remoteByKey = useMemo(() => {
     const m = new Map<string, RemoteDoctor>();
     for (const d of remoteDoctorsMock) {
-      m.set(getKeyForSync(d), d);
+      m.set(getKeyFromRemoteDoctor(d), d);
     }
     return m;
   }, []);
@@ -57,33 +56,35 @@ export default function AdminSyncDoctorsPage() {
     onlyRemote,
     both,
   }: {
-    onlySite: SiteDoctor[];
+    onlySite: Doctor[];
     onlyRemote: RemoteDoctor[];
-    both: { site: SiteDoctor; remote: RemoteDoctor; changed: boolean }[];
+    both: { site: Doctor; remote: RemoteDoctor; changed: boolean }[];
   } = useMemo(() => {
-    const onlySite: SiteDoctor[] = [];
+    const onlySite: Doctor[] = [];
     const onlyRemote: RemoteDoctor[] = [];
-    const both: { site: SiteDoctor; remote: RemoteDoctor; changed: boolean }[] =
-      [];
+    const both: {
+      site: Doctor;
+      remote: RemoteDoctor;
+      changed: boolean;
+    }[] = [];
 
-    // Сначала — по сайту
+    // смотрим сайт
     for (const d of doctors) {
-      const key = getKeyForSync(d);
+      const key = getKeyFromSiteDoctor(d);
       const remote = remoteByKey.get(key);
       if (!remote) {
         onlySite.push(d);
       } else {
         const changed =
-          // Пока сравниваем только “роль/специализация”
-          ((d as any).role || "").trim().toLowerCase() !==
+          (d.role || "").trim().toLowerCase() !==
           (remote.specialization || "").trim().toLowerCase();
         both.push({ site: d, remote, changed });
       }
     }
 
-    // Теперь — те, кто есть только в Vetmanager
+    // смотрим VM
     for (const r of remoteDoctorsMock) {
-      const key = getKeyForSync(r);
+      const key = getKeyFromRemoteDoctor(r);
       if (!siteByKey.has(key)) {
         onlyRemote.push(r);
       }
@@ -114,10 +115,10 @@ export default function AdminSyncDoctorsPage() {
                   Синхронизация врачей с Vetmanager
                 </h1>
                 <p className="text-[13px] text-slate-600 max-w-2xl leading-relaxed">
-                  Здесь будет отображаться разница между врачами на сайте и
-                  врачами в Vetmanager. Vetmanager — главный источник данных, а
-                  сайт — витрина: изменения не применяются автоматически,
-                  администратор решает, какие карточки показать клиентам.
+                  Эта страница показывает, какие врачи есть на сайте, какие —
+                  в Vetmanager (мок-режим), и где есть расхождения. В
+                  дальнейшем здесь можно будет создавать карточки врачей на
+                  сайте и обновлять их данные после изменения в Vetmanager.
                 </p>
               </div>
               <AdminNav />
@@ -144,7 +145,7 @@ export default function AdminSyncDoctorsPage() {
             </div>
             <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4">
               <div className="text-[12px] text-slate-500">
-                Требуют проверки (роль/спец. отличается)
+                Требуют проверки (роль/спец.)
               </div>
               <div className="text-[22px] font-semibold text-onlyvet-navy">
                 {both.filter((b) => b.changed).length}
@@ -152,15 +153,15 @@ export default function AdminSyncDoctorsPage() {
             </div>
           </section>
 
-          {/* Совпадающие по имени врачи */}
+          {/* Совпадающие врачи */}
           <section className="space-y-3">
             <h2 className="text-[15px] font-semibold">
-              Совпадающие врачи (сайт ↔ Vetmanager, по имени)
+              Совпадающие врачи (по vmId / имени)
             </h2>
             <div className="bg-white rounded-3xl border border-slate-200 shadow-soft divide-y divide-slate-100">
               {both.map(({ site, remote, changed }) => (
                 <div
-                  key={site.id ?? site.name}
+                  key={site.id}
                   className="px-4 py-3 space-y-1 text-[13px]"
                 >
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
@@ -169,7 +170,7 @@ export default function AdminSyncDoctorsPage() {
                         {site.name}
                       </div>
                       <div className="text-[11px] text-slate-500">
-                        ID на сайте: {site.id ?? "—"} · (vmId: {remote.vmId})
+                        ID на сайте: {site.id} · vmId: {site.vmId ?? "—"}
                       </div>
                     </div>
                     <div className="text-right text-[12px] text-slate-600 space-y-0.5">
@@ -177,7 +178,7 @@ export default function AdminSyncDoctorsPage() {
                         <span className="font-semibold text-slate-700">
                           Сайт:
                         </span>{" "}
-                        {(site as any).role ?? "—"}
+                        {site.role}
                       </div>
                       <div>
                         <span className="font-semibold text-slate-700">
@@ -192,12 +193,12 @@ export default function AdminSyncDoctorsPage() {
                       <span className="px-2 py-[2px] rounded-full bg-amber-50 text-amber-700">
                         Требует проверки: роль/специализация отличается
                       </span>
-                      {/* TODO: тут будут реальные действия при подключении VM */}
+                      {/* TODO: реальные действия после подключения API Vetmanager */}
                       <button
                         type="button"
                         className="px-3 py-1.5 rounded-full border border-slate-300 bg-white hover:bg-slate-50 transition"
                       >
-                        Обновить данные с Vetmanager (потом)
+                        Обновить данные с Vetmanager (будет позже)
                       </button>
                       <button
                         type="button"
@@ -209,29 +210,29 @@ export default function AdminSyncDoctorsPage() {
                   )}
                   {!changed && (
                     <div className="text-[11px] text-emerald-600">
-                      Данные совпадают (по имени и роли/спец.).
+                      Данные совпадают (роль/спец. совпадает).
                     </div>
                   )}
                 </div>
               ))}
               {both.length === 0 && (
                 <div className="px-4 py-3 text-[13px] text-slate-500">
-                  Совпадающих по имени врачей пока не найдено.
+                  Нет врачей с совпадающими vmId (или именами).
                 </div>
               )}
             </div>
           </section>
 
-          {/* Врачи только в Vetmanager */}
+          {/* Только в Vetmanager */}
           <section className="space-y-3">
             <h2 className="text-[15px] font-semibold">
-              Врачи, которые есть только в Vetmanager (мок)
+              Врачи только в Vetmanager (мок)
             </h2>
             <p className="text-[13px] text-slate-600">
               Здесь будут врачи, которых добавили в Vetmanager, но ещё не
-              оформили на сайте. В будущем отсюда можно будет быстро создать
-              карточку врача на сайте, добавить фото, расширенное описание и
-              настроить показ в разделах.
+              оформили на сайте. Из этого списка можно будет создавать
+              “витринные” карточки врачей на сайте: добавить фото, описания,
+              теги.
             </p>
             <div className="bg-white rounded-3xl border border-slate-200 shadow-soft divide-y divide-slate-100 text-[13px]">
               {onlyRemote.map((d) => (
@@ -240,15 +241,15 @@ export default function AdminSyncDoctorsPage() {
                     {d.fullName}
                   </div>
                   <div className="text-[12px] text-slate-600">
-                    Vetmanager, vmId: {d.vmId}
+                    vmId: {d.vmId}
                     {d.specialization && ` · Специализация: ${d.specialization}`}
                   </div>
                   <div className="flex flex-wrap gap-2 text-[11px] text-slate-600">
                     <button
                       type="button"
-                      className="px-3 py-1.5 rounded-full border border-onlyvet-teal bg-white text-onlyvet-teal hover:bg-teal-50 transition"
+                      className="px-3 py-1.5 rounded-full border border-onlyvet-teал bg-white text-onlyvet-teал hover:bg-teal-50 transition"
                     >
-                      Создать врача на сайте (потом)
+                      Создать врача на сайте (будет позже)
                     </button>
                     <button
                       type="button"
@@ -267,25 +268,24 @@ export default function AdminSyncDoctorsPage() {
             </div>
           </section>
 
-          {/* Врачи только на сайте */}
+          {/* Только на сайте */}
           <section className="space-y-3">
             <h2 className="text-[15px] font-semibold">
-              Врачи, которые есть только на сайте
+              Врачи только на сайте
             </h2>
             <p className="text-[13px] text-slate-600">
-              Здесь будут врачи, у которых нет прямого соответствия в
-              Vetmanager. Это может означать, что:
-              <br />— врача ещё не завели в Vetmanager, или<br />— карточка на сайте
-              нужна только для контента (например, экспертный консультант).
+              Здесь — врачи, у которых пока нет связки с Vetmanager через vmId.
+              Это может быть временный эксперт, консультант или врач, которого
+              ещё не завели в CRM.
             </p>
             <div className="bg-white rounded-3xl border border-slate-200 shadow-soft divide-y divide-slate-100 text-[13px]">
               {onlySite.map((d) => (
-                <div key={d.id ?? d.name} className="px-4 py-3 space-y-1">
+                <div key={d.id} className="px-4 py-3 space-y-1">
                   <div className="font-semibold text-slate-800">
                     {d.name}
                   </div>
                   <div className="text-[12px] text-slate-600">
-                    {(d as any).role ?? "Роль не указана"}
+                    Роль: {d.role} · vmId: {d.vmId ?? "не привязан"}
                   </div>
                   <div className="flex flex-wrap gap-2 text-[11px] text-slate-600">
                     <button
@@ -296,7 +296,7 @@ export default function AdminSyncDoctorsPage() {
                     </button>
                     <button
                       type="button"
-                      className="px-3 py-1.5 rounded-full border border-slate-200 bg-slate-50 hover:bg-slate-100 transition"
+                      className="px-3 py-1.5 rounded-full border border-сlate-200 bg-slate-50 hover:bg-сlate-100 transition"
                     >
                       Скрыть с сайта
                     </button>
@@ -311,7 +311,7 @@ export default function AdminSyncDoctorsPage() {
             </div>
           </section>
 
-          {/* Пояснение про будущее */}
+          {/* Пояснение */}
           <section className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 md:p-6 text-[12px] text-slate-600 space-y-2">
             <div className="font-semibold text-[13px] text-slate-800">
               Что будет дальше, когда подключим реальный Vetmanager
@@ -320,15 +320,14 @@ export default function AdminSyncDoctorsPage() {
               Сейчас используется мок-список врачей Vetmanager, чтобы отработать
               логику сравнения и интерфейс. После подключения реального API
               вместо <code>remoteDoctorsMock</code> будут подставляться живые
-              данные из Vetmanager, а кнопки “Обновить данные”, “Создать врача
-              на сайте” и т.п. будут выполнять реальные действия (с учётом
-              вашего подтверждения).
+              данные из Vetmanager, а кнопки “Обновить данные”, “Создать врача”
+              и т.п. будут выполнять реальные действия — всегда с вашего
+              подтверждения.
             </p>
             <p>
               Главное: Vetmanager остаётся главным источником данных, а сайт не
-              изменяется автоматически — администратор решает, что и как
-              показывать клиентам. Это защищает от “убийства” сайта случайными
-              правками в CRM.
+              меняется автоматически. Администратор принимает решение, какую
+              информацию показывать клиентам и как её оформлять.
             </p>
           </section>
         </div>
