@@ -1,5 +1,4 @@
 // app/admin/requests/[id]/page.tsx
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -80,6 +79,11 @@ export default function AdminRequestDetailPage({ params }: PageProps) {
       hour: "2-digit",
       minute: "2-digit",
     });
+
+  // жалоба, если есть (через any, чтобы не ломать типы)
+  const complaint: string | undefined = booking
+    ? (booking as any).complaint
+    : undefined;
 
   return (
     <>
@@ -223,6 +227,18 @@ export default function AdminRequestDetailPage({ params }: PageProps) {
                     Vetmanager или локальной БД.
                   </p>
                 </div>
+
+                {/* Жалобы */}
+                {complaint && (
+                  <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 space-y-2">
+                    <div className="text-[14px] font-semibold text-slate-800 mb-1">
+                      Кратко о проблеме
+                    </div>
+                    <p className="text-[13px] text-slate-700 whitespace-pre-line">
+                      {complaint}
+                    </p>
+                  </div>
+                )}
               </section>
 
               {/* Правая колонка — услуга, врач, время */}
