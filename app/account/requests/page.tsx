@@ -1,74 +1,87 @@
 // app/account/requests/page.tsx
-
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
+
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { AccountNav } from "@/components/AccountNav";
 import { doctors } from "@/data/doctors";
 import { services } from "@/data/services";
-import {
-  ConsultationCard,
-  type ConsultationStatus,
-} from "@/components/ConsultationCard";
+import type { BookingRequest, BookingStatus } from "@/lib/types";
 
-type RequestStatus = "pending" | "scheduled" | "done";
-
-type Request = {
-  id: string;
-  createdAt: string;
-  petName: string;
-  doctorId?: string;
-  serviceId?: string;
-  status: RequestStatus;
-};
-
-const mockRequests: Request[] = [
-  {
-    id: "req1",
-    createdAt: "2025-01-15T12:00:00+03:00",
-    petName: "Локи",
-    doctorId: "elvin",
-    serviceId: "second-opinion",
-    status: "done",
-  },
-  {
-    id: "req2",
-    createdAt: "2025-02-01T15:30:00+03:00",
-    petName: "Рекс",
-    doctorId: "diana",
-    serviceId: "online-consult",
-    status: "scheduled",
-  },
-  {
-    id: "req3",
-    createdAt: "2025-02-05T09:10:00+03:00",
-    petName: "Рекс",
-    status: "pending",
-  },
-];
-
-function mapStatus(status: RequestStatus): ConsultationStatus {
-  // пока прямое соответствие, позже можно добавить "in_review"/"cancelled"
-  if (status === "pending") return "pending";
-  if (status === "scheduled") return "scheduled";
-  return "done";
+function statusMeta(status: BookingStatus) {
+  switch (status) {
+    case "pending":
+      return {
+        label: "Заявка отправлена",
+        className: "bg-amber-50 text-amber-700",
+      };
+    case "in_review":
+      return {
+        label: "На рассмотрении",
+        className: "bg-sky-50 text-sky-700",
+      };
+    case "approved":
+      return {
+        label: "Подтверждена",
+        className: "bg-teal-50 text-teal-700",
+      };
+    case "rejected":
+      return {
+        label: "Отклонена",
+        className: "bg-rose-50 text-rose-700",
+      };
+    default:
+      return {
+        label: status,
+        className: "bg-slate-100 text-slate-700",
+      };
+  }
 }
 
 export default function RequestsPage() {
+  const [bookings, setBookings] = useState<BookingRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchBookings = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const res = await fetch("/api/booking", { cache: "no-store" });
+      if (!res.ok) throw new Error("Не удалось получить заявки");
+
+      const data = await res.json();
+      setBookings(data.bookings || []);
+    } catch (err: any) {
+      console.error(err);
+      setError(err?.message || "Ошибка загрузки заявок");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBookings();
+  }, []);
+
+  // Пока нет auth — показываем все заявки (демо).
+  // Позже здесь будет фильтр по userId (только заявки конкретного клиента).
+  const hasAny = bookings.length > 0;
+
+  const active = bookings.filter(
+    (b) => b.status === "pending" || b.status === "in_review" || b.status === "approved"
+  );
+  const rejected = bookings.filter((b) => b.status === "rejected");
+
   const getDoctorName = (id?: string) =>
     id ? doctors.find((d) => d.id === id)?.name : undefined;
 
   const getServiceName = (id?: string) =>
     id ? services.find((s) => s.id === id)?.name : undefined;
-
-  const active = mockRequests.filter(
-    (r) => r.status === "pending" || r.status === "scheduled"
-  );
-  const done = mockRequests.filter((r) => r.status === "done");
-
-  const hasAny = mockRequests.length > 0;
 
   return (
     <>
@@ -95,8 +108,9 @@ export default function RequestsPage() {
                   Консультации и заявки
                 </h1>
                 <p className="text-[13px] text-slate-600 max-w-2xl leading-relaxed">
-                  История онлайн-консультаций и статусы заявок. Сейчас
-                  отображаются демонстрационные данные.
+                  Здесь будут отображаться ваши онлайн-заявки и их статусы. Сейчас
+                  используется демонстрационный режим — заявки не привязаны к
+                  конкретному аккаунту.
                 </p>
               </div>
               <AccountNav />
@@ -109,7 +123,7 @@ export default function RequestsPage() {
               <div className="text-[13px] text-slate-600">
                 Всего заявок:{" "}
                 <span className="font-medium text-onlyvet-navy">
-                  {mockRequests.length}
+                  {bookings.length}
                 </span>
               </div>
               <Link
@@ -120,8 +134,14 @@ export default function RequestsPage() {
               </Link>
             </div>
 
-            {/* Если заявок нет */}
-            {!hasAny && (
+            {loading && (
+              <div className="text-[13px] text-slate-500">Загрузка заявок…</div>
+            )}
+            {error && (
+              <div className="text-[13px] text-rose-600">{error}</div>
+            )}
+
+            {!loading && !error && !hasAny && (
               <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-6 text-center space-y-3">
                 <div className="text-[14px] font-semibold text-slate-700">
                   У вас пока нет заявок
@@ -139,13 +159,13 @@ export default function RequestsPage() {
               </div>
             )}
 
-            {hasAny && (
+            {!loading && !error && hasAny && (
               <div className="space-y-5">
                 {/* Активные */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <h2 className="text-[14px] font-semibold text-slate-800">
-                      Активные заявки и консультации
+                      Активные заявки
                     </h2>
                     <span className="text-[12px] text-slate-500">
                       {active.length > 0
@@ -156,72 +176,131 @@ export default function RequestsPage() {
 
                   {active.length === 0 ? (
                     <div className="text-[12px] text-slate-500 bg-onlyvet-bg border border-slate-200 rounded-2xl px-3 py-2">
-                      Активных заявок сейчас нет. Новые запросы на консультацию
-                      появятся здесь сразу после оформления.
+                      Активных заявок сейчас нет. Новые запросы появятся здесь
+                      сразу после оформления.
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {active.map((req) => {
-                        const doctorName = getDoctorName(req.doctorId);
-                        const serviceName = getServiceName(req.serviceId);
+                      {active.map((b) => {
+                        const dt = new Date(b.createdAt).toLocaleString("ru-RU", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        });
+                        const meta = statusMeta(b.status);
+                        const doctorName = getDoctorName(b.doctorId);
+                        const serviceName = getServiceName(b.serviceId);
 
                         return (
-                          <ConsultationCard
-                            key={req.id}
-                            id={req.id}
-                            createdAt={req.createdAt}
-                            petName={req.petName}
-                            doctorName={doctorName}
-                            doctorId={req.doctorId}
-                            serviceName={serviceName}
-                            // пока нет отдельного поля для даты консультации — используем createdAt
-                            dateTime={req.createdAt}
-                            status={mapStatus(req.status)}
-                            showPetLink={false}
-                          />
+                          <article
+                            key={b.id}
+                            className="bg-white rounded-2xl border border-slate-200 shadow-soft p-4 flex flex-col gap-1 text-[13px]"
+                          >
+                            <div className="flex justify-between items-center mb-1">
+                              <div className="font-semibold text-onlyvet-navy">
+                                Заявка #{b.id.toUpperCase()}
+                              </div>
+                              <span
+                                className={`px-2 py-[2px] rounded-full text-[11px] ${meta.className}`}
+                              >
+                                {meta.label}
+                              </span>
+                            </div>
+
+                            <div className="text-[12px] text-slate-500">
+                              {dt}
+                            </div>
+                            <div className="text-[12px] text-slate-600">
+                              Питомец:{" "}
+                              <span className="font-medium">
+                                {b.petName || "—"}
+                              </span>
+                            </div>
+                            {serviceName && (
+                              <div className="text-[12px] text-slate-600">
+                                Услуга:{" "}
+                                <span className="font-medium">
+                                  {serviceName}
+                                </span>
+                              </div>
+                            )}
+                            {doctorName && (
+                              <div className="text-[12px] text-slate-600">
+                                Предполагаемый врач:{" "}
+                                <span className="font-medium">
+                                  {doctorName}
+                                </span>
+                              </div>
+                            )}
+                          </article>
                         );
                       })}
                     </div>
                   )}
                 </div>
 
-                {/* Завершённые */}
+                {/* Отклонённые / отменённые */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <h2 className="text-[14px] font-semibold text-slate-800">
-                      Завершённые консультации
+                      Отменённые / отклонённые заявки
                     </h2>
                     <span className="text-[12px] text-slate-500">
-                      {done.length > 0
-                        ? `Всего завершено: ${done.length}`
-                        : "Пока нет завершённых консультаций"}
+                      {rejected.length > 0
+                        ? `Всего: ${rejected.length}`
+                        : "Пока нет отменённых заявок"}
                     </span>
                   </div>
 
-                  {done.length === 0 ? (
+                  {rejected.length === 0 ? (
                     <div className="text-[12px] text-slate-500 bg-onlyvet-bg border border-slate-200 rounded-2xl px-3 py-2">
-                      После проведения консультаций они будут отображаться
-                      здесь.
+                      Если какая-то заявка будет отменена или отклонена, она
+                      появится здесь.
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {done.map((req) => {
-                        const doctorName = getDoctorName(req.doctorId);
-                        const serviceName = getServiceName(req.serviceId);
+                      {rejected.map((b) => {
+                        const dt = new Date(b.createdAt).toLocaleString("ru-RU", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        });
+                        const meta = statusMeta(b.status);
 
                         return (
-                          <ConsultationCard
-                            key={req.id}
-                            id={req.id}
-                            createdAt={req.createdAt}
-                            petName={req.petName}
-                            doctorName={doctorName}
-                            doctorId={req.doctorId}
-                            serviceName={serviceName}
-                            dateTime={req.createdAt}
-                            status={mapStatus(req.status)}
-                            showPetLink={false}
-                          />
+                          <article
+                            key={b.id}
+                            className="bg-white rounded-2xl border border-slate-200 shadow-soft p-4 flex flex-col gap-1 text-[13px]"
+                          >
+                            <div className="flex justify-between items-center mb-1">
+                              <div className="font-semibold text-onlyvet-navy">
+                                Заявка #{b.id.toUpperCase()}
+                              </div>
+                              <span
+                                className={`px-2 py-[2px] rounded-full text-[11px] ${meta.className}`}
+                              >
+                                {meta.label}
+                              </span>
+                            </div>
+                            <div className="text-[12px] text-slate-500">
+                              {dt}
+                            </div>
+                            <div className="text-[12px] text-slate-600">
+                              Питомец:{" "}
+                              <span className="font-medium">
+                                {b.petName || "—"}
+                              </span>
+                            </div>
+                            {b.cancelReason && (
+                              <div className="text-[11px] text-slate-500">
+                                Причина: {b.cancelReason}
+                              </div>
+                            )}
+                          </article>
                         );
                       })}
                     </div>
