@@ -1,22 +1,29 @@
 // data/doctors.ts
 
-export type DoctorSpecialization = "эксперт" | "терапия" | "диагностика" | "онкология";
+export type DoctorSpecialization =
+  | "эксперт"
+  | "терапия"
+  | "диагностика"
+  | "онкология";
 
 export type Doctor = {
-  id: string;
+  id: string;                        // внутренний id сайта (для URL и связок)
+  vmId?: string;                     // ID врача в Vetmanager (когда появится)
   initials: string;
   name: string;
-  role: string;           // кратко, без "ветеринарный врач"
+  role: string;                      // кратко, без "ветеринарный врач"
   specialization: DoctorSpecialization; // для фильтров
-  servicesShort: string;  // фокус врача 1–2 строки
-  servicesFull: string[]; // список типичных запросов
+  servicesShort: string;             // фокус врача 1–2 строки
+  servicesFull: string[];            // список типичных запросов
   tags: string[];
   experienceLabel: string;
+  showOnSite?: boolean;              // можно скрыть врача с сайта, не трогая VM
 };
 
 export const doctors: Doctor[] = [
   {
     id: "elvin",
+    vmId: "VM-D-1", // временный код, потом подставим реальный из Vetmanager
     initials: "ЭМ",
     name: "Эльвин Мазагирович",
     role: "Эксперт по сложным случаям, онкология",
@@ -30,9 +37,11 @@ export const doctors: Doctor[] = [
     ],
     tags: ["Онкология", "Сложные случаи", "Консилиум"],
     experienceLabel: "Опыт > 10 лет",
+    showOnSite: true,
   },
   {
     id: "diana",
+    vmId: "VM-D-2",
     initials: "ДЧ",
     name: "Диана Чемерилова",
     role: "Терапия кошек и собак, второе мнение",
@@ -46,9 +55,11 @@ export const doctors: Doctor[] = [
     ],
     tags: ["Терапия", "Кошки и собаки", "Второе мнение"],
     experienceLabel: "Опыт 3+ года в клинической практике",
+    showOnSite: true,
   },
   {
     id: "oleg",
+    vmId: "VM-D-3",
     initials: "ОВ",
     name: "Олег Врач",
     role: "Диагностика: УЗИ и анализы",
@@ -62,5 +73,6 @@ export const doctors: Doctor[] = [
     ],
     tags: ["Анализы", "УЗИ", "Контроль динамики"],
     experienceLabel: "Фокус на диагностике и работе с данными",
+    showOnSite: true,
   },
 ];
