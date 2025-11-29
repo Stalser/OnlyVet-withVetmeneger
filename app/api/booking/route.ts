@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
       preferredDate,
       preferredTime,
       vmSlotId,
+      complaint,          // 🔹 НОВОЕ
     } = body;
 
     // минимальная валидация
@@ -64,6 +65,8 @@ export async function POST(req: NextRequest) {
       preferredTime,
       vmSlotId,
 
+      complaint,      // 🔹 добавляем жалобу
+
       status,
     };
 
@@ -84,10 +87,6 @@ export async function POST(req: NextRequest) {
 }
 
 // GET /api/booking — список заявок
-// В будущем здесь:
-//  - если запрос от клиента — только его заявки (по userId из сессии)
-//  - если запрос от админа — все заявки или с фильтрами
 export async function GET(_req: NextRequest) {
-  // TODO: фильтровать по userId из сессии
   return NextResponse.json({ bookings: mockBookings }, { status: 200 });
 }
