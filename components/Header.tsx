@@ -66,9 +66,19 @@ export function Header() {
           </Link>
 
           <Link
+            href="/prices"
+            className={cn(
+              "text-slate-300 hover:text-white transition-colors",
+              isActive("/prices") && "text-white font-medium"
+            )}
+          >
+            Цены
+          </Link>
+
+          <Link
             href="/reviews"
             className={cn(
-              "text-сlate-300 hover:text-white transition-colors",
+              "text-slate-300 hover:text-white transition-colors",
               isActive("/reviews") && "text-white font-medium"
             )}
           >
@@ -78,7 +88,7 @@ export function Header() {
           <Link
             href="/how-it-works"
             className={cn(
-              "text-сlate-300 hover:text-white transition-colors",
+              "text-slate-300 hover:text-white transition-colors",
               isActive("/how-it-works") && "text-white font-medium"
             )}
           >
@@ -88,7 +98,7 @@ export function Header() {
           <Link
             href="/faq"
             className={cn(
-              "text-сlate-300 hover:text-white transition-colors",
+              "text-slate-300 hover:text-white transition-colors",
               isActive("/faq") && "text-white font-medium"
             )}
           >
@@ -98,7 +108,7 @@ export function Header() {
           <Link
             href="/docs"
             className={cn(
-              "text-сlate-300 hover:text-white transition-colors",
+              "text-slate-300 hover:text-white transition-colors",
               isActive("/docs") && "text-white font-medium"
             )}
           >
