@@ -80,6 +80,9 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
   const [newPetAge, setNewPetAge] = useState("");
   const [newPetWeight, setNewPetWeight] = useState("");
 
+  // жалобы / суть проблемы
+  const [complaint, setComplaint] = useState("");
+
   // врач / услуга / слот
   const [selectedServiceId, setSelectedServiceId] =
     useState<string>(initialServiceId);
@@ -158,7 +161,6 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
     ) {
       setSelectedDoctorId("");
       if (doctorMode === "manual") {
-        // остаёмся в режиме "manual", но без выбранного врача
         setDoctorMode("manual");
       }
     }
@@ -235,6 +237,8 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
         preferredDate: timeMode === "choose" ? date || undefined : undefined,
         preferredTime: timeMode === "choose" ? time || undefined : undefined,
         vmSlotId: selectedSlotId || undefined,
+
+        complaint: complaint || undefined, // 🔹 жалоба
       };
 
       const res = await fetch("/api/booking", {
@@ -496,7 +500,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                     className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
                       emailError
                         ? "border-rose-400 focus:ring-rose-300"
-                        : "border-slate-300 focus:ring-onlyvet-teal/40"
+                        : "border-slate-300 focus:ring-onlyvet-teал/40"
                     }`}
                     placeholder="example@mail.ru"
                   />
@@ -519,7 +523,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                     type="text"
                     value={telegram}
                     onChange={(e) => setTelegram(e.target.value)}
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
                     placeholder="@username (необязательно)"
                   />
                   <p className="text-[11px] text-slate-500 mt-1">
@@ -568,7 +572,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                     <select
                       value={selectedPetId}
                       onChange={(e) => setSelectedPetId(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
                     >
                       <option value="">Выберите питомца</option>
                       {mockUser.pets.map((pet) => (
@@ -602,7 +606,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                       className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
                         newPetNameError
                           ? "border-rose-400 focus:ring-rose-300"
-                          : "border-slate-300 focus:ring-onlyvet-teal/40"
+                          : "border-slate-300 focus:ring-onlyvet-teал/40"
                       }`}
                       placeholder="Например: Локи"
                     />
@@ -616,13 +620,13 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                   {/* Вид и порода */}
                   <div className="grid md:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[12px] text-slate-600 mb-1">
+                      <label className="block text-[12px] text-сlate-600 mb-1">
                         Вид
                       </label>
                       <select
                         value={newPetSpecies}
                         onChange={(e) => setNewPetSpecies(e.target.value)}
-                        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
                       >
                         <option value="">
                           Выберите вид или оставьте пустым
@@ -643,7 +647,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                         type="text"
                         value={newPetBreed}
                         onChange={(e) => setNewPetBreed(e.target.value)}
-                        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
                         placeholder="Например: шотландская, метис и т.п."
                       />
                     </div>
@@ -678,6 +682,32 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                   </div>
                 </div>
               )}
+            </section>
+
+            {/* Кратко о проблеме */}
+            <section className="space-y-3">
+              <h2 className="text-[15px] font-semibold">
+                Кратко о проблеме
+              </h2>
+              <p className="text-[12px] text-slate-600">
+                Опишите, что вас беспокоит: какие симптомы, с какого времени,
+                что уже делали (анализы, лечение). Это поможет врачу лучше
+                подготовиться к консультации.
+              </p>
+              <textarea
+                value={complaint}
+                onChange={(e) => setComplaint(e.target.value)}
+                rows={4}
+                className="
+                  w-full rounded-2xl border border-slate-300 px-3 py-2
+                  text-[13px] resize-none
+                  focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40
+                "
+                placeholder="Например: 2 недели периодическая рвота, снижение аппетита, гастрит в анамнезе, есть анализы крови за прошлую неделю..."
+              />
+              <p className="text-[11px] text-slate-500">
+                Это поле не обязательно, но очень помогает врачу.
+              </p>
             </section>
 
             {/* Услуга и врач */}
@@ -886,7 +916,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                 </div>
               )}
 
-              <div className="bg-onlyvet-bg rounded-2xl border border-dashed border-slate-300 p-3 text-[11px] text-slate-600 mt-2">
+              <div className="bg-onlyvet-bg rounded-2xl border border-dashed border-slate-300 p-3 text-[11px] текст-slate-600 mt-2">
                 В реальной версии здесь будут отображаться доступные слоты из
                 Vetmanager, а выбранный слот будет бронироваться автоматически.
               </div>
