@@ -9,12 +9,18 @@ import { Footer } from "@/components/Footer";
 import { AdminNav } from "@/components/AdminNav";
 import { reviews } from "@/data/reviews";
 import { ReviewCard } from "@/components/ReviewCard";
+import { doctors } from "@/data/doctors";
+import { services } from "@/data/services";
 
 type ModerationStatus = "pending" | "approved" | "rejected";
 
 type ModerationState = {
   [id: string]: ModerationStatus;
 };
+
+type SourceFilter = "all" | "yandex" | "2gis" | "google" | "site";
+type DoctorFilter = "all" | string;
+type ServiceFilter = "all" | string;
 
 export default function AdminReviewsPage() {
   // по умолчанию считаем всё "pending" (для демо)
@@ -27,15 +33,43 @@ export default function AdminReviewsPage() {
   }, []);
 
   const [modState, setModState] = useState<ModerationState>(initialState);
-  const [filter, setFilter] = useState<"all" | ModerationStatus>("pending");
+  const [statusFilter, setStatusFilter] = useState<"all" | ModerationStatus>("pending");
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
+  const [doctorFilter, setDoctorFilter] = useState<DoctorFilter>("all");
+  const [serviceFilter, setServiceFilter] = useState<ServiceFilter>("all");
 
-  const filteredReviews = useMemo(
-    () =>
-      reviews.filter((r) =>
-        filter === "all" ? true : modState[r.id] === filter
-      ),
-    [filter, modState]
-  );
+  const filteredReviews = useMemo(() => {
+    let list = [...reviews];
+
+    // по статусу модерации
+    list = list.filter((r) =>
+      statusFilter === "all" ? true : modState[r.id] === statusFilter
+    );
+
+    // по источнику
+    if (sourceFilter !== "all") {
+      list = list.filter((r) => r.source === sourceFilter);
+    }
+
+    // по врачу
+    if (doctorFilter !== "all") {
+      list = list.filter((r) => r.doctorId === doctorFilter);
+    }
+
+    // по услуге
+    if (serviceFilter !== "all") {
+      list = list.filter((r) => r.serviceId === serviceFilter);
+    }
+
+    // новые сначала
+    list.sort((a, b) => {
+      const da = new Date(a.date).getTime();
+      const db = new Date(b.date).getTime();
+      return db - da;
+    });
+
+    return list;
+  }, [statusFilter, sourceFilter, doctorFilter, serviceFilter, modState]);
 
   const setStatus = (id: string, status: ModerationStatus) => {
     setModState((prev) => ({ ...prev, [id]: status }));
@@ -84,16 +118,18 @@ export default function AdminReviewsPage() {
                 <p className="text-[13px] text-slate-600 max-w-2xl leading-relaxed">
                   Здесь можно просматривать новые отзывы, одобрять их к
                   публикации или отклонять. В демо-версии статус хранится только
-                  в интерфейсе, без записи в базу.
+                  в интерфейсе (без записи в базу и влияния на публичную
+                  страницу отзывов).
                 </p>
               </div>
               <AdminNav />
             </div>
           </div>
 
-          {/* Фильтр по статусу */}
-          <section className="space-y-4">
-            <div className="flex flex-wrap items-center gap-2 text-[12px]">
+          {/* Фильтры */}
+          <section className="space-y-3 text-[12px]">
+            {/* Статус */}
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-slate-500 mr-1">Статус:</span>
               {[
                 { key: "pending", label: "На модерации" },
@@ -105,10 +141,10 @@ export default function AdminReviewsPage() {
                   key={btn.key}
                   type="button"
                   onClick={() =>
-                    setFilter(btn.key as "all" | ModerationStatus)
+                    setStatusFilter(btn.key as "all" | ModerationStatus)
                   }
                   className={`px-3 py-1.5 rounded-full border transition ${
-                    filter === btn.key
+                    statusFilter === btn.key
                       ? "bg-onlyvet-navy text-white border-onlyvet-navy shadow-sm text-xs"
                       : "border-slate-300 text-onlyvet-navy bg-white hover:bg-slate-50 text-xs"
                   }`}
@@ -118,7 +154,70 @@ export default function AdminReviewsPage() {
               ))}
             </div>
 
-            {/* Список отзывов */}
+            {/* Источник */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-slate-500 mr-1">Источник:</span>
+              {([
+                { key: "all", label: "Все" },
+                { key: "yandex", label: "Яндекс" },
+                { key: "2gis", label: "2ГИС" },
+                { key: "google", label: "Google" },
+                { key: "site", label: "Сайт OnlyVet" },
+              ] as { key: SourceFilter; label: string }[]).map((btn) => (
+                <button
+                  key={btn.key}
+                  type="button"
+                  onClick={() => setSourceFilter(btn.key)}
+                  className={`px-3 py-1.5 rounded-full border transition ${
+                    sourceFilter === btn.key
+                      ? "bg-onlyvet-navy text-white border-onlyvet-navy shadow-sm text-xs"
+                      : "border-slate-300 text-onlyvet-navy bg-white hover:bg-slate-50 text-xs"
+                  }`}
+                >
+                  {btn.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Врач */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-slate-500 mr-1">Врач:</span>
+              <select
+                value={doctorFilter}
+                onChange={(e) => setDoctorFilter(e.target.value as DoctorFilter)}
+                className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-[12px] text-onlyvet-navy focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+              >
+                <option value="all">Все врачи</option>
+                {doctors.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Услуга */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-slate-500 mr-1">Услуга:</span>
+              <select
+                value={serviceFilter}
+                onChange={(e) =>
+                  setServiceFilter(e.target.value as ServiceFilter)
+                }
+                className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-[12px] text-onlyvet-navy focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+              >
+                <option value="all">Все услуги</option>
+                {services.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </section>
+
+          {/* Список отзывов */}
+          <section className="space-y-3">
             <div className="grid gap-4 md:grid-cols-2">
               {filteredReviews.map((rev) => {
                 const status = modState[rev.id] ?? "pending";
@@ -178,10 +277,30 @@ export default function AdminReviewsPage() {
 
               {filteredReviews.length === 0 && (
                 <div className="text-[13px] text-slate-500 col-span-full">
-                  По выбранному статусу пока нет отзывов.
+                  По выбранным фильтрам пока нет отзывов.
                 </div>
               )}
             </div>
+          </section>
+
+          {/* Пояснение про демо-состояние */}
+          <section className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 md:p-6 text-[12px] text-slate-600 space-y-2">
+            <div className="font-semibold text-[13px] text-slate-800">
+              Текущее состояние модуля отзывов
+            </div>
+            <p>
+              Сейчас статусы модерации отзывов (на модерации, опубликован, отклонён)
+              хранятся только в интерфейсе и не влияют на публичную страницу{" "}
+              <code>/reviews</code>. Все отзывы берутся из статического списка{" "}
+              <code>data/reviews.ts</code>.
+            </p>
+            <p>
+              В дальнейшем сюда можно будет добавить:
+              <br />— хранение статусов в базе данных или Vetmanager;
+              <br />— показ на сайте только одобренных отзывов;
+              <br />— автоматический импорт отзывов с внешних площадок
+              (Яндекс, 2ГИС и др.) с возможностью ручной модерации.
+            </p>
           </section>
         </div>
       </main>
