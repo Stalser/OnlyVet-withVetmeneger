@@ -29,7 +29,7 @@ export default function LoginPage() {
     setHasSubmitted(true);
     setError(null);
 
-    if (!isValid) return;
+    if (!isValid || loading) return;
 
     try {
       setLoading(true);
@@ -40,10 +40,10 @@ export default function LoginPage() {
         body: JSON.stringify({ identifier, password }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        setError(data.error || "Ошибка входа");
+        setError(data.error || "Ошибка входа. Проверьте данные и попробуйте ещё раз.");
         return;
       }
 
@@ -78,7 +78,7 @@ export default function LoginPage() {
                 <p className="text-[13px] text-slate-600">
                   Используйте номер телефона или email и пароль, указанные при
                   регистрации. Позже здесь появится полноценная система входа
-                  с сессиями и восстановлением доступа.
+                  с сессиями, ролями и восстановлением доступа.
                 </p>
               </div>
 
@@ -134,11 +134,11 @@ export default function LoginPage() {
 
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || !isValid}
                   className="
                     w-full mt-1 px-4 py-2.5 rounded-full 
                     bg-onlyvet-coral text-white text-[13px] font-medium 
-                    shadow-[0_10px_26px_rgба(247,118,92,0.45)]
+                    shadow-[0_10px_26px_rgba(247,118,92,0.45)]
                     hover:brightness-105 transition
                     disabled:bg-slate-300 disabled:shadow-none disabled:cursor-not-allowed
                   "
@@ -168,7 +168,9 @@ export default function LoginPage() {
               <p className="text-[11px] text-slate-500">
                 Сейчас эта форма обращается к API <code>/api/auth/login</code>,
                 который проверяет телефон/email и пароль. Как только мы
-                подключим настоящую БД и сессии, вход будет полностью рабочим.
+                подключим Supabase и сессии, вход будет полностью рабочим — а
+                при миграции на Yandex Cloud можно будет сохранить тот же API,
+                сменив только внутреннюю реализацию.
               </p>
             </div>
           </div>
