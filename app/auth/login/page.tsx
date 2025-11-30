@@ -7,6 +7,14 @@ import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 
+type LoginResponseUser = {
+  id: string;
+  phone: string;
+  email: string;
+  full_name: string;
+  role?: string;
+};
+
 export default function LoginPage() {
   const router = useRouter();
 
@@ -40,15 +48,26 @@ export default function LoginPage() {
         body: JSON.stringify({ identifier, password }),
       });
 
-      const data = await res.json().catch(() => ({}));
+      const data = (await res.json().catch(() => ({}))) as {
+        user?: LoginResponseUser;
+        error?: string;
+      };
 
       if (!res.ok) {
         setError(data.error || "Ошибка входа. Проверьте данные и попробуйте ещё раз.");
         return;
       }
 
-      // TODO: когда будут сессии, пользователь будет реально входить
-      router.push("/account");
+      const role = data.user?.role;
+
+      // Простая маршрутизация по роли:
+      // admin → админ-панель
+      // остальные → личный кабинет
+      if (role === "admin") {
+        router.push("/admin");
+      } else {
+        router.push("/account");
+      }
     } catch (err) {
       console.error(err);
       setError("Произошла техническая ошибка. Попробуйте позже.");
@@ -77,8 +96,8 @@ export default function LoginPage() {
                 </h1>
                 <p className="text-[13px] text-slate-600">
                   Используйте номер телефона или email и пароль, указанные при
-                  регистрации. Позже здесь появится полноценная система входа
-                  с сессиями, ролями и восстановлением доступа.
+                  регистрации. В дальнейшем здесь появится полноценная система
+                  входа с сессиями, ролями и восстановлением доступа.
                 </p>
               </div>
 
@@ -167,10 +186,10 @@ export default function LoginPage() {
 
               <p className="text-[11px] text-slate-500">
                 Сейчас эта форма обращается к API <code>/api/auth/login</code>,
-                который проверяет телефон/email и пароль. Как только мы
-                подключим Supabase и сессии, вход будет полностью рабочим — а
-                при миграции на Yandex Cloud можно будет сохранить тот же API,
-                сменив только внутреннюю реализацию.
+                который проверяет телефон/email и пароль и возвращает данные
+                пользователя вместе с ролью. Внутри <code>lib/db</code> можно
+                использовать Supabase или собственную БД в Yandex Cloud, не
+                меняя эту страницу.
               </p>
             </div>
           </div>
