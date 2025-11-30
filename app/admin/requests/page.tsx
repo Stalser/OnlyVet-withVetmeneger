@@ -12,6 +12,8 @@ import { services } from "@/data/services";
 import type { BookingRequest, BookingStatus } from "@/lib/types";
 
 type StatusFilter = "all" | BookingStatus;
+type DoctorFilter = "all" | string;
+type ServiceFilter = "all" | string;
 
 function statusMeta(status: BookingStatus) {
   switch (status) {
@@ -47,7 +49,11 @@ export default function AdminRequestsPage() {
   const [bookings, setBookings] = useState<BookingRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [doctorFilter, setDoctorFilter] = useState<DoctorFilter>("all");
+  const [serviceFilter, setServiceFilter] = useState<ServiceFilter>("all");
+
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   const loadBookings = useCallback(async () => {
@@ -91,14 +97,27 @@ export default function AdminRequestsPage() {
     }
 
     let list = [...bookings];
+
+    // статус
     if (statusFilter !== "all") {
       list = list.filter((b) => b.status === statusFilter);
     }
 
+    // врач
+    if (doctorFilter !== "all") {
+      list = list.filter((b) => b.doctorId === doctorFilter);
+    }
+
+    // услуга
+    if (serviceFilter !== "all") {
+      list = list.filter((b) => b.serviceId === serviceFilter);
+    }
+
+    // новые сверху
     list.sort((a, b) => {
       const da = new Date(a.createdAt).getTime();
       const db = new Date(b.createdAt).getTime();
-      return db - da; // новые выше
+      return db - da;
     });
 
     return {
@@ -106,7 +125,7 @@ export default function AdminRequestsPage() {
       byStatus,
       filtered: list,
     };
-  }, [bookings, statusFilter]);
+  }, [bookings, statusFilter, doctorFilter, serviceFilter]);
 
   const getDoctorName = (id?: string) =>
     id ? doctors.find((d) => d.id === id)?.name : undefined;
@@ -204,8 +223,9 @@ export default function AdminRequestsPage() {
             </div>
           </section>
 
-          {/* Фильтр по статусу */}
+          {/* Фильтры */}
           <section className="space-y-3 text-[12px]">
+            {/* Статус */}
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-slate-500 mr-1">Статус:</span>
               {([
@@ -229,6 +249,42 @@ export default function AdminRequestsPage() {
                 </button>
               ))}
             </div>
+
+            {/* Врач */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-slate-500 mr-1">Врач:</span>
+              <select
+                value={doctorFilter}
+                onChange={(e) => setDoctorFilter(e.target.value as DoctorFilter)}
+                className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-[12px] text-onlyvet-navy focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+              >
+                <option value="all">Все врачи</option>
+                {doctors.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Услуга */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-slate-500 mr-1">Услуга:</span>
+              <select
+                value={serviceFilter}
+                onChange={(e) =>
+                  setServiceFilter(e.target.value as ServiceFilter)
+                }
+                className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-[12px] text-onlyvet-navy focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+              >
+                <option value="all">Все услуги</option>
+                {services.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </section>
 
           {/* Список заявок */}
@@ -244,7 +300,7 @@ export default function AdminRequestsPage() {
 
             {!loading && !error && filtered.length === 0 && (
               <div className="text-[13px] text-slate-500">
-                По выбранному фильтру заявок пока нет.
+                По выбранным фильтрам заявок пока нет.
               </div>
             )}
 
@@ -330,22 +386,30 @@ export default function AdminRequestsPage() {
                         )}
                       </div>
 
+                      {/* Причина отмены (если есть) */}
+                      {req.status === "rejected" && req.cancelReason && (
+                        <div className="mt-1 text-[11px] text-slate-500">
+                          Причина отмены: {req.cancelReason}
+                        </div>
+                      )}
+
                       {/* Кнопки управления статусом */}
                       <div className="mt-2 flex flex-wrap gap-2 text-[12px]">
-                        {req.status !== "in_review" && req.status !== "approved" && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              updateStatus(req.id, "in_review")
-                            }
-                            disabled={updatingId === req.id}
-                            className="px-3 py-1.5 rounded-full bg-sky-600 text-white hover:bg-sky-700 transition disabled:opacity-60"
-                          >
-                            {updatingId === req.id
-                              ? "Обновляем…"
-                              : "В работу"}
-                          </button>
-                        )}
+                        {req.status !== "in_review" &&
+                          req.status !== "approved" && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                updateStatus(req.id, "in_review")
+                              }
+                              disabled={updatingId === req.id}
+                              className="px-3 py-1.5 rounded-full bg-sky-600 text-white hover:bg-sky-700 transition disabled:opacity-60"
+                            >
+                              {updatingId === req.id
+                                ? "Обновляем…"
+                                : "В работу"}
+                            </button>
+                          )}
 
                         {req.status !== "approved" && (
                           <button
@@ -391,16 +455,17 @@ export default function AdminRequestsPage() {
             )}
           </section>
 
-          {/* Пояснение про mock-состояние */}
+          {/* Пояснение про текущее состояние */}
           <section className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 md:p-6 text-[12px] text-slate-600 space-y-2">
             <div className="font-semibold text-[13px] text-slate-800">
               Важно про текущее состояние
             </div>
             <p>
               Сейчас заявки и их статусы хранятся во временном in-memory
-              хранилище (аналог <code>mockBookings</code>). При перезапуске
-              деплоя данные могут сбрасываться. Архитектура страницы уже готова
-              к подключению постоянной базы данных и/или Vetmanager.
+              хранилище (аналог <code>mockBookings</code>) или демо-слое над
+              базой. При перезапуске деплоя данные могут сбрасываться. Архитектура
+              страницы уже готова к подключению постоянной базы данных и/или
+              Vetmanager.
             </p>
             <p>
               В дальнейшем изменение статуса здесь может:
