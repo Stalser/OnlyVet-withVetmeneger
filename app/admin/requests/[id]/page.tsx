@@ -1,4 +1,5 @@
 // app/admin/requests/[id]/page.tsx
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -80,11 +81,6 @@ export default function AdminRequestDetailPage({ params }: PageProps) {
       minute: "2-digit",
     });
 
-  // жалоба, если есть (через any, чтобы не ломать типы)
-  const complaint: string | undefined = booking
-    ? (booking as any).complaint
-    : undefined;
-
   return (
     <>
       <Header />
@@ -112,9 +108,9 @@ export default function AdminRequestDetailPage({ params }: PageProps) {
                   Заявка #{params.id.toUpperCase()}
                 </h1>
                 <p className="text-[13px] text-slate-600 max-w-2xl leading-relaxed">
-                  Подробный бланк заявки: контакты владельца, данные о
-                  питомце, услуге и враче. Далее сюда можно будет добавить
-                  связи с Vetmanager.
+                  Подробный бланк заявки: контакты владельца, данные о питомце,
+                  услуге и враче. Далее сюда можно будет добавить связи с
+                  Vetmanager и историей консультаций.
                 </p>
               </div>
               <AdminNav />
@@ -137,184 +133,198 @@ export default function AdminRequestDetailPage({ params }: PageProps) {
           )}
 
           {booking && (
-            <div className="grid gap-4 md:grid-cols-[1.1fr,0.9fr] items-start">
-              {/* Левая колонка — основные данные */}
-              <section className="space-y-4">
-                {/* Клиент */}
-                <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 space-y-2">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="text-[14px] font-semibold text-slate-800">
-                      Владелец
-                    </div>
-                    <span
-                      className={`px-2 py-[2px] rounded-full text-[11px] ${
-                        statusMeta(booking.status).className
-                      }`}
-                    >
-                      {statusMeta(booking.status).label}
-                    </span>
-                  </div>
-
-                  {createdLabel && (
-                    <div className="text-[12px] text-slate-500">
-                      Заявка создана: {createdLabel}
-                    </div>
-                  )}
-
-                  <div className="text-[13px] text-slate-700 space-y-1">
-                    <p>
-                      <span className="text-slate-500">ФИО: </span>
-                      <span className="font-medium">
-                        {booking.fullName || "—"}
+            <div className="space-y-4">
+              {/* Основной грид: владелец + питомец + услуга/врач/время */}
+              <div className="grid gap-4 md:grid-cols-[1.1fr,0.9fr] items-start">
+                {/* Левая колонка — владелец + питомец */}
+                <section className="space-y-4">
+                  {/* Клиент */}
+                  <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 space-y-2">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="text-[14px] font-semibold text-slate-800">
+                        Владелец
+                      </div>
+                      <span
+                        className={`px-2 py-[2px] rounded-full text-[11px] ${
+                          statusMeta(booking.status).className
+                        }`}
+                      >
+                        {statusMeta(booking.status).label}
                       </span>
-                    </p>
-                    <p>
-                      <span className="text-slate-500">Телефон: </span>
-                      <span className="font-medium">{booking.phone}</span>
-                    </p>
-                    {booking.email && (
-                      <p>
-                        <span className="text-slate-500">Email: </span>
-                        <span className="font-medium">{booking.email}</span>
-                      </p>
+                    </div>
+
+                    {createdLabel && (
+                      <div className="text-[12px] text-slate-500">
+                        Заявка создана: {createdLabel}
+                      </div>
                     )}
-                    {booking.telegram && (
+
+                    <div className="text-[13px] text-slate-700 space-y-1">
                       <p>
-                        <span className="text-slate-500">Telegram: </span>
+                        <span className="text-slate-500">ФИО: </span>
                         <span className="font-medium">
-                          {booking.telegram}
+                          {booking.fullName || "—"}
                         </span>
                       </p>
-                    )}
+                      <p>
+                        <span className="text-slate-500">Телефон: </span>
+                        <span className="font-medium">{booking.phone}</span>
+                      </p>
+                      {booking.email && (
+                        <p>
+                          <span className="text-slate-500">Email: </span>
+                          <span className="font-medium">{booking.email}</span>
+                        </p>
+                      )}
+                      {booking.telegram && (
+                        <p>
+                          <span className="text-slate-500">Telegram: </span>
+                          <span className="font-medium">
+                            {booking.telegram}
+                          </span>
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
 
-                {/* Питомец */}
-                <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 space-y-2">
-                  <div className="text-[14px] font-semibold text-slate-800 mb-1">
-                    Питомец
-                  </div>
-                  <div className="text-[13px] text-slate-700 space-y-1">
-                    <p>
-                      <span className="text-slate-500">Режим: </span>
-                      {booking.petMode === "existing"
-                        ? "существующий питомец (из личного кабинета)"
-                        : "новый питомец"}
-                    </p>
-                    {booking.petName && (
-                      <p>
-                        <span className="text-slate-500">Кличка: </span>
-                        <span className="font-medium">{booking.petName}</span>
-                      </p>
-                    )}
-                    {booking.petSpecies && (
-                      <p>
-                        <span className="text-slate-500">Вид: </span>
-                        {booking.petSpecies}
-                      </p>
-                    )}
-                    {booking.petNotes && (
-                      <p>
-                        <span className="text-slate-500">
-                          Дополнительно:
-                        </span>{" "}
-                        {booking.petNotes}
-                      </p>
-                    )}
-                  </div>
-                  <p className="text-[11px] text-slate-500 mt-2">
-                    Позже здесь можно будет отобразить карточку питомца из
-                    Vetmanager или локальной БД.
-                  </p>
-                </div>
-
-                {/* Жалобы */}
-                {complaint && (
+                  {/* Питомец */}
                   <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 space-y-2">
                     <div className="text-[14px] font-semibold text-slate-800 mb-1">
-                      Кратко о проблеме
+                      Питомец
                     </div>
-                    <p className="text-[13px] text-slate-700 whitespace-pre-line">
-                      {complaint}
-                    </p>
-                  </div>
-                )}
-              </section>
-
-              {/* Правая колонка — услуга, врач, время */}
-              <section className="space-y-4">
-                {/* Услуга и врач */}
-                <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 space-y-2">
-                  <div className="text-[14px] font-semibold text-slate-800 mb-1">
-                    Услуга и врач
-                  </div>
-
-                  <div className="text-[13px] text-slate-700 space-y-1">
-                    <p>
-                      <span className="text-slate-500">Услуга: </span>
-                      {serviceName ? (
-                        <Link
-                          href={`/services/${booking.serviceId}`}
-                          className="text-onlyvet-coral hover:underline"
-                        >
-                          {serviceName}
-                        </Link>
-                      ) : (
-                        "Не выбрана (нужна помощь с выбором)"
-                      )}
-                    </p>
-
-                    <p>
-                      <span className="text-slate-500">Врач: </span>
-                      {booking.doctorId && doctorName ? (
-                        <Link
-                          href={`/doctors/${booking.doctorId}`}
-                          className="text-onlyvet-coral hover:underline"
-                        >
-                          {doctorName}
-                        </Link>
-                      ) : (
-                        "Автоматический подбор / регистратор выбирает"
-                      )}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Дата и время */}
-                <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 space-y-2">
-                  <div className="text-[14px] font-semibold text-slate-800 mb-1">
-                    Дата и время
-                  </div>
-                  <div className="text-[13px] text-slate-700 space-y-1">
-                    <p>
-                      <span className="text-slate-500">Режим: </span>
-                      {booking.timeMode === "choose"
-                        ? "клиент предложил дату и время"
-                        : "любое ближайшее (подбор администратором)"}
-                    </p>
-                    {booking.preferredDate && (
+                    <div className="text-[13px] text-slate-700 space-y-1">
                       <p>
-                        <span className="text-slate-500">
-                          Предпочтительная дата:{" "}
-                        </span>
-                        {booking.preferredDate}
+                        <span className="text-slate-500">Режим: </span>
+                        {booking.petMode === "existing"
+                          ? "существующий питомец (из личного кабинета)"
+                          : "новый питомец"}
                       </p>
-                    )}
-                    {booking.preferredTime && (
-                      <p>
-                        <span className="text-slate-500">
-                          Предпочтительное время:{" "}
-                        </span>
-                        {booking.preferredTime}
-                      </p>
-                    )}
+                      {booking.petName && (
+                        <p>
+                          <span className="text-slate-500">Кличка: </span>
+                          <span className="font-medium">
+                            {booking.petName}
+                          </span>
+                        </p>
+                      )}
+                      {booking.petSpecies && (
+                        <p>
+                          <span className="text-slate-500">Вид: </span>
+                          {booking.petSpecies}
+                        </p>
+                      )}
+                      {booking.petNotes && (
+                        <p>
+                          <span className="text-slate-500">
+                            Дополнительно:
+                          </span>{" "}
+                          {booking.petNotes}
+                        </p>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-2">
+                      Позже здесь можно будет отобразить карточку питомца из
+                      Vetmanager или локальной БД.
+                    </p>
                   </div>
-                  <p className="text-[11px] text-slate-500 mt-2">
-                    В дальнейшем здесь можно будет отображать фактический слот
-                    из Vetmanager и ссылку на приём.
+                </section>
+
+                {/* Правая колонка — услуга, врач, время */}
+                <section className="space-y-4">
+                  {/* Услуга и врач */}
+                  <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 space-y-2">
+                    <div className="text-[14px] font-semibold text-slate-800 mb-1">
+                      Услуга и врач
+                    </div>
+
+                    <div className="text-[13px] text-slate-700 space-y-1">
+                      <p>
+                        <span className="text-slate-500">Услуга: </span>
+                        {serviceName ? (
+                          <Link
+                            href={`/services/${booking.serviceId}`}
+                            className="text-onlyvet-coral hover:underline"
+                          >
+                            {serviceName}
+                          </Link>
+                        ) : (
+                          "Не выбрана (нужна помощь с выбором)"
+                        )}
+                      </p>
+
+                      <p>
+                        <span className="text-slate-500">Врач: </span>
+                        {booking.doctorId && doctorName ? (
+                          <Link
+                            href={`/doctors/${booking.doctorId}`}
+                            className="text-onlyvet-coral hover:underline"
+                          >
+                            {doctorName}
+                          </Link>
+                        ) : (
+                          "Автоматический подбор / регистратор выбирает"
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Дата и время */}
+                  <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 space-y-2">
+                    <div className="text-[14px] font-semibold text-slate-800 mb-1">
+                      Дата и время
+                    </div>
+                    <div className="text-[13px] text-slate-700 space-y-1">
+                      <p>
+                        <span className="text-slate-500">Режим: </span>
+                        {booking.timeMode === "choose"
+                          ? "клиент предложил дату и время"
+                          : "любое ближайшее (подбор администратором)"}
+                      </p>
+                      {booking.preferredDate && (
+                        <p>
+                          <span className="text-slate-500">
+                            Предпочтительная дата:{" "}
+                          </span>
+                          {booking.preferredDate}
+                        </p>
+                      )}
+                      {booking.preferredTime && (
+                        <p>
+                          <span className="text-slate-500">
+                            Предпочтительное время:{" "}
+                          </span>
+                          {booking.preferredTime}
+                        </p>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-2">
+                      В дальнейшем здесь можно будет отображать фактический слот
+                      из Vetmanager и ссылку на приём.
+                    </p>
+                  </div>
+                </section>
+              </div>
+
+              {/* Отмена заявки (если есть) */}
+              {booking.status === "rejected" && booking.cancelReason && (
+                <section className="bg-rose-50 border border-rose-200 rounded-3xl p-5 md:p-6 text-[13px] text-rose-800 space-y-2">
+                  <div className="text-[14px] font-semibold flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-rose-500" />
+                    Отмена заявки
+                  </div>
+                  <p>
+                    Заявка была отменена. Причина, указанная при отмене:
                   </p>
-                </div>
-              </section>
+                  <p className="text-[13px] font-medium">
+                    «{booking.cancelReason}»
+                  </p>
+                  <p className="text-[11px] text-rose-700">
+                    В дальнейшем здесь можно будет различать отмену со стороны
+                    владельца и со стороны администратора, а также хранить
+                    историю изменений статусов.
+                  </p>
+                </section>
+              )}
             </div>
           )}
         </div>
