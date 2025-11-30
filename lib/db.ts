@@ -63,7 +63,7 @@ export async function getUserByEmail(email: string): Promise<User | null> {
   return found ?? null;
 }
 
-// 🔹 Найти пользователя по id (пригодится, когда будем линковать с Vetmanager)
+// 🔹 Найти пользователя по id
 export async function getUserById(id: string): Promise<User | null> {
   const found = users.find((u) => u.id === id);
   return found ?? null;
