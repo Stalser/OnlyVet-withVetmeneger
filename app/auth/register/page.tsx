@@ -10,43 +10,73 @@ import { Footer } from "@/components/Footer";
 export default function RegisterPage() {
   const router = useRouter();
 
+  // ФИО
   const [lastName, setLastName] = useState("");
   const [firstName, setFirstName] = useState("");
   const [middleName, setMiddleName] = useState("");
+  const [noMiddleName, setNoMiddleName] = useState(false);
+
+  // контакты
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [telegram, setTelegram] = useState("");
 
+  // пароль
   const [password, setPassword] = useState("");
-  const [password2, setPassword2] = useState("");
+  const [passwordRepeat, setPasswordRepeat] = useState("");
 
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  // согласия
+  const [consentPersonalData, setConsentPersonalData] = useState(false);
+  const [consentOffer, setConsentOffer] = useState(false);
+  const [consentRules, setConsentRules] = useState(false);
+
+  // статус
   const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [serverSuccess, setServerSuccess] = useState<string | null>(null);
 
-  const lastNameError = hasSubmitted && !lastName.trim();
-  const firstNameError = hasSubmitted && !firstName.trim();
-  const phoneError = hasSubmitted && !phone.trim();
-  const emailError = hasSubmitted && !email.trim();
+  const lastNameError =
+    hasSubmitted && !lastName.trim();
+  const firstNameError =
+    hasSubmitted && !firstName.trim();
+  const middleNameError =
+    hasSubmitted && !noMiddleName && !middleName.trim();
+  const phoneError =
+    hasSubmitted && !phone.trim();
+  const emailError =
+    hasSubmitted && !email.trim();
   const passwordError =
-    hasSubmitted && (!password || password.length < 8);
-  const password2Error =
-    hasSubmitted && (!password2 || password2 !== password);
+    hasSubmitted && password.trim().length < 6;
+  const passwordRepeatError =
+    hasSubmitted && passwordRepeat !== password;
+
+  const consentsError =
+    hasSubmitted &&
+    (!consentPersonalData || !consentOffer || !consentRules);
 
   const isValid =
     lastName.trim().length > 0 &&
     firstName.trim().length > 0 &&
+    (noMiddleName || middleName.trim().length > 0) &&
     phone.trim().length > 0 &&
     email.trim().length > 0 &&
-    password.length >= 8 &&
-    password2 === password;
+    password.trim().length >= 6 &&
+    passwordRepeat === password &&
+    consentPersonalData &&
+    consentOffer &&
+    consentRules;
+
+  const fullName = [lastName, firstName, !noMiddleName && middleName]
+    .filter(Boolean)
+    .join(" ");
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setHasSubmitted(true);
-    setError(null);
+    setServerError(null);
+    setServerSuccess(null);
 
-    if (!isValid) return;
+    if (!isValid || loading) return;
 
     try {
       setLoading(true);
@@ -55,27 +85,37 @@ export default function RegisterPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          fullName,
           lastName,
           firstName,
-          middleName,
+          middleName: noMiddleName ? null : middleName || null,
+          noMiddleName,
           phone,
           email,
-          telegram,
           password,
-          password2,
         }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        setError(data.error || "Ошибка регистрации");
+        setServerError(
+          data?.error || "Не удалось создать аккаунт. Попробуйте позже."
+        );
         return;
       }
 
-      router.push("/auth/login");
+      setServerSuccess(
+        "Аккаунт создан. Теперь вы можете войти в личный кабинет."
+      );
+
+      // Можем сразу редиректить на /auth/login после короткой задержки
+      setTimeout(() => {
+        router.push("/auth/login");
+      }, 1000);
     } catch (err) {
       console.error(err);
-      setError("Произошла техническая ошибка. Попробуйте позже.");
+      setServerError("Произошла техническая ошибка. Попробуйте позже.");
     } finally {
       setLoading(false);
     }
@@ -100,193 +140,297 @@ export default function RegisterPage() {
                   Регистрация в OnlyVet
                 </h1>
                 <p className="text-[13px] text-slate-600">
-                  Личный кабинет позволит вам видеть заявки, историю
-                  консультаций и питомцев. Сейчас это каркас — позже он будет
-                  связан с реальной базой данных и Vetmanager.
+                  Личный кабинет нужен, чтобы сохранять данные о питомцах,
+                  видеть историю заявок и получать доступ к заключениям. Ниже —
+                  только базовые данные, необходимые для связи и безопасной
+                  работы с консультациями.
                 </p>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-3 text-[13px]">
-                {/* Фамилия / Имя / Отчество */}
-                <div className="grid md:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-[12px] text-slate-600 mb-1">
-                      Фамилия<span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
-                        lastNameError
-                          ? "border-rose-400 focus:ring-rose-300"
-                          : "border-slate-300 focus:ring-onlyvet-teal/40"
-                      }`}
-                      placeholder="Иванов"
-                    />
-                    {lastNameError && (
-                      <p className="mt-1 text-[11px] text-rose-600">
-                        Укажите фамилию.
-                      </p>
-                    )}
+              <form onSubmit={handleSubmit} className="space-y-4 text-[13px]">
+                {/* ФИО */}
+                <section className="space-y-2">
+                  <h2 className="text-[14px] font-semibold">
+                    Контактное лицо
+                  </h2>
+                  <div className="grid md:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[12px] text-slate-600 mb-1">
+                        Фамилия<span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
+                          lastNameError
+                            ? "border-rose-400 focus:ring-rose-300"
+                            : "border-slate-300 focus:ring-onlyvet-teal/40"
+                        }`}
+                        placeholder="Иванов"
+                      />
+                      {lastNameError && (
+                        <p className="mt-1 text-[11px] text-rose-600">
+                          Укажите фамилию.
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-[12px] text-slate-600 mb-1">
+                        Имя<span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
+                          firstNameError
+                            ? "border-rose-400 focus:ring-rose-300"
+                            : "border-slate-300 focus:ring-onlyvet-teal/40"
+                        }`}
+                        placeholder="Иван"
+                      />
+                      {firstNameError && (
+                        <p className="mt-1 text-[11px] text-rose-600">
+                          Укажите имя.
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-[12px] text-slate-600 mb-1">
+                        Отчество{!noMiddleName && (
+                          <span className="text-red-500">*</span>
+                        )}
+                      </label>
+                      <input
+                        type="text"
+                        value={middleName}
+                        onChange={(e) => setMiddleName(e.target.value)}
+                        disabled={noMiddleName}
+                        className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
+                          noMiddleName
+                            ? "border-slate-200 bg-slate-50 text-slate-400"
+                            : middleNameError
+                            ? "border-rose-400 focus:ring-rose-300"
+                            : "border-slate-300 focus:ring-onlyvet-teal/40"
+                        }`}
+                        placeholder={noMiddleName ? "Не указано" : "Иванович"}
+                      />
+                      <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-600">
+                        <input
+                          type="checkbox"
+                          id="no-middle-name"
+                          checked={noMiddleName}
+                          onChange={(e) => setNoMiddleName(e.target.checked)}
+                          className="rounded border-slate-300"
+                        />
+                        <label
+                          htmlFor="no-middle-name"
+                          className="select-none cursor-pointer"
+                        >
+                          Нет отчества
+                        </label>
+                      </div>
+                      {middleNameError && !noMiddleName && (
+                        <p className="mt-1 text-[11px] text-rose-600">
+                          Укажите отчество или отметьте «Нет отчества».
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-[12px] text-slate-600 mb-1">
-                      Имя<span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
-                        firstNameError
-                          ? "border-rose-400 focus:ring-rose-300"
-                          : "border-slate-300 focus:ring-onlyvet-teal/40"
-                      }`}
-                      placeholder="Иван"
-                    />
-                    {firstNameError && (
-                      <p className="mt-1 text-[11px] text-rose-600">
-                        Укажите имя.
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-[12px] text-slate-600 mb-1">
-                      Отчество
-                    </label>
-                    <input
-                      type="text"
-                      value={middleName}
-                      onChange={(e) => setMiddleName(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
-                      placeholder="Иванович"
-                    />
-                  </div>
-                </div>
+                </section>
 
-                {/* Телефон + email */}
-                <div className="grid md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[12px] text-slate-600 mb-1">
-                      Телефон (логин)<span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
-                        phoneError
-                          ? "border-rose-400 focus:ring-rose-300"
-                          : "border-slate-300 focus:ring-onlyvet-teal/40"
-                      }`}
-                      placeholder="+7 ..."
-                    />
-                    {phoneError && (
-                      <p className="mt-1 text-[11px] text-rose-600">
-                        Телефон обязателен для входа и связи.
-                      </p>
-                    )}
-                    <p className="text-[11px] text-slate-500 mt-1">
-                      По этому номеру будет выполняться вход в личный кабинет.
-                    </p>
+                {/* Контакты */}
+                <section className="space-y-2">
+                  <h2 className="text-[14px] font-semibold">
+                    Контактные данные
+                  </h2>
+                  <div className="grid md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[12px] text-slate-600 mb-1">
+                        Номер телефона<span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
+                          phoneError
+                            ? "border-rose-400 focus:ring-rose-300"
+                            : "border-slate-300 focus:ring-onlyvet-teal/40"
+                        }`}
+                        placeholder="+7 ..."
+                      />
+                      {phoneError && (
+                        <p className="mt-1 text-[11px] text-rose-600">
+                          Укажите телефон, чтобы мы могли связаться с вами.
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-[12px] text-slate-600 mb-1">
+                        Email<span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
+                          emailError
+                            ? "border-rose-400 focus:ring-rose-300"
+                            : "border-slate-300 focus:ring-onlyvet-teal/40"
+                        }`}
+                        placeholder="example@mail.ru"
+                      />
+                      {emailError && (
+                        <p className="mt-1 text-[11px] text-rose-600">
+                          Email нужен для отправки материалов консультации и
+                          уведомлений.
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-[12px] text-slate-600 mb-1">
-                      Email<span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
-                        emailError
-                          ? "border-rose-400 focus:ring-rose-300"
-                          : "border-slate-300 focus:ring-onlyvet-teal/40"
-                      }`}
-                      placeholder="example@mail.ru"
-                    />
-                    {emailError && (
-                      <p className="mt-1 text-[11px] text-rose-600">
-                        Email обязателен для уведомлений и восстановления
-                        доступа.
-                      </p>
-                    )}
-                  </div>
-                </div>
+                </section>
 
-                {/* Telegram */}
-                <div>
-                  <label className="block text-[12px] text-slate-600 mb-1">
-                    Логин Telegram
-                  </label>
-                  <input
-                    type="text"
-                    value={telegram}
-                    onChange={(e) => setTelegram(e.target.value)}
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
-                    placeholder="@username (необязательно)"
-                  />
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    При наличии нам проще и быстрее связываться через Telegram.
-                  </p>
-                </div>
+                {/* Пароль */}
+                <section className="space-y-2">
+                  <h2 className="text-[14px] font-semibold">Пароль</h2>
+                  <div className="space-y-2">
+                    <div>
+                      <label className="block text-[12px] text-slate-600 mb-1">
+                        Пароль<span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
+                          passwordError
+                            ? "border-rose-400 focus:ring-rose-300"
+                            : "border-slate-300 focus:ring-onlyvet-teal/40"
+                        }`}
+                        placeholder="Не менее 6 символов"
+                      />
+                      {passwordError && (
+                        <p className="mt-1 text-[11px] text-rose-600">
+                          Пароль должен содержать не менее 6 символов.
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-[12px] text-slate-600 mb-1">
+                        Повторите пароль<span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="password"
+                        value={passwordRepeat}
+                        onChange={(e) => setPasswordRepeat(e.target.value)}
+                        className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
+                          passwordRepeatError
+                            ? "border-rose-400 focus:ring-rose-300"
+                            : "border-slate-300 focus:ring-onlyvet-teal/40"
+                        }`}
+                        placeholder="Ещё раз пароль"
+                      />
+                      {passwordRepeatError && (
+                        <p className="mt-1 text-[11px] text-rose-600">
+                          Пароли не совпадают.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </section>
 
-                {/* Пароли */}
-                <div className="grid md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[12px] text-slate-600 mb-1">
-                      Пароль<span className="text-red-500">*</span>
+                {/* Согласия */}
+                <section className="space-y-2">
+                  <h2 className="text-[14px] font-semibold">
+                    Согласия
+                  </h2>
+                  <div className="space-y-2 text-[12px] text-slate-600">
+                    <label className="flex items-start gap-2">
+                      <input
+                        type="checkbox"
+                        checked={consentPersonalData}
+                        onChange={(e) =>
+                          setConsentPersonalData(e.target.checked)
+                        }
+                        className="mt-[2px]"
+                      />
+                      <span>
+                        Я даю{" "}
+                        <Link
+                          href="/docs/privacy"
+                          className="text-onlyvet-coral underline-offset-2 hover:underline"
+                        >
+                          согласие на обработку персональных данных
+                        </Link>{" "}
+                        в соответствии с Политикой обработки ПДн.
+                      </span>
                     </label>
-                    <input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
-                        passwordError
-                          ? "border-rose-400 focus:ring-rose-300"
-                          : "border-slate-300 focus:ring-onlyvet-teal/40"
-                      }`}
-                      placeholder="Не короче 8 символов"
-                    />
-                    {passwordError && (
-                      <p className="mt-1 text-[11px] text-rose-600">
-                        Пароль должен быть не короче 8 символов.
+                    <label className="flex items-start gap-2">
+                      <input
+                        type="checkbox"
+                        checked={consentOffer}
+                        onChange={(e) =>
+                          setConsentOffer(e.target.checked)
+                        }
+                        className="mt-[2px]"
+                      />
+                      <span>
+                        Я принимаю условия{" "}
+                        <Link
+                          href="/docs/offer"
+                          className="text-onlyvet-coral underline-offset-2 hover:underline"
+                        >
+                          публичной оферты
+                        </Link>{" "}
+                        сервиса OnlyVet.
+                      </span>
+                    </label>
+                    <label className="flex items-start gap-2">
+                      <input
+                        type="checkbox"
+                        checked={consentRules}
+                        onChange={(e) =>
+                          setConsentRules(e.target.checked)
+                        }
+                        className="mt-[2px]"
+                      />
+                      <span>
+                        Я ознакомлен(а) и согласен(на) с{" "}
+                        <Link
+                          href="/docs/rules"
+                          className="text-onlyvet-coral underline-offset-2 hover:underline"
+                        >
+                          правилами онлайн-клиники
+                        </Link>
+                        .
+                      </span>
+                    </label>
+                    {consentsError && (
+                      <p className="text-[11px] text-rose-600">
+                        Для регистрации необходимо отметить все согласия.
                       </p>
                     )}
                   </div>
-                  <div>
-                    <label className="block text-[12px] text-slate-600 mb-1">
-                      Повтор пароля<span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="password"
-                      value={password2}
-                      onChange={(e) => setPassword2(e.target.value)}
-                      className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
-                        password2Error
-                          ? "border-rose-400 focus:ring-rose-300"
-                          : "border-slate-300 focus:ring-onlyvet-teal/40"
-                      }`}
-                      placeholder="Повторите пароль"
-                    />
-                    {password2Error && (
-                      <p className="mt-1 text-[11px] text-rose-600">
-                        Пароли должны совпадать.
-                      </p>
-                    )}
-                  </div>
-                </div>
+                </section>
 
-                {error && (
+                {/* Ошибка / успех */}
+                {serverError && (
                   <div className="text-[12px] text-rose-600 bg-rose-50 border border-rose-100 rounded-xl px-3 py-2">
-                    {error}
+                    {serverError}
+                  </div>
+                )}
+                {serverSuccess && (
+                  <div className="text-[12px] text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2">
+                    {serverSuccess}
                   </div>
                 )}
 
+                {/* Кнопка */}
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || !isValid}
                   className="
                     w-full mt-1 px-4 py-2.5 rounded-full 
                     bg-onlyvet-coral text-white text-[13px] font-medium 
@@ -295,7 +439,7 @@ export default function RegisterPage() {
                     disabled:bg-slate-300 disabled:shadow-none disabled:cursor-not-allowed
                   "
                 >
-                  {loading ? "Регистрация..." : "Зарегистрироваться"}
+                  {loading ? "Регистрируем..." : "Зарегистрироваться"}
                 </button>
 
                 <div className="text-[12px] text-slate-600 mt-2">
@@ -310,10 +454,11 @@ export default function RegisterPage() {
               </form>
 
               <p className="text-[11px] text-slate-500">
-                В демонстрационном режиме эта форма отправляет данные на
-                внутренний API <code>/api/auth/register</code>. Позже этот API
-                будет создавать реального пользователя в базе данных и
-                связывать его с клиентом в Vetmanager.
+                Эта форма отправляет данные в API{" "}
+                <code>/api/auth/register</code>. Сейчас это интерфейс для будущей
+                интеграции с Supabase (email/телефон + пароль). При миграции на
+                Yandex Cloud можно сохранить тот же API и контракт, изменив
+                только реализацию регистрации на стороне сервера.
               </p>
             </div>
           </div>
