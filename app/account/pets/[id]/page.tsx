@@ -6,6 +6,10 @@ import { notFound } from "next/navigation";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { AccountNav } from "@/components/AccountNav";
+import {
+  ConsultationCard,
+  type ConsultationStatus,
+} from "@/components/ConsultationCard";
 
 // =============================
 // 🔹 Типы данных
@@ -147,9 +151,6 @@ export default function PetPage({ params }: { params: { id: string } }) {
   const discharge = docs.filter((d) => d.category === "discharge");
   const other = docs.filter((d) => d.category === "other");
 
-  // =============================
-  // 🔹 Рендер
-  // =============================
   return (
     <>
       <Header />
@@ -250,8 +251,8 @@ export default function PetPage({ params }: { params: { id: string } }) {
               </div>
 
               {/* Медкарта */}
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-6">
-                <h2 className="text-[15px] font-semibold mb-3">
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-6 space-y-3">
+                <h2 className="text-[15px] font-semibold">
                   Медицинская карта (демо)
                 </h2>
 
@@ -262,45 +263,29 @@ export default function PetPage({ params }: { params: { id: string } }) {
                   </p>
                 ) : (
                   <div className="space-y-3">
-                    {visits.map((v) => (
-                      <div
-                        key={v.id}
-                        className="rounded-2xl border border-slate-200 bg-onlyvet-bg px-4 py-3"
-                      >
-                        <div className="flex justify-between items-center mb-1">
-                          <span className="font-medium text-[13px] text-slate-800">
-                            {new Date(v.date).toLocaleDateString("ru-RU", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                            })}
-                          </span>
+                    {visits.map((v) => {
+                      const status: ConsultationStatus =
+                        v.status === "done" ? "done" : "scheduled";
 
-                          <span
-                            className={
-                              v.status === "done"
-                                ? "px-2 py-[2px] rounded-full bg-teal-50 text-teal-700 text-[11px]"
-                                : "px-2 py-[2px] rounded-full bg-amber-50 text-amber-700 text-[11px]"
-                            }
-                          >
-                            {v.status === "done"
-                              ? "Проведена"
-                              : "Запланирована"}
-                          </span>
-                        </div>
-
-                        <div className="text-[12px] text-slate-600 mb-1">
-                          Врач: {v.doctor}
-                        </div>
-                        <div className="text-[12px] text-slate-800">
-                          {v.summary}
-                        </div>
-                      </div>
-                    ))}
+                      return (
+                        <ConsultationCard
+                          key={v.id}
+                          id={v.id}
+                          createdAt={v.date}
+                          petName={pet.name}
+                          serviceName="Онлайн-консультация"
+                          doctorName={v.doctor}
+                          // в демо нет отдельного времени, используем только дату
+                          dateTime={v.date}
+                          status={status}
+                          showPetLink={false}
+                        />
+                      );
+                    })}
                   </div>
                 )}
 
-                <p className="mt-3 text-[11px] text-slate-500">
+                <p className="mt-1 text-[11px] text-slate-500">
                   В будущем данные будут синхронизироваться с Vetmanager.
                 </p>
               </div>
