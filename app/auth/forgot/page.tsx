@@ -2,17 +2,20 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 
 export default function ForgotPasswordPage() {
-  const [identifier, setIdentifier] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const router = useRouter();
+
+  const [identifier, setIdentifier] = useState(""); // телефон или email
+  const [error, setError] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [serverError, setServerError] = useState<string | null>(null);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
 
   const identifierError = hasSubmitted && !identifier.trim();
   const isValid = identifier.trim().length > 0;
@@ -20,27 +23,32 @@ export default function ForgotPasswordPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setHasSubmitted(true);
-    setServerError(null);
+    setError(null);
 
-    if (!isValid || loading) return;
+    if (!isValid || loading) {
+      return;
+    }
 
     try {
       setLoading(true);
 
-      // Пока это демо: просто имитируем отправку запроса.
-      // В будущем здесь будет реальный вызов /api/auth/forgot,
-      // который отправит письмо или ссылку в Telegram.
-      // Например:
-      //
-      // const res = await fetch("/api/auth/forgot", { ... })
-      // ...
+      const res = await fetch("/api/auth/forgot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier }),
+      });
 
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      const data = await res.json().catch(() => ({}));
 
-      setSubmitted(true);
+      if (!res.ok) {
+        setError(data.error || "Ошибка запроса восстановления.");
+        return;
+      }
+
+      setSent(true);
     } catch (err) {
       console.error(err);
-      setServerError("Произошла техническая ошибка. Попробуйте позже.");
+      setError("Произошла техническая ошибка. Попробуйте позже.");
     } finally {
       setLoading(false);
     }
@@ -56,10 +64,6 @@ export default function ForgotPasswordPage() {
               <Link href="/" className="hover:text-onlyvet-coral">
                 Главная
               </Link>{" "}
-              /{" "}
-              <Link href="/auth/login" className="hover:text-onlyvet-coral">
-                Вход
-              </Link>{" "}
               / <span className="text-slate-700">Восстановление доступа</span>
             </nav>
 
@@ -69,36 +73,27 @@ export default function ForgotPasswordPage() {
                   Восстановление доступа
                 </h1>
                 <p className="text-[13px] text-slate-600">
-                  Если вы забыли пароль, укажите номер телефона или email,
-                  которые использовали при регистрации. В дальнейшем здесь
-                  появится полноценный сценарий восстановления через почту или
-                  код в мессенджере.
+                  Укажите номер телефона или email, которые вы использовали при
+                  регистрации. Мы покажем, сохранён ли запрос. В боевой версии
+                  сюда будет подключена отправка письма/ссылки для сброса
+                  пароля.
                 </p>
               </div>
 
-              {submitted ? (
-                <div className="space-y-2 text-[13px] text-slate-700">
-                  <div className="text-[14px] font-semibold">
-                    Запрос на восстановление принят
+              {sent ? (
+                <div className="space-y-3 text-[13px]">
+                  <div className="text-[13px] text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2">
+                    Если в нашей системе есть аккаунт с указанным телефоном или
+                    email, на него будут отправлены инструкции по восстановлению
+                    доступа.
                   </div>
-                  <p>
-                    Если указанные данные есть в системе, мы отправим
-                    инструкцию по восстановлению доступа на соответствующий
-                    канал (email или телефон).
-                  </p>
-                  <p className="text-[11px] text-slate-500">
-                    В демо-версии фактическая отправка письма или кода ещё не
-                    реализована. После подключении Supabase/почтового сервиса
-                    здесь появится реальный сценарий.
-                  </p>
-                  <div className="pt-2">
-                    <Link
-                      href="/auth/login"
-                      className="text-onlyvet-coral hover:underline text-[12px]"
-                    >
-                      Вернуться ко входу →
-                    </Link>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => router.push("/auth/login")}
+                    className="w-full px-4 py-2.5 rounded-full bg-onlyvet-coral text-white text-[13px] font-medium shadow-[0_10px_26px_rgba(247,118,92,0.45)] hover:brightness-105 transition"
+                  >
+                    Вернуться ко входу
+                  </button>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-3 text-[13px]">
@@ -119,14 +114,15 @@ export default function ForgotPasswordPage() {
                     />
                     {identifierError && (
                       <p className="mt-1 text-[11px] text-rose-600">
-                        Укажите телефон или email.
+                        Укажите номер телефона или email, который вы
+                        использовали при регистрации.
                       </p>
                     )}
                   </div>
 
-                  {serverError && (
+                  {error && (
                     <div className="text-[12px] text-rose-600 bg-rose-50 border border-rose-100 rounded-xl px-3 py-2">
-                      {serverError}
+                      {error}
                     </div>
                   )}
 
@@ -134,7 +130,7 @@ export default function ForgotPasswordPage() {
                     type="submit"
                     disabled={loading || !isValid}
                     className="
-                      w-full mt-1 px-4 py-2.5 rounded-full 
+                      w-full px-4 py-2.5 rounded-full 
                       bg-onlyvet-coral text-white text-[13px] font-medium 
                       shadow-[0_10px_26px_rgba(247,118,92,0.45)]
                       hover:brightness-105 transition
@@ -155,6 +151,13 @@ export default function ForgotPasswordPage() {
                   </div>
                 </form>
               )}
+
+              <p className="text-[11px] text-slate-500">
+                Сейчас эта форма работает в демонстрационном режиме и не шлёт
+                реальные письма. Как только будет подключен почтовый сервис
+                или Supabase reset-поток, здесь появится полноценный сценарий
+                сброса пароля с уникальной ссылкой.
+              </p>
             </div>
           </div>
         </div>
