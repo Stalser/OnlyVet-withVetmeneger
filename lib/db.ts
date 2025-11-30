@@ -63,6 +63,12 @@ export async function getUserByEmail(email: string): Promise<User | null> {
   return found ?? null;
 }
 
+// 🔹 Найти пользователя по id (пригодится, когда будем линковать с Vetmanager)
+export async function getUserById(id: string): Promise<User | null> {
+  const found = users.find((u) => u.id === id);
+  return found ?? null;
+}
+
 // Создать пользователя
 export async function createUser(opts: {
   phone: string;
@@ -105,5 +111,17 @@ export async function createUser(opts: {
   };
 
   users.push(user);
+  return user;
+}
+
+// 🔹 Привязать пользователя к клиенту Vetmanager
+export async function setUserVetmanagerClientId(
+  userId: string,
+  vmClientId: number
+): Promise<User | null> {
+  const user = users.find((u) => u.id === userId);
+  if (!user) return null;
+  user.vetmanager_client_id = vmClientId;
+  user.updated_at = new Date().toISOString();
   return user;
 }
