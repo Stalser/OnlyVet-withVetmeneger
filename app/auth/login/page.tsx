@@ -1,3 +1,4 @@
+// app/auth/login/page.tsx
 "use client";
 
 import { FormEvent, useState } from "react";
@@ -54,15 +55,22 @@ export default function LoginPage() {
       };
 
       if (!res.ok) {
-        setError(data.error || "Ошибка входа. Проверьте данные и попробуйте ещё раз.");
+        setError(
+          data.error || "Ошибка входа. Проверьте данные и попробуйте ещё раз."
+        );
         return;
       }
 
-      const role = data.user?.role;
+      const user = data.user;
+      const role = user?.role || "user";
 
-      // Простая маршрутизация по роли:
-      // admin → админ-панель
-      // остальные → личный кабинет
+      if (typeof window !== "undefined" && user) {
+        localStorage.setItem("onlyvet_role", role);
+        localStorage.setItem("onlyvet_userFullName", user.full_name || "");
+        localStorage.setItem("onlyvet_userEmail", user.email || "");
+        localStorage.setItem("onlyvet_userPhone", user.phone || "");
+      }
+
       if (role === "admin") {
         router.push("/admin");
       } else {
@@ -185,11 +193,11 @@ export default function LoginPage() {
               </form>
 
               <p className="text-[11px] text-slate-500">
-                Сейчас эта форма обращается к API <code>/api/auth/login</code>,
-                который проверяет телефон/email и пароль и возвращает данные
-                пользователя вместе с ролью. Внутри <code>lib/db</code> можно
-                использовать Supabase или собственную БД в Yandex Cloud, не
-                меняя эту страницу.
+                Эта форма работает с API <code>/api/auth/login</code>, который
+                использует <code>lib/db</code> и <code>lib/auth</code> для
+                проверки логина и пароля и возвращает роль пользователя. Под
+                капотом можно использовать Supabase или свою БД в Yandex Cloud,
+                не меняя эту страницу.
               </p>
             </div>
           </div>
