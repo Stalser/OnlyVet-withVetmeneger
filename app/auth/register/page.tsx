@@ -1,3 +1,4 @@
+// app/auth/register/page.tsx
 "use client";
 
 import { FormEvent, useState } from "react";
@@ -19,10 +20,11 @@ export default function RegisterPage() {
   // контакты
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [telegram, setTelegram] = useState("");
 
   // пароль
   const [password, setPassword] = useState("");
-  const [passwordRepeat, setPasswordRepeat] = useState("");
+  const [password2, setPassword2] = useState("");
 
   // согласия
   const [consentPersonalData, setConsentPersonalData] = useState(false);
@@ -35,20 +37,15 @@ export default function RegisterPage() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [serverSuccess, setServerSuccess] = useState<string | null>(null);
 
-  const lastNameError =
-    hasSubmitted && !lastName.trim();
-  const firstNameError =
-    hasSubmitted && !firstName.trim();
+  const lastNameError = hasSubmitted && !lastName.trim();
+  const firstNameError = hasSubmitted && !firstName.trim();
   const middleNameError =
     hasSubmitted && !noMiddleName && !middleName.trim();
-  const phoneError =
-    hasSubmitted && !phone.trim();
-  const emailError =
-    hasSubmitted && !email.trim();
-  const passwordError =
-    hasSubmitted && password.trim().length < 6;
-  const passwordRepeatError =
-    hasSubmitted && passwordRepeat !== password;
+  const phoneError = hasSubmitted && !phone.trim();
+  const emailError = hasSubmitted && !email.trim();
+  const passwordError = hasSubmitted && password.trim().length < 8;
+  const password2Error =
+    hasSubmitted && password2.trim().length > 0 && password2 !== password;
 
   const consentsError =
     hasSubmitted &&
@@ -60,15 +57,11 @@ export default function RegisterPage() {
     (noMiddleName || middleName.trim().length > 0) &&
     phone.trim().length > 0 &&
     email.trim().length > 0 &&
-    password.trim().length >= 6 &&
-    passwordRepeat === password &&
+    password.trim().length >= 8 &&
+    password2 === password &&
     consentPersonalData &&
     consentOffer &&
     consentRules;
-
-  const fullName = [lastName, firstName, !noMiddleName && middleName]
-    .filter(Boolean)
-    .join(" ");
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -85,14 +78,14 @@ export default function RegisterPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          fullName,
-          lastName,
-          firstName,
-          middleName: noMiddleName ? null : middleName || null,
-          noMiddleName,
           phone,
           email,
+          lastName,
+          firstName,
+          middleName: noMiddleName ? "" : middleName,
           password,
+          password2,
+          telegram: telegram || undefined,
         }),
       });
 
@@ -109,7 +102,7 @@ export default function RegisterPage() {
         "Аккаунт создан. Теперь вы можете войти в личный кабинет."
       );
 
-      // Можем сразу редиректить на /auth/login после короткой задержки
+      // небольшой редирект на страницу входа
       setTimeout(() => {
         router.push("/auth/login");
       }, 1000);
@@ -140,10 +133,10 @@ export default function RegisterPage() {
                   Регистрация в OnlyVet
                 </h1>
                 <p className="text-[13px] text-slate-600">
-                  Личный кабинет нужен, чтобы сохранять данные о питомцах,
-                  видеть историю заявок и получать доступ к заключениям. Ниже —
-                  только базовые данные, необходимые для связи и безопасной
-                  работы с консультациями.
+                  Личный кабинет понадобится для сохранения данных о питомцах,
+                  просмотра заявок и доступа к заключениям. Ниже — только
+                  необходимые данные для связи и безопасной работы с
+                  консультациями.
                 </p>
               </div>
 
@@ -290,6 +283,18 @@ export default function RegisterPage() {
                       )}
                     </div>
                   </div>
+                  <div>
+                    <label className="block text-[12px] text-slate-600 mb-1">
+                      Telegram (необязательно)
+                    </label>
+                    <input
+                      type="text"
+                      value={telegram}
+                      onChange={(e) => setTelegram(e.target.value)}
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                      placeholder="@username"
+                    />
+                  </div>
                 </section>
 
                 {/* Пароль */}
@@ -309,11 +314,11 @@ export default function RegisterPage() {
                             ? "border-rose-400 focus:ring-rose-300"
                             : "border-slate-300 focus:ring-onlyvet-teal/40"
                         }`}
-                        placeholder="Не менее 6 символов"
+                        placeholder="Не менее 8 символов"
                       />
                       {passwordError && (
                         <p className="mt-1 text-[11px] text-rose-600">
-                          Пароль должен содержать не менее 6 символов.
+                          Пароль должен быть не короче 8 символов.
                         </p>
                       )}
                     </div>
@@ -323,16 +328,16 @@ export default function RegisterPage() {
                       </label>
                       <input
                         type="password"
-                        value={passwordRepeat}
-                        onChange={(e) => setPasswordRepeat(e.target.value)}
+                        value={password2}
+                        onChange={(e) => setPassword2(e.target.value)}
                         className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
-                          passwordRepeatError
+                          password2Error
                             ? "border-rose-400 focus:ring-rose-300"
                             : "border-slate-300 focus:ring-onlyvet-teal/40"
                         }`}
                         placeholder="Ещё раз пароль"
                       />
-                      {passwordRepeatError && (
+                      {password2Error && (
                         <p className="mt-1 text-[11px] text-rose-600">
                           Пароли не совпадают.
                         </p>
@@ -343,9 +348,7 @@ export default function RegisterPage() {
 
                 {/* Согласия */}
                 <section className="space-y-2">
-                  <h2 className="text-[14px] font-semibold">
-                    Согласия
-                  </h2>
+                  <h2 className="text-[14px] font-semibold">Согласия</h2>
                   <div className="space-y-2 text-[12px] text-slate-600">
                     <label className="flex items-start gap-2">
                       <input
@@ -371,9 +374,7 @@ export default function RegisterPage() {
                       <input
                         type="checkbox"
                         checked={consentOffer}
-                        onChange={(e) =>
-                          setConsentOffer(e.target.checked)
-                        }
+                        onChange={(e) => setConsentOffer(e.target.checked)}
                         className="mt-[2px]"
                       />
                       <span>
@@ -391,9 +392,7 @@ export default function RegisterPage() {
                       <input
                         type="checkbox"
                         checked={consentRules}
-                        onChange={(e) =>
-                          setConsentRules(e.target.checked)
-                        }
+                        onChange={(e) => setConsentRules(e.target.checked)}
                         className="mt-[2px]"
                       />
                       <span>
@@ -454,11 +453,11 @@ export default function RegisterPage() {
               </form>
 
               <p className="text-[11px] text-slate-500">
-                Эта форма отправляет данные в API{" "}
-                <code>/api/auth/register</code>. Сейчас это интерфейс для будущей
-                интеграции с Supabase (email/телефон + пароль). При миграции на
-                Yandex Cloud можно сохранить тот же API и контракт, изменив
-                только реализацию регистрации на стороне сервера.
+                Эта форма работает с API <code>/api/auth/register</code>, который
+                использует <code>lib/db</code> и <code>lib/auth</code>. Внутри
+                можно подключить Supabase или свою БД в Yandex Cloud, не меняя
+                фронтенд — достаточно адаптировать реализацию{" "}
+                <code>createUser / getUserByPhone / getUserByEmail</code>.
               </p>
             </div>
           </div>
