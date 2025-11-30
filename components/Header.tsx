@@ -3,14 +3,44 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 function cn(...classes: (string | false | null | undefined)[]) {
   return classes.filter(Boolean).join(" ");
 }
 
+type UserRole = "guest" | "user" | "admin";
+
 export function Header() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const [userRole, setUserRole] = useState<UserRole>("guest");
+
+  // читаем роль из localStorage
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const storedRole = localStorage.getItem("onlyvet_role");
+    if (storedRole === "admin") {
+      setUserRole("admin");
+    } else if (storedRole === "user") {
+      setUserRole("user");
+    } else {
+      setUserRole("guest");
+    }
+  }, []);
+
+  const handleLogout = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("onlyvet_role");
+      localStorage.removeItem("onlyvet_userFullName");
+      localStorage.removeItem("onlyvet_userEmail");
+      localStorage.removeItem("onlyvet_userPhone");
+    }
+    setUserRole("guest");
+    router.push("/");
+  };
 
   const isActive = (href: string) =>
     pathname === href || (href !== "/" && pathname.startsWith(href));
@@ -118,19 +148,7 @@ export function Header() {
 
         {/* Кнопки справа */}
         <div className="hidden md:flex items-center gap-2">
-          <Link
-            href="/auth/login"
-            className="
-              px-3.5 py-2 rounded-full 
-              border border-slate-500 
-              text-[11px] 
-              hover:bg-white/5 
-              transition
-              inline-flex items-center justify-center
-            "
-          >
-            Войти
-          </Link>
+          {/* Записаться — всегда есть */}
           <Link
             href="/booking"
             className="
@@ -145,6 +163,54 @@ export function Header() {
           >
             Записаться
           </Link>
+
+          {userRole === "guest" && (
+            <Link
+              href="/auth/login"
+              className="
+                px-3.5 py-2 rounded-full 
+                border border-slate-500 
+                text-[11px] 
+                hover:bg-white/5 
+                transition
+                inline-flex items-center justify-center
+              "
+            >
+              Войти
+            </Link>
+          )}
+
+          {userRole !== "guest" && (
+            <>
+              <Link
+                href={userRole === "admin" ? "/admin" : "/account"}
+                className="
+                  px-3.5 py-2 rounded-full 
+                  border border-slate-500 
+                  text-[11px] 
+                  hover:bg-white/5 
+                  transition
+                  inline-flex items-center justify-center
+                "
+              >
+                {userRole === "admin" ? "Админ-панель" : "Личный кабинет"}
+              </Link>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="
+                  px-3.5 py-2 rounded-full 
+                  border border-slate-500 
+                  text-[11px] 
+                  hover:bg-white/5 
+                  transition
+                  inline-flex items-center justify-center
+                "
+              >
+                Выйти
+              </button>
+            </>
+          )}
         </div>
 
         {/* Мобильное меню — пока заглушка */}
