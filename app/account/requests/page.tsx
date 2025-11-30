@@ -39,6 +39,7 @@ export default function RequestsPage() {
   const [bookings, setBookings] = useState<BookingRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   const fetchBookings = async () => {
     try {
@@ -62,7 +63,7 @@ export default function RequestsPage() {
     fetchBookings();
   }, []);
 
-  // позже здесь будет фильтр по userId, сейчас — демо: все заявки
+  // пока нет auth — показываем все заявки (демо)
   const hasAny = bookings.length > 0;
 
   const active = bookings.filter(
@@ -83,21 +84,67 @@ export default function RequestsPage() {
     const doctorName = getDoctorName(b.doctorId);
     const serviceName = getServiceName(b.serviceId);
 
-    // в демо у нас нет реального времени приёма, используем createdAt
-    const dateTime = b.preferredDate || b.preferredTime ? undefined : undefined;
+    // в демо у нас нет отдельного поля "назначенное время" — пока не подставляем
+    const dateTime = undefined;
 
     return {
       id: b.id,
       createdAt: b.createdAt,
       petName: b.petName || "Питомец",
-      serviceName: serviceName,
-      doctorName: doctorName,
+      serviceName,
+      doctorName,
       doctorId: b.doctorId,
       dateTime,
       status: mapBookingStatusToConsultationStatus(b.status),
       cancelReason: b.cancelReason,
       showPetLink: false,
     };
+  };
+
+  const handleCancel = async (booking: BookingRequest) => {
+    if (cancellingId) return;
+
+    const baseLabel =
+      booking.status === "approved"
+        ? "консультацию"
+        : "заявку";
+
+    const ok = window.confirm(
+      `Вы уверены, что хотите отменить ${baseLabel}?`
+    );
+    if (!ok) return;
+
+    const reason = window.prompt(
+      "Если хотите, укажите причину отмены (необязательно):",
+      ""
+    );
+
+    try {
+      setCancellingId(booking.id);
+
+      const res = await fetch(`/api/booking/${booking.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "rejected" as BookingStatus,
+          cancelReason: reason?.trim() || undefined,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(
+          data?.error || "Не удалось отменить заявку. Попробуйте позже."
+        );
+      }
+
+      await fetchBookings();
+    } catch (err: any) {
+      console.error(err);
+      alert(err?.message || "Ошибка при отмене заявки.");
+    } finally {
+      setCancellingId(null);
+    }
   };
 
   return (
@@ -202,6 +249,11 @@ export default function RequestsPage() {
                         <ConsultationCard
                           key={b.id}
                           {...mapBookingToCard(b)}
+                          onCancel={
+                            cancellingId === b.id
+                              ? undefined
+                              : () => handleCancel(b)
+                          }
                         />
                       ))}
                     </div>
@@ -214,7 +266,7 @@ export default function RequestsPage() {
                     <h2 className="text-[14px] font-semibold text-slate-800">
                       Отменённые / отклонённые заявки
                     </h2>
-                    <span className="text-[12px] text-slate-500">
+                  <span className="text-[12px] text-slate-500">
                       {rejected.length > 0
                         ? `Всего: ${rejected.length}`
                         : "Пока нет отменённых заявок"}
@@ -232,6 +284,7 @@ export default function RequestsPage() {
                         <ConsultationCard
                           key={b.id}
                           {...mapBookingToCard(b)}
+                          // можно позже добавить onBookAgain -> /booking?serviceId...
                         />
                       ))}
                     </div>
