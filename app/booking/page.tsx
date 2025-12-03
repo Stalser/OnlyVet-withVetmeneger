@@ -59,6 +59,9 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
       ? petIdFromQuery
       : "";
 
+  // режим отображения в шапке
+  const [mode, setMode] = useState<"quick" | "full" | "telegram">("quick");
+
   // ФИО
   const [lastName, setLastName] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -80,7 +83,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
   const [newPetAge, setNewPetAge] = useState("");
   const [newPetWeight, setNewPetWeight] = useState("");
 
-  // жалоба
+  // кратко о проблеме
   const [complaint, setComplaint] = useState("");
 
   // врач / услуга / слот
@@ -93,15 +96,12 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
     useState<string>(initialDoctorId);
   const [selectedSlotId, setSelectedSlotId] = useState<string>(initialSlotId);
 
-  // режим карточек в шапке
-  const [mode, setMode] = useState<"quick" | "full" | "telegram">("quick");
-
   // время
   const [timeMode, setTimeMode] = useState<"any" | "choose">("any");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
 
-  // файлы (на фронте)
+  // файлы (демо)
   const [files, setFiles] = useState<File[]>([]);
 
   // согласия
@@ -109,12 +109,13 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
   const [consentOffer, setConsentOffer] = useState(false);
   const [consentRules, setConsentRules] = useState(false);
 
-  // статус отправки
+  // статус отправки / ошибки
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [serverSuccess, setServerSuccess] = useState<string | null>(null);
 
+  // подстановка данных демо-пользователя
   useEffect(() => {
     if (mockIsLoggedIn) {
       const parts = mockUser.fullName.split(" ");
@@ -144,15 +145,13 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
     hasSubmitted && !noMiddleName && !middleName.trim();
   const phoneError = hasSubmitted && !phone.trim();
   const emailError = hasSubmitted && !email.trim();
-
   const newPetNameError =
     hasSubmitted && petMode === "new" && !newPetName.trim();
-
   const consentsError =
     hasSubmitted &&
     (!consentPersonalData || !consentOffer || !consentRules);
 
-  // врачи, которые могут вести выбранную услугу
+  // врачи, подходящие под выбранную услугу
   const availableDoctors = useMemo(() => {
     if (selectedService) {
       return doctors.filter((d) =>
@@ -162,7 +161,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
     return doctors;
   }, [selectedService]);
 
-  // услуги, подходящие под выбранного врача (если врач выбран вручную)
+  // услуги, подходящие под выбранного врача
   const availableServices = useMemo(() => {
     if (doctorMode === "manual" && selectedDoctorId) {
       const doc = doctors.find((d) => d.id === selectedDoctorId);
@@ -174,20 +173,17 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
     return services;
   }, [doctorMode, selectedDoctorId]);
 
-  // если выбран врач, но он не подходит под услугу — сбрасываем врача
+  // если выбран врач, но не подходит под услугу
   useEffect(() => {
     if (
       selectedDoctorId &&
       !availableDoctors.some((d) => d.id === selectedDoctorId)
     ) {
       setSelectedDoctorId("");
-      if (doctorMode === "manual") {
-        setDoctorMode("manual");
-      }
     }
-  }, [selectedServiceId, selectedDoctorId, availableDoctors, doctorMode]);
+  }, [selectedServiceId, selectedDoctorId, availableDoctors]);
 
-  // если выбрана услуга, которая не валидна для выбранного врача — сброс услуги
+  // если выбрана услуга, не подходящая под врача
   useEffect(() => {
     if (
       selectedServiceId &&
@@ -197,7 +193,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
     }
   }, [availableServices, selectedServiceId]);
 
-  // при режиме auto врач не фиксируется
+  // при auto-режиме врача очищаем выбранного врача
   useEffect(() => {
     if (doctorMode !== "manual" && selectedDoctorId) {
       setSelectedDoctorId("");
@@ -282,6 +278,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
       }
 
       await res.json();
+
       setServerSuccess(
         "Заявка отправлена. Мы свяжемся с вами для подтверждения консультации."
       );
@@ -300,9 +297,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
     setDoctorMode("auto");
   };
 
-  const resetSlot = () => {
-    setSelectedSlotId("");
-  };
+  const resetSlot = () => setSelectedSlotId("");
 
   const selectedSlotLabel =
     selectedSlot &&
@@ -346,8 +341,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
             </h1>
             <p className="text-[13px] text-slate-600 max-w-2xl">
               Выберите удобный формат: короткая заявка, подробная форма или
-              переписка в Telegram. Если вы перешли из карточки врача или
-              услуги, выбранные параметры уже подставлены.
+              переписка в Telegram.
             </p>
           </div>
 
@@ -375,17 +369,17 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                   Краткая заявка
                 </div>
                 <p className="text-[13px] text-slate-600">
-                  Только контакты и краткое описание проблемы. Остальное
+                  Только контакты и кратко суть проблемы. Остальное
                   администратор уточнит при созвоне и поможет оформить полную
                   заявку.
                 </p>
                 <div className="mt-2 text-[12px] bg-teal-100 rounded-xl px-3 py-1 text-teal-700 inline-block">
-                  Рекомендуется как первый шаг, если не хотите заполнять большую
-                  форму.
+                  Рекомендуется как первый шаг, если не хотите заполнять
+                  большую форму.
                 </div>
               </button>
 
-              {/* Подробная онлайн-заявка */}
+              {/* Подробная заявка */}
               <button
                 type="button"
                 onClick={() => {
@@ -402,16 +396,15 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                   }
                 `}
               >
-                <div className="text-[15px] font-semibold mb-1">
+                <div className="text-[15px] font-semibold">
                   Подробная онлайн-заявка
                 </div>
-                <p className="text-[13px] text-slate-600">
+                <p className="text-[13px] text-slate-600 mt-1">
                   Полное описание ситуации, выбор услуги и врача, удобная дата и
-                  время — всё сразу в одной форме.
+                  время — всё в одной форме.
                 </p>
                 <div className="mt-2 text-[12px] bg-emerald-100 rounded-xl px-3 py-1 text-emerald-700 inline-block">
-                  Рекомендуется для сложных и неясных случаев, когда важно учесть
-                  все детали.
+                  Для сложных и неясных случаев, когда важно учесть все детали.
                 </div>
               </button>
 
@@ -419,6 +412,8 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
               <a
                 href="https://t.me/onlyvet_clinic"
                 target="_blank"
+                rel="noreferrer"
+                onClick={() => setMode("telegram")}
                 className={`
                   text-left rounded-3xl border p-4 shadow-soft transition-all
                   hover:-translate-y-[2px] hover:shadow-[0_14px_32px_rgba(15,23,42,0.1)]
@@ -428,7 +423,6 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                       : "border-slate-300 bg-white"
                   }
                 `}
-                onClick={() => setMode("telegram")}
               >
                 <div className="flex items-center gap-2 mb-1">
                   <img
@@ -441,11 +435,11 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                   </div>
                 </div>
                 <p className="text-[13px] text-slate-600">
-                  Можно сразу написать администратору в Telegram, отправить
-                  анализы и задать вопросы по формату.
+                  Можно сразу написать администратору, отправить анализы и
+                  задать вопросы по формату.
                 </p>
                 <div className="mt-2 text-[12px] text-[#229ED9]">
-                  Подходит, если вам удобнее общаться в мессенджере.
+                  Подходит, если удобнее общаться в мессенджере.
                 </div>
               </a>
             </div>
@@ -461,13 +455,13 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
             </div>
           </section>
 
-          {/* Полная форма (и для короткой, и для подробной заявки) */}
+          {/* Полная форма (и для краткой, и для подробной заявки) */}
           <div id="full-form">
             <form
               onSubmit={handleSubmit}
               className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 md:p-6 space-y-6"
             >
-              {/* Сообщения об успехе/ошибке */}
+              {/* Сообщения */}
               {serverSuccess && (
                 <div className="text-[12px] text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-2xl px-3 py-2">
                   {serverSuccess}
@@ -642,9 +636,11 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
 
               {/* Питомец */}
               <section className="space-y-3">
+                </h2>
                 <h2 className="text-[15px] font-semibold">
                   Информация о питомце
                 </h2>
+
                 <div className="flex flex-wrap gap-3 text-[12px]">
                   <label className="inline-flex items-center gap-2">
                     <input
@@ -695,8 +691,8 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                     </div>
                   ) : (
                     <p className="text-[12px] text-slate-500">
-                      Для выбора существующего питомца нужен личный кабинет. Пока
-                      можно указать питомца как нового.
+                      Для выбора существующего питомца нужен личный кабинет.
+                      Пока можно указать питомца как нового.
                     </p>
                   )
                 ) : (
@@ -744,323 +740,323 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                           <option value="птица">Птица</option>
                           <option value="другое">Другое</option>
                           <option value="не знаю">Не знаю</option>
+                        </option>              {/* ← ЭТОТ ЛИШНИЙ, ЕГО НУЖНО УДАЛИТЬ */}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[12px] text-slate-600 mb-1">
+                        Порода
+                      </label>
+                      <input
+                        type="text"
+                        value={newPetBreed}
+                        onChange={(e) => setNewPetBreed(e.target.value)}
+                        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                        placeholder="Например: шотландская, метис и т.п."
+                      />
+                    </div>
+                  </div>
+
+                  {/* Возраст и вес */}
+                  <div className="grid md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[12px] text-slate-600 mb-1">
+                        Возраст
+                      </label>
+                      <input
+                        type="text"
+                        value={newPetAge}
+                        onChange={(e) => setNewPetAge(e.target.value)}
+                        className="w-full rounded-xl border border-slate-300 px-3 py-2	text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                        placeholder="Например: 2 года, 8 месяцев, не знаю"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[12px] text-slate-600 mb-1">
+                        Вес (примерно)
+                      </label>
+                      <input
+                        type="text"
+                        value={newPetWeight}
+                        onChange={(e) => setNewPetWeight(e.target.value)}
+                        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
+                        placeholder="Например: 4.5 кг, ~20 кг, не знаю"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </section>
+
+            {/* Кратко о проблеме */}
+            <section className="space-y-3">
+              <h2 className="text-[15px] font-semibold">Кратко о проблеме</h2>
+              <p className="text-[12px] text-slate-600">
+                Опишите, что вас беспокоит: какие симптомы, с какого времени,
+                что уже делали (анализы, лечение). Это поможет врачу лучше
+                подготовиться к консультации.
+              </p>
+              <textarea
+                value={complaint}
+                onChange={(e) => setComplaint(e.target.value)}
+                rows={4}
+                className="
+                  w-full rounded-2xl border border-slate-300 px-3 py-2
+                  text-[13px] resize-none
+                  focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40
+                "
+                placeholder="Например: 2 недели периодическая рвота, снижение аппетита, гастрит в анамнезе, есть анализы крови за прошлую неделю..."
+              />
+              <p className="text-[11px] text-slate-500">
+                Это поле не обязательно, но очень помогает врачу.
+              </p>
+            </section>
+
+            {/* Услуга */}
+            <section className="space-y-3">
+              <h2 className="text-[15px] font-semibold">Услуга</h2>
+              <div className="space-y-2">
+                <label className="block text-[12px] text-slate-600 mb-1">
+                  Выберите услугу
+                </label>
+                <select
+                  value={selectedServiceId || ""}
+                  onChange={(e) => setSelectedServiceId(e.target.value)}
+                  className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                >
+                  <option value="">
+                    Не знаю / нужна помощь с выбором
+                  </option>
+                  <optgroup label="Консультации">
+                    {availableServices
+                      .filter((s) => s.category === "консультация")
+                      .map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
                         </option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-[12px] text-slate-600 mb-1">
-                          Порода
-                        </label>
-                        <input
-                          type="text"
-                          value={newPetBreed}
-                          onChange={(e) => setNewPetBreed(e.target.value)}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
-                          placeholder="Например: шотландская, метис и т.п."
-                        />
-                      </div>
-                    </div>
-
-                    {/* Возраст и вес */}
-                    <div className="grid md:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[12px] text-slate-600 mb-1">
-                          Возраст
-                        </label>
-                        <input
-                          type="text"
-                          value={newPetAge}
-                          onChange={(e) => setNewPetAge(e.target.value)}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
-                          placeholder="Например: 2 года, 8 месяцев, не знаю"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[12px] text-slate-600 mb-1">
-                          Вес (примерно)
-                        </label>
-                        <input
-                          type="text"
-                          value={newPetWeight}
-                          onChange={(e) => setNewPetWeight(e.target.value)}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
-                          placeholder="Например: 4.5 кг, ~20 кг, не знаю"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </section>
-
-              {/* Кратко о проблеме */}
-              <section className="space-y-3">
-                <h2 className="text-[15px] font-semibold">
-                  Кратко о проблеме
-                </h2>
-                <p className="text-[12px] text-slate-600">
-                  Опишите, что вас беспокоит: какие симптомы, с какого времени,
-                  что уже делали (анализы, лечение). Это помогает врачу
-                  подготовиться к приёму.
-                </p>
-                <textarea
-                  value={complaint}
-                  onChange={(e) => setComplaint(e.target.value)}
-                  rows={4}
-                  className="
-                    w-full rounded-2xl border border-slate-300 px-3 py-2
-                    text-[13px] resize-none
-                    focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40
-                  "
-                  placeholder="Например: 2 недели периодическая рвота, снижение аппетита, гастрит в анамнезе, есть анализы крови за прошлую неделю..."
-                />
-                <p className="text-[11px] text-slate-500">
-                  Это поле необязательно, но очень помогает врачу.
-                </p>
-              </section>
-
-              {/* Услуга */}
-              <section className="space-y-3">
-                <h2 className="text-[15px] font-semibold">Услуга</h2>
-                <div className="space-y-2">
-                  <label className="block text-[12px] text-slate-600 mb-1">
-                    Выберите услугу
-                  </label>
-                  <select
-                    value={selectedServiceId || ""}
-                    onChange={(e) => setSelectedServiceId(e.target.value)}
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
-                  >
-                    <option value="">
-                      Не знаю / нужна помощь с выбором
-                    </option>
-                    <optgroup label="Консультации">
-                      {availableServices
-                        .filter((s) => s.category === "консультация")
-                        .map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.name}
-                          </option>
-                        ))}
-                    </optgroup>
-                    <optgroup label="Второе мнение">
-                      {availableServices
-                        .filter((s) => s.category === "второе мнение")
-                        .map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.name}
-                          </option>
-                        ))}
-                    </optgroup>
-                    <optgroup label="Диагностика">
-                      {availableServices
-                        .filter((s) => s.category === "диагностика")
-                        .map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.name}
-                          </option>
-                        ))}
-                    </optgroup>
-                    <optgroup label="Сопровождение">
-                      {availableServices
-                        .filter((s) => s.category === "сопровождение")
-                        .map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.name}
-                          </option>
-                        ))}
-                    </optgroup>
-                  </select>
-                  {selectedService && (
-                    <p className="mt-1 text-[11px] text-slate-500">
-                      Фокус услуги: {selectedService.shortDescription}
-                    </p>
-                  )}
-                  {!selectedService && (
-                    <p className="mt-1 text-[11px] text-slate-500">
-                      Если вы не уверены, какую услугу выбрать — оставьте вариант
-                      «Не знаю». Администратор подберёт формат.
-                    </p>
-                  )}
-                </div>
-              </section>
-
-              {/* Врач */}
-              <section className="space-y-3">
-                <h2 className="text-[15px] font-semibold">Врач</h2>
-                <div className="space-y-2">
-                  <div className="flex flex-col gap-1 text-[12px] mb-1">
-                    <label className="inline-flex items-center gap-2">
-                      <input
-                        type="radio"
-                        name="doctorMode"
-                        value="auto"
-                        checked={doctorMode === "auto"}
-                        onChange={() => setDoctorMode("auto")}
-                        className="rounded-full border-slate-300"
-                      />
-                      <span>
-                        <span className="font-medium">
-                          Автоматический подбор врача
-                        </span>{" "}
-                        <span className="text-slate-500">
-                          (рекомендуется)
-                        </span>
-                      </span>
-                    </label>
-                    <label className="inline-flex items-center gap-2">
-                      <input
-                        type="radio"
-                        name="doctorMode"
-                        value="manual"
-                        checked={doctorMode === "manual"}
-                        onChange={() => setDoctorMode("manual")}
-                        className="rounded-full border-slate-300"
-                      />
-                      <span className="font-medium">Выбрать врача вручную</span>
-                    </label>
-                  </div>
-
-                  <select
-                    value={selectedDoctorId}
-                    onChange={(e) => setSelectedDoctorId(e.target.value)}
-                    disabled={doctorMode !== "manual"}
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] disabled:bg-slate-50 disabled:text-slate-400 focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
-                  >
-                    <option value="">Не выбран</option>
-                    {availableDoctors.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.name}
-                      </option>
-                    ))}
-                  </select>
-
-                  {doctorMode === "manual" && selectedDoctor && (
-                    <p className="mt-1 text-[11px] text-slate-500">
-                      Специализация врача: {selectedDoctor.role}
-                    </p>
-                  )}
-                  {doctorMode === "auto" && (
-                    <p className="mt-1 text-[11px] text-slate-500">
-                      Мы подберём врача с нужной специализацией под ваш запрос.
-                    </p>
-                  )}
-                </div>
-              </section>
-
-              {/* Дата и время */}
-              <section className="space-y-3">
-                <h2 className="text-[15px] font-semibold">Дата и время</h2>
-
-                {!timeSelectionLocked && (
-                  <>
-                    <div className="flex flex-wrap gap-3 text-[12px]">
-                      <label className="inline-flex items-center gap-2">
-                        <input
-                          type="radio"
-                          name="timeMode"
-                          value="any"
-                          checked={timeMode === "any"}
-                          onChange={() => setTimeMode("any")}
-                          className="rounded-full border-slate-300"
-                        />
-                        <span>Любое ближайшее время (подберём сами)</span>
-                      </label>
-                      <label className="inline-flex items-center gap-2">
-                        <input
-                          type="radio"
-                          name="timeMode"
-                          value="choose"
-                          checked={timeMode === "choose"}
-                          onChange={() => setTimeMode("choose")}
-                          className="rounded-full border-slate-300"
-                        />
-                        <span>Выбрать дату и время</span>
-                      </label>
-                    </div>
-
-                    {timeMode === "choose" && (
-                      <div className="grid md:grid-cols-[1fr,1fr] gap-4">
-                        <div>
-                          <label className="block text-[12px] text-slate-600 mb-1">
-                            Дата
-                          </label>
-                          <input
-                            type="date"
-                            value={date}
-                            onChange={(e) => setDate(e.target.value)}
-                            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[12px] text-slate-600 mb-1">
-                            Время
-                          </label>
-                          <input
-                            type="time"
-                            value={time}
-                            onChange={(e) => setTime(e.target.value)}
-                            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-
-                {timeSelectionLocked && selectedSlot && selectedSlotLabel && (
-                  <div className="bg-onlyvet-bg rounded-2xl border border-slate-200 p-3 text-[12px] text-slate-600 space-y-1">
-                    <div className="font-medium text-slate-700">
-                      Время выбрано: {selectedSlotLabel}
-                    </div>
-                    <p className="text-[11px] text-slate-500">
-                      Чтобы изменить дату или время, снимите выбранный слот.
-                    </p>
-                  </div>
-                )}
-
-                <div className="bg-onlyvet-bg rounded-2xl border border-dashed border-slate-300 p-3 text-[11px] text-slate-600 mt-2">
-                  В реальной версии здесь будут отображаться доступные слоты из
-                  Vetmanager, а выбранный слот будет бронироваться автоматически.
-                </div>
-              </section>
-
-              {/* Файлы */}
-              <section className="space-y-3">
-                <h2 className="text-[15px] font-semibold">
-                  Анализы, документы, фото (при необходимости)
-                </h2>
-                <div className="border border-dashed border-slate-300 rounded-2xl p-4 bg-slate-50/80 text-[13px] text-slate-600">
-                  <p className="mb-2">
-                    Вы можете прикрепить результаты анализов, выписки, УЗИ,
-                    рентген, фото и другие файлы, которые помогут врачу лучше
-                    понять ситуацию.
-                  </p>
-                  <label className="inline-flex items-center gap-2 text-[12px] cursor-pointer">
-                    <span className="px-3 py-1.5 rounded-full bg-white border border-slate-300 shadow-sm">
-                      Выбрать файлы
-                    </span>
-                    <input
-                      type="file"
-                      multiple
-                      onChange={handleFileChange}
-                      className="hidden"
-                      accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.doc,.docx"
-                    />
-                    <span className="text-slate-500">
-                      (pdf, изображения и др. форматы)
-                    </span>
-                  </label>
-                  {files.length > 0 && (
-                    <ul className="mt-2 text-[12px] text-slate-600 list-disc pl-4">
-                      {files.map((file) => (
-                        <li key={file.name}>{file.name}</li>
                       ))}
-                    </ul>
-                  )}
-                </div>
-              </section>
+                  </optgroup>
+                  <optgroup label="Второе мнение">
+                    {availableServices
+                      .filter((s) => s.category === "второе мнение")
+                      .map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
+                      ))}
+                  </optgroup>
+                  <optgroup label="Диагностика">
+                    {availableServices
+                      .filter((s) => s.category === "диагностика")
+                      .map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
+                      ))}
+                  </optgroup>
+                  <optgroup label="Сопровождение">
+                    {availableServices
+                      .filter((s) => s.category === "сопровождение")
+                      .map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
+                      ))}
+                  </optgroup>
+                </select>
+                {selectedService && (
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    Фокус услуги: {selectedService.shortDescription}
+                  </p>
+                )}
+                {!selectedService && (
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    Если вы не уверены, какая услуга нужна — оставьте вариант
+                    «Не знаю». Администратор поможет подобрать формат.
+                  </p>
+                )}
+              </div>
+            </section>
 
-            {/* Итоговая плашка "Вы выбрали" */}
+            {/* Врач */}
+            <section className="space-y-3">
+              <h2 className="text-[15px] font-semibold">Врач</h2>
+              <div className="space-y-2">
+                <div className="flex flex-col gap-1 text-[12px] mb-1">
+                  <label className="inline-flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="doctorMode"
+                      value="auto"
+                      checked={doctorMode === "auto"}
+                      onChange={() => setDoctorMode("auto")}
+                      className="rounded-full border-slate-300"
+                    />
+                    <span>
+                      <span className="font-medium">
+                        Автоматический подбор врача
+                      </span>{" "}
+                      <span className="text-slate-500">(рекомендуется)</span>
+                    </span>
+                  </label>
+                  <label className="inline-flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="doctorMode"
+                      value="manual"
+                      checked={doctorMode === "manual"}
+                      onChange={() => setDoctorMode("manual")}
+                      className="rounded-full border-slate-300"
+                    />
+                    <span className="font-medium">
+                      Выбрать врача вручную
+                    </span>
+                  </label>
+                </div>
+
+                <select
+                  value={selectedDoctorId}
+                  onChange={(e) => setSelectedDoctorId(e.target.value)}
+                  disabled={doctorMode !== "manual"}
+                  className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] disabled:bg-slate-50 disabled:text-slate-400 focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
+                >
+                  <option value="">Не выбран</option>
+                  {availableDoctors.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+
+                {doctorMode === "manual" && selectedDoctor && (
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    Специализация врача: {selectedDoctor.role}
+                  </p>
+                )}
+                {doctorMode === "auto" && (
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    Мы подберём врача с нужной специализацией под ваш запрос.
+                  </p>
+                )}
+              </div>
+            </section>
+
+            {/* Дата и время */}
+            <section className="space-y-3">
+              <h2 className="text-[15px] font-semibold">Дата и время</h2>
+
+              {!timeSelectionLocked && (
+                <>
+                  <div className="flex flex-wrap gap-3 text-[12px]">
+                    <label className="inline-flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="timeMode"
+                        value="any"
+                        checked={timeMode === "any"}
+                        onChange={() => setTimeMode("any")}
+                        className="rounded-full border-slate-300"
+                      />
+                      <span>Любое ближайшее время (подберём сами)</span>
+                    </label>
+                    <label className="inline-flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="timeMode"
+                        value="choose"
+                        checked={timeMode === "choose"}
+                        onChange={() => setTimeMode("choose")}
+                        className="rounded-full border-slate-300"
+                      />
+                      <span>Выбрать дату и время</span>
+                    </label>
+                  </div>
+
+                  {timeMode === "choose" && (
+                    <div className="grid md:grid-cols-[1fr,1fr] gap-4">
+                      <div>
+                        <label className="block text-[12px] text-slate-600 mb-1">
+                          Дата
+                        </label>
+                        <input
+                          type="date"
+                          value={date}
+                          onChange={(e) => setDate(e.target.value)}
+                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[12px] text-slate-600 mb-1">
+                          Время
+                        </label>
+                        <input
+                          type="time"
+                          value={time}
+                          onChange={(e) => setTime(e.target.value)}
+                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {timeSelectionLocked && selectedSlot && selectedSlotLabel && (
+                <div className="bg-onlyvet-bg rounded-2xl border border-slate-200 p-3 text-[12px] text-slate-600 space-y-1">
+                  <div className="font-medium text-slate-700">
+                    Время выбрано: {selectedSlotLabel}
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    Если вы хотите изменить дату или время, нажмите «Изменить
+                    время» в блоке ниже — слот будет снят, и вы сможете выбрать
+                    другую опцию.
+                  </p>
+                </div>
+              )}
+
+              <div className="bg-onlyvet-bg rounded-2xl border border-dashed border-slate-300 p-3 text-[11px] text-slate-600 mt-2">
+                В реальной версии здесь будут отображаться доступные слоты из
+                Vetmanager, а выбранный слот будет бронироваться автоматически.
+              </div>
+            </section>
+
+            {/* Анализы, файлы */}
+            <section className="space-y-3">
+              <h2 className="text-[15px] font-semibold">
+                Анализы, документы, фото (при необходимости)
+              </h2>
+              <div className="border border-dashed border-slate-300 rounded-2xl p-4 bg-slate-50/80 text-[13px] text-slate-600">
+                <p className="mb-2">
+                  Вы можете прикрепить результаты анализов, выписки, УЗИ,
+                  рентген, фото и другие файлы, которые помогут врачу лучше
+                  понять ситуацию.
+                </p>
+                <label className="inline-flex items-center gap-2 text-[12px] cursor-pointer">
+                  <span className="px-3 py-1.5 rounded-full bg-white border border-slate-300 shadow-sm">
+                    Выбрать файлы
+                  </span>
+                  <input
+                    type="file"
+                    multiple
+                    onChange={handleFileChange}
+                    className="hidden"
+                    accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.doc,.docx"
+                  />
+                  <span className="text-slate-500">
+                    (pdf, изображения и др. форматы)
+                  </span>
+                </label>
+                {files.length > 0 && (
+                  <ul className="mt-2 text-[12px] text-slate-600 list-disc pl-4">
+                    {files.map((file) => (
+                      <li key={file.name}>{file.name}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </section>
+
+            {/* Итоговый блок "Вы выбрали" */}
             {(selectedService || selectedDoctor || selectedSlotLabel) && (
               <section className="space-y-2">
                 <h2 className="text-[15px] font-semibold">Вы выбрали</h2>
@@ -1221,6 +1217,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
             </section>
           </form>
         </div>
+      </div>
       </main>
       <Footer />
     </>
