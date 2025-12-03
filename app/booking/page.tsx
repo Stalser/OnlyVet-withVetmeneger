@@ -309,7 +309,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
     setSelectedSlotId("");
   };
 
-  const selectedSlotLabel =
+    const selectedSlotLabel =
     selectedSlot &&
     (() => {
       const dt = new Date(selectedSlot.start);
@@ -324,6 +324,24 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
       });
       return `${dateLabel} · ${timeLabel}`;
     })();
+
+  const handleTelegramClick = () => {
+    if (typeof window !== "undefined") {
+      window.open(
+        "https://t.me/onlyvet_clinic",
+        "_blank",
+        "noopener,noreferrer"
+      );
+    }
+  };
+
+  const showFull = kind === "full";
+
+  return (
+    <>
+      <Header />
+      <main className="flex-1 bg-slate-50/70 py-8">
+        <div className="container mx-auto max-w-5xl px-4">
 
   const handleTelegramClick = () => {
     if (typeof window !== "undefined") {
