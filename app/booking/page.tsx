@@ -22,9 +22,7 @@ type BookingPageProps = {
   };
 };
 
-// режим выбора врача
 type DoctorMode = "auto" | "manual";
-// тип заявки: короткая или полная
 type RequestKind = "short" | "full";
 
 const mockIsLoggedIn = false;
@@ -85,7 +83,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
   const [newPetAge, setNewPetAge] = useState("");
   const [newPetWeight, setNewPetWeight] = useState("");
 
-  // жалобы / суть проблемы
+  // жалобы
   const [complaint, setComplaint] = useState("");
 
   // врач / услуга / слот
@@ -103,7 +101,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
 
-  // файлы (пока только на фронте)
+  // файлы
   const [files, setFiles] = useState<File[]>([]);
 
   // согласия
@@ -114,7 +112,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
   // тип заявки
   const [kind, setKind] = useState<RequestKind>("short");
 
-  // валидация / статус отправки
+  // статус отправки
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -151,7 +149,6 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
   const phoneError = hasSubmitted && !phone.trim();
   const emailError = hasSubmitted && !email.trim();
 
-  // кличка обязательна только в подробной заявке
   const petNameRequired = kind === "full";
   const newPetNameError =
     hasSubmitted && petMode === "new" && petNameRequired && !newPetName.trim();
@@ -354,7 +351,81 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
   };
 
   const showFull = kind === "full";
-                         {/* Питомец – только для подробной заявки */}
+
+  return (
+    <>
+      <Header />
+      <main className="flex-1 bg-slate-50/70 py-8">
+        <div className="container mx-auto max-w-5xl px-4">
+          {/* Заголовок */}
+          <div className="mb-6">
+            <nav className="text-[12px] text-slate-500 mb-2">
+              <Link href="/" className="hover:text-onlyvet-coral">
+                Главная
+              </Link>{" "}
+              /{" "}
+              <span className="text-slate-700">
+                Записаться на консультацию
+              </span>
+            </nav>
+            <h1 className="text-xl md:text-2xl font-semibold mb-1">
+              Записаться на онлайн-консультацию
+            </h1>
+            <p className="text-[13px] text-slate-600 max-w-2xl">
+              Выберите удобный формат: короткая заявка, подробная форма или
+              переписка в Telegram.
+            </p>
+          </div>
+
+          {/* Карточки выбора формата */}
+          <BookingModeCards
+            kind={kind}
+            onChangeKind={setKind}
+            onTelegramClick={handleTelegramClick}
+          />
+
+          <form
+            onSubmit={handleSubmit}
+            className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 md:p-6 space-y-6"
+          >
+            {/* Сообщения об успехе/ошибке */}
+            {serverSuccess && (
+              <div className="text-[12px] text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-2xl px-3 py-2">
+                {serverSuccess}
+              </div>
+            )}
+            {serverError && (
+              <div className="text-[12px] text-rose-700 bg-rose-50 border border-rose-100 rounded-2xl px-3 py-2">
+                {serverError}
+              </div>
+            )}
+
+            {/* Контактные данные */}
+            <BookingContactSection
+              lastName={lastName}
+              firstName={firstName}
+              middleName={middleName}
+              noMiddleName={noMiddleName}
+              phone={phone}
+              email={email}
+              telegram={telegram}
+              setLastName={setLastName}
+              setFirstName={setFirstName}
+              setMiddleName={setMiddleName}
+              setNoMiddleName={setNoMiddleName}
+              setPhone={setPhone}
+              setEmail={setEmail}
+              setTelegram={setTelegram}
+              errors={{
+                lastNameError,
+                firstNameError,
+                middleNameError,
+                phoneError,
+                emailError,
+              }}
+            />
+
+            {/* Питомец – только для подробной заявки */}
             {showFull && (
               <section className="space-y-3">
                 <h2 className="text-[15px] font-semibold">
@@ -404,7 +475,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                         ))}
                       </select>
                       <p className="text-[11px] text-slate-500 mt-1">
-                        В реальной версии здесь будут данные из вашего личного
+                        В реальной версии здесь будут данные из личного
                         кабинета.
                       </p>
                     </div>
@@ -446,7 +517,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                         <select
                           value={newPetSpecies}
                           onChange={(e) => setNewPetSpecies(e.target.value)}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
+                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
                         >
                           <option value="">
                             Выберите вид или оставьте пустым
@@ -467,8 +538,8 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                           type="text"
                           value={newPetBreed}
                           onChange={(e) => setNewPetBreed(e.target.value)}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
-                          placeholder="Например: шотландская, метис и т.п."
+                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                          placeholder="Например: шотландская, метис"
                         />
                       </div>
                     </div>
@@ -483,7 +554,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                           value={newPetAge}
                           onChange={(e) => setNewPetAge(e.target.value)}
                           className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
-                          placeholder="Например: 2 года, 8 месяцев, не знаю"
+                          placeholder="Например: 2 года, 8 месяцев"
                         />
                       </div>
                       <div>
@@ -495,7 +566,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                           value={newPetWeight}
                           onChange={(e) => setNewPetWeight(e.target.value)}
                           className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
-                          placeholder="Например: 4.5 кг, ~20 кг, не знаю"
+                          placeholder="Например: 4.5 кг, ~20 кг"
                         />
                       </div>
                     </div>
@@ -504,15 +575,13 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
               </section>
             )}
 
-            {/* Кратко о проблеме */}
+            {/* Кратко о проблеме (общий блок для обоих режимов) */}
             <section className="space-y-3">
               <h2 className="text-[15px] font-semibold">
                 Кратко о проблеме
               </h2>
               <p className="text-[12px] text-slate-600">
-                Опишите, что вас беспокоит: какие симптомы, с какого времени,
-                что уже делали (анализы, лечение). Это поможет врачу лучше
-                подготовиться к консультации.
+                Опишите симптомы, длительность, предыдущее лечение и анализы.
               </p>
               <textarea
                 value={complaint}
@@ -525,14 +594,9 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                 "
                 placeholder="Например: 2 недели периодическая рвота, снижение аппетита..."
               />
-              <p className="text-[11px] text-slate-500">
-                В короткой заявке этот блок особенно важен: по нему врач и
-                администратор поймут, насколько срочно и какой формат вам
-                подойдёт.
-              </p>
             </section>
 
-            {/* Услуга / врач / время / файлы */}
+            {/* Услуга / врач / время / файлы — только для подробной формы */}
             {showFull && (
               <>
                 {/* Услуга */}
@@ -545,7 +609,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                     <select
                       value={selectedServiceId || ""}
                       onChange={(e) => setSelectedServiceId(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
                     >
                       <option value="">
                         Не знаю / нужна помощь с выбором
@@ -590,12 +654,6 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                     {selectedService && (
                       <p className="mt-1 text-[11px] text-slate-500">
                         Фокус услуги: {selectedService.shortDescription}
-                      </p>
-                    )}
-                    {!selectedService && (
-                      <p className="mt-1 text-[11px] text-slate-500">
-                        Если вы не уверены — оставьте «Не знаю», администратор
-                        поможет выбрать.
                       </p>
                     )}
                   </div>
@@ -683,7 +741,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                             onChange={() => setTimeMode("any")}
                             className="rounded-full border-slate-300"
                           />
-                          <span>Любое ближайшее время (подберём сами)</span>
+                          <span>Любое ближайшее время</span>
                         </label>
                         <label className="inline-flex items-center gap-2">
                           <input
@@ -708,7 +766,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                               type="date"
                               value={date}
                               onChange={(e) => setDate(e.target.value)}
-                              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
                             />
                           </div>
                           <div>
@@ -719,7 +777,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                               type="time"
                               value={time}
                               onChange={(e) => setTime(e.target.value)}
-                              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
                             />
                           </div>
                         </div>
@@ -733,14 +791,13 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                         Время выбрано: {selectedSlotLabel}
                       </div>
                       <p className="text-[11px] text-slate-500">
-                        Чтобы изменить дату или время, снимите бронь слота.
+                        Если хотите изменить время — снимите бронь слота.
                       </p>
                     </div>
                   )}
 
                   <div className="bg-onlyvet-bg rounded-2xl border border-dashed border-slate-300 p-3 text-[11px] text-slate-600 mt-2">
-                    В реальной версии здесь будут отображаться доступные слоты
-                    из Vetmanager.
+                    В реальной версии здесь будут слоты из Vetmanager.
                   </div>
                 </section>
 
@@ -751,8 +808,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                   </h2>
                   <div className="border border-dashed border-slate-300 rounded-2xl p-4 bg-slate-50/80 text-[13px] text-slate-600">
                     <p className="mb-2">
-                      Прикрепите результаты анализов, выписки, УЗИ, рентген,
-                      фото и другие файлы, которые помогут врачу.
+                      Прикрепите анализы, выписки, УЗИ, рентген, фото и др.
                     </p>
                     <label className="inline-flex items-center gap-2 text-[12px] cursor-pointer">
                       <span className="px-3 py-1.5 rounded-full bg-white border border-slate-300 shadow-sm">
