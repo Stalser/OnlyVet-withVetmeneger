@@ -354,7 +354,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
   };
 
   const showFull = kind === "full";
-              {/* Питомец – только для подробной заявки */}
+                         {/* Питомец – только для подробной заявки */}
             {showFull && (
               <section className="space-y-3">
                 <h2 className="text-[15px] font-semibold">
@@ -446,7 +446,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                         <select
                           value={newPetSpecies}
                           onChange={(e) => setNewPetSpecies(e.target.value)}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
                         >
                           <option value="">
                             Выберите вид или оставьте пустым
@@ -467,7 +467,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                           type="text"
                           value={newPetBreed}
                           onChange={(e) => setNewPetBreed(e.target.value)}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
                           placeholder="Например: шотландская, метис и т.п."
                         />
                       </div>
@@ -482,7 +482,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                           type="text"
                           value={newPetAge}
                           onChange={(e) => setNewPetAge(e.target.value)}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
                           placeholder="Например: 2 года, 8 месяцев, не знаю"
                         />
                       </div>
@@ -494,7 +494,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                           type="text"
                           value={newPetWeight}
                           onChange={(e) => setNewPetWeight(e.target.value)}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
                           placeholder="Например: 4.5 кг, ~20 кг, не знаю"
                         />
                       </div>
@@ -523,7 +523,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                   text-[13px] resize-none
                   focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40
                 "
-                placeholder="Например: 2 недели периодическая рвота, снижение аппетита, гастрит в анамнезе, есть анализы крови за прошлую неделю..."
+                placeholder="Например: 2 недели периодическая рвота, снижение аппетита..."
               />
               <p className="text-[11px] text-slate-500">
                 В короткой заявке этот блок особенно важен: по нему врач и
@@ -594,9 +594,8 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                     )}
                     {!selectedService && (
                       <p className="mt-1 text-[11px] text-slate-500">
-                        Если вы не уверены, какая услуга нужна — оставьте
-                        вариант «Не знаю». Администратор поможет подобрать
-                        формат.
+                        Если вы не уверены — оставьте «Не знаю», администратор
+                        поможет выбрать.
                       </p>
                     )}
                   </div>
@@ -734,30 +733,26 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                         Время выбрано: {selectedSlotLabel}
                       </div>
                       <p className="text-[11px] text-slate-500">
-                        Если вы хотите изменить дату или время, нажмите
-                        «Изменить время» в итоговом блоке — слот будет снят, и
-                        вы сможете выбрать другую опцию.
+                        Чтобы изменить дату или время, снимите бронь слота.
                       </p>
                     </div>
                   )}
 
                   <div className="bg-onlyvet-bg rounded-2xl border border-dashed border-slate-300 p-3 text-[11px] text-slate-600 mt-2">
                     В реальной версии здесь будут отображаться доступные слоты
-                    из Vetmanager, а выбранный слот будет бронироваться
-                    автоматически.
+                    из Vetmanager.
                   </div>
                 </section>
 
                 {/* Анализы, файлы */}
                 <section className="space-y-3">
                   <h2 className="text-[15px] font-semibold">
-                    Анализы, документы, фото (при необходимости)
+                    Анализы, документы, фото
                   </h2>
                   <div className="border border-dashed border-slate-300 rounded-2xl p-4 bg-slate-50/80 text-[13px] text-slate-600">
                     <p className="mb-2">
-                      Вы можете прикрепить результаты анализов, выписки, УЗИ,
-                      рентген, фото и другие файлы, которые помогут врачу
-                      лучше понять ситуацию.
+                      Прикрепите результаты анализов, выписки, УЗИ, рентген,
+                      фото и другие файлы, которые помогут врачу.
                     </p>
                     <label className="inline-flex items-center gap-2 text-[12px] cursor-pointer">
                       <span className="px-3 py-1.5 rounded-full bg-white border border-slate-300 shadow-sm">
@@ -939,9 +934,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                     : "Записаться на консультацию"}
                 </button>
                 <p className="mt-2 text-[11px] text-slate-500">
-                  Нажимая «Записаться», вы подтверждаете корректность указанных
-                  данных. После обработки заявки с вами свяжется администратор
-                  для уточнения деталей.
+                  После обработки заявки с вами свяжется администратор.
                 </p>
               </div>
             </section>
