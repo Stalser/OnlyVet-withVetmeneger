@@ -298,7 +298,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
     }
   };
 
-    const resetSelection = () => {
+  const resetSelection = () => {
     setSelectedDoctorId("");
     setSelectedServiceId("");
     setSelectedSlotId("");
@@ -334,8 +334,6 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
       );
     }
   };
-
-  const showFull = kind === "full";
 
   return (
     <>
