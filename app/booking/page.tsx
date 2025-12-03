@@ -13,6 +13,10 @@ import { slots } from "@/data/slots";
 import { BookingModeCards } from "./BookingModeCards";
 import { BookingContactSection } from "./components/BookingContactSection";
 import { BookingPetSection } from "./components/BookingPetSection";
+import { BookingModeCards } from "./BookingModeCards";
+import { BookingContactSection } from "./components/BookingContactSection";
+import { BookingPetSection } from "./components/BookingPetSection";
+import { BookingComplaintSection } from "./components/BookingComplaintSection";
 
 type BookingPageProps = {
   searchParams?: {
@@ -449,26 +453,12 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
               />
             )}
 
-            {/* Кратко о проблеме (общий блок для обоих режимов) */}
-            <section className="space-y-3">
-              <h2 className="text-[15px] font-semibold">
-                Кратко о проблеме
-              </h2>
-              <p className="text-[12px] text-slate-600">
-                Опишите симптомы, длительность, предыдущее лечение и анализы.
-              </p>
-              <textarea
-                value={complaint}
-                onChange={(e) => setComplaint(e.target.value)}
-                rows={kind === "short" ? 4 : 5}
-                className="
-                  w-full rounded-2xl border border-slate-300 px-3 py-2
-                  text-[13px] resize-none
-                  focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40
-                "
-                placeholder="Например: 2 недели периодическая рвота, снижение аппетита..."
-              />
-            </section>
+                       {/* Кратко о проблеме */}
+            <BookingComplaintSection
+              complaint={complaint}
+              setComplaint={setComplaint}
+              kind={kind}
+            />
 
             {/* Услуга / врач / время / файлы — только для подробной формы */}
             {showFull && (
