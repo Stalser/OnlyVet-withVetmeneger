@@ -195,7 +195,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
       selectedServiceId &&
       !availableServices.some((s) => s.id === selectedServiceId)
     ) {
-    setSelectedServiceId("");
+      setSelectedServiceId("");
     }
   }, [availableServices, selectedServiceId]);
 
@@ -343,7 +343,11 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
 
   const handleTelegramClick = () => {
     if (typeof window !== "undefined") {
-      window.open("https://t.me/onlyvet_clinic", "_blank", "noopener,noreferrer");
+      window.open(
+        "https://t.me/onlyvet_clinic",
+        "_blank",
+        "noopener,noreferrer"
+      );
     }
   };
 
@@ -490,7 +494,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
             <section className="space-y-3">
               <h2 className="text-[15px] font-semibold">Контактные данные</h2>
 
-              <div className "grid md:grid-cols-3 gap-3">
+              <div className="grid md:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-[12px] text-slate-600 mb-1">
                     Фамилия<span className="text-red-500">*</span>
@@ -535,7 +539,8 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                 </div>
                 <div>
                   <label className="block text-[12px] text-slate-600 mb-1">
-                    Отчество{!noMiddleName && (
+                    Отчество
+                    {!noMiddleName && (
                       <span className="text-red-500">*</span>
                     )}
                   </label>
@@ -631,7 +636,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                     type="text"
                     value={telegram}
                     onChange={(e) => setTelegram(e.target.value)}
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
+                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
                     placeholder="@username (необязательно)"
                   />
                   <p className="text-[11px] text-slate-500 mt-1">
@@ -647,7 +652,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                 <h2 className="text-[15px] font-semibold">
                   Информация о питомце
                 </h2>
-                <div className="flex флекс-wrap gap-3 text-[12px]">
+                <div className="flex flex-wrap gap-3 text-[12px]">
                   <label className="inline-flex items-center gap-2">
                     <input
                       type="radio"
@@ -681,7 +686,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                       <select
                         value={selectedPetId}
                         onChange={(e) => setSelectedPetId(e.target.value)}
-                        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
+                        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
                       >
                         <option value="">Выберите питомца</option>
                         {mockUser.pets.map((pet) => (
@@ -714,7 +719,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                         className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
                           newPetNameError
                             ? "border-rose-400 focus:ring-rose-300"
-                            : "border-slate-300 focus:ring-onlyvet-teал/40"
+                            : "border-slate-300 focus:ring-onlyvet-teal/40"
                         }`}
                         placeholder="Например: Локи"
                       />
@@ -733,7 +738,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                         <select
                           value={newPetSpecies}
                           onChange={(e) => setNewPetSpecies(e.target.value)}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
+                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
                         >
                           <option value="">
                             Выберите вид или оставьте пустым
@@ -754,7 +759,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                           type="text"
                           value={newPetBreed}
                           onChange={(e) => setNewPetBreed(e.target.value)}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
+                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
                           placeholder="Например: шотландская, метис и т.п."
                         />
                       </div>
@@ -769,7 +774,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                           type="text"
                           value={newPetAge}
                           onChange={(e) => setNewPetAge(e.target.value)}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
+                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
                           placeholder="Например: 2 года, 8 месяцев, не знаю"
                         />
                       </div>
@@ -781,14 +786,14 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                           type="text"
                           value={newPetWeight}
                           onChange={(e) => setNewPetWeight(e.target.value)}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
+                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
                           placeholder="Например: 4.5 кг, ~20 кг, не знаю"
                         />
                       </div>
                     </div>
                   </div>
                 )}
-            </section>
+              </section>
             )}
 
             {/* Кратко о проблеме (общий блок для обоих режимов) */}
@@ -832,7 +837,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                     <select
                       value={selectedServiceId || ""}
                       onChange={(e) => setSelectedServiceId(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
                     >
                       <option value="">
                         Не знаю / нужна помощь с выбором
@@ -996,7 +1001,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                               type="date"
                               value={date}
                               onChange={(e) => setDate(e.target.value)}
-                              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
+                              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
                             />
                           </div>
                           <div>
@@ -1007,7 +1012,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                               type="time"
                               value={time}
                               onChange={(e) => setTime(e.target.value)}
-                              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
+                              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
                             />
                           </div>
                         </div>
@@ -1247,6 +1252,5 @@ function cnCard(active: boolean, activeBorder: string, hoverBorder: string) {
     active
       ? `bg-emerald-50 ${activeBorder} shadow-[0_18px_40px_rgba(15,23,42,0.08)]`
       : `bg-white border-slate-200 hover:${hoverBorder} hover:bg-slate-50`,
-  ]
-    .join(" ");
+  ].join(" ");
 }
