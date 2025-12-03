@@ -20,7 +20,10 @@ type BookingPageProps = {
   };
 };
 
+// режим выбора врача
 type DoctorMode = "auto" | "manual";
+// тип заявки: короткая или полная
+type RequestKind = "short" | "full";
 
 const mockIsLoggedIn = false;
 const mockUser = {
@@ -59,9 +62,6 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
       ? petIdFromQuery
       : "";
 
-  // режим карточек в шапке
-  const [mode, setMode] = useState<"quick" | "full" | "telegram">("quick");
-
   // ФИО
   const [lastName, setLastName] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -83,7 +83,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
   const [newPetAge, setNewPetAge] = useState("");
   const [newPetWeight, setNewPetWeight] = useState("");
 
-  // жалоба
+  // жалобы / суть проблемы
   const [complaint, setComplaint] = useState("");
 
   // врач / услуга / слот
@@ -96,12 +96,12 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
     useState<string>(initialDoctorId);
   const [selectedSlotId, setSelectedSlotId] = useState<string>(initialSlotId);
 
-  // время
+  // время вручную
   const [timeMode, setTimeMode] = useState<"any" | "choose">("any");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
 
-  // файлы (демо)
+  // файлы (пока только на фронте)
   const [files, setFiles] = useState<File[]>([]);
 
   // согласия
@@ -109,13 +109,15 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
   const [consentOffer, setConsentOffer] = useState(false);
   const [consentRules, setConsentRules] = useState(false);
 
-  // статус отправки / ошибки
+  // тип заявки
+  const [kind, setKind] = useState<RequestKind>("short");
+
+  // валидация / статус отправки
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [serverSuccess, setServerSuccess] = useState<string | null>(null);
 
-  // демо-подстановка из mockUser
   useEffect(() => {
     if (mockIsLoggedIn) {
       const parts = mockUser.fullName.split(" ");
@@ -133,6 +135,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
   const selectedDoctor = doctors.find((d) => d.id === selectedDoctorId);
   const selectedService = services.find((s) => s.id === selectedServiceId);
   const selectedSlot = slots.find((s) => s.id === selectedSlotId);
+
   const timeSelectionLocked = !!selectedSlot;
 
   const fullName = [lastName, firstName, !noMiddleName && middleName]
@@ -145,8 +148,12 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
     hasSubmitted && !noMiddleName && !middleName.trim();
   const phoneError = hasSubmitted && !phone.trim();
   const emailError = hasSubmitted && !email.trim();
+
+  // кличка обязательна только в подробной заявке
+  const petNameRequired = kind === "full";
   const newPetNameError =
-    hasSubmitted && petMode === "new" && !newPetName.trim();
+    hasSubmitted && petMode === "new" && petNameRequired && !newPetName.trim();
+
   const consentsError =
     hasSubmitted &&
     (!consentPersonalData || !consentOffer || !consentRules);
@@ -177,15 +184,18 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
       !availableDoctors.some((d) => d.id === selectedDoctorId)
     ) {
       setSelectedDoctorId("");
+      if (doctorMode === "manual") {
+        setDoctorMode("manual");
+      }
     }
-  }, [selectedServiceId, selectedDoctorId, availableDoctors]);
+  }, [selectedServiceId, selectedDoctorId, availableDoctors, doctorMode]);
 
   useEffect(() => {
     if (
       selectedServiceId &&
       !availableServices.some((s) => s.id === selectedServiceId)
     ) {
-      setSelectedServiceId("");
+    setSelectedServiceId("");
     }
   }, [availableServices, selectedServiceId]);
 
@@ -201,7 +211,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
     (noMiddleName || middleName.trim().length > 0) &&
     phone.trim().length > 0 &&
     email.trim().length > 0 &&
-    (petMode === "existing" || newPetName.trim().length > 0) &&
+    (!petNameRequired || petMode === "existing" || newPetName.trim().length > 0) &&
     consentPersonalData &&
     consentOffer &&
     consentRules;
@@ -223,10 +233,12 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
       setIsSubmitting(true);
 
       const petSpecies =
-        petMode === "new" ? newPetSpecies || undefined : undefined;
+        kind === "full" && petMode === "new"
+          ? newPetSpecies || undefined
+          : undefined;
 
       const petNotes =
-        petMode === "new"
+        kind === "full" && petMode === "new"
           ? [
               newPetBreed ? `порода: ${newPetBreed}` : "",
               newPetAge ? `возраст: ${newPetAge}` : "",
@@ -236,25 +248,42 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
               .join("; ")
           : undefined;
 
+      const effectiveServiceId =
+        kind === "full" && selectedServiceId ? selectedServiceId : undefined;
+
+      const effectiveDoctorId =
+        kind === "full" && doctorMode === "manual" && selectedDoctorId
+          ? selectedDoctorId
+          : undefined;
+
+      const effectiveTimeMode = kind === "full" ? timeMode : "any";
+      const effectivePreferredDate =
+        kind === "full" && timeMode === "choose" && date ? date : undefined;
+      const effectivePreferredTime =
+        kind === "full" && timeMode === "choose" && time ? time : undefined;
+
       const payload = {
         fullName,
         phone,
         telegram: telegram || undefined,
         email,
-        petMode,
-        petId: petMode === "existing" ? selectedPetId || undefined : undefined,
-        petName: petMode === "new" ? newPetName || undefined : undefined,
+        petMode: kind === "full" ? petMode : "new",
+        petId:
+          kind === "full" && petMode === "existing"
+            ? selectedPetId || undefined
+            : undefined,
+        petName:
+          kind === "full" && petMode === "new"
+            ? newPetName || undefined
+            : undefined,
         petSpecies,
         petNotes,
-        serviceId: selectedServiceId || undefined,
-        doctorId:
-          doctorMode === "manual" && selectedDoctorId
-            ? selectedDoctorId
-            : undefined,
-        timeMode,
-        preferredDate: timeMode === "choose" ? date || undefined : undefined,
-        preferredTime: timeMode === "choose" ? time || undefined : undefined,
-        vmSlotId: selectedSlotId || undefined,
+        serviceId: effectiveServiceId,
+        doctorId: effectiveDoctorId,
+        timeMode: effectiveTimeMode,
+        preferredDate: effectivePreferredDate,
+        preferredTime: effectivePreferredTime,
+        vmSlotId: kind === "full" ? selectedSlotId || undefined : undefined,
         complaint: complaint || undefined,
       };
 
@@ -292,7 +321,9 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
     setDoctorMode("auto");
   };
 
-  const resetSlot = () => setSelectedSlotId("");
+  const resetSlot = () => {
+    setSelectedSlotId("");
+  };
 
   const selectedSlotLabel =
     selectedSlot &&
@@ -310,10 +341,13 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
       return `${dateLabel} · ${timeLabel}`;
     })();
 
-  const scrollToForm = () => {
-    const el = document.getElementById("full-form");
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  const handleTelegramClick = () => {
+    if (typeof window !== "undefined") {
+      window.open("https://t.me/onlyvet_clinic", "_blank", "noopener,noreferrer");
+    }
   };
+
+  const showFull = kind === "full";
 
   return (
     <>
@@ -341,297 +375,279 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
           </div>
 
           {/* Карточки выбора формата */}
-          <section className="space-y-3 mb-6">
+          <section className="mb-5">
             <div className="grid md:grid-cols-3 gap-3">
-              {/* Краткая заявка */}
+              {/* Краткая */}
               <button
                 type="button"
-                onClick={() => {
-                  setMode("quick");
-                  scrollToForm();
-                }}
-                className={`
-                  text-left rounded-3xl border p-4 shadow-soft transition-all
-                  hover:-translate-y-[2px] hover:shadow-[0_14px_32px_rgba(15,23,42,0.1)]
-                  ${
-                    mode === "quick"
-                      ? "border-teal-400 bg-teal-50"
-                      : "border-slate-300 bg-white"
-                  }
-                `}
+                onClick={() => setKind("short")}
+                className={cnCard(
+                  kind === "short",
+                  "border-emerald-200",
+                  "hover:border-emerald-300"
+                )}
               >
-                <div className="text-[15px] font-semibold mb-1">
+                <div className="text-[12px] uppercase tracking-[0.12em] text-emerald-700">
                   Краткая заявка
                 </div>
-                <p className="text-[13px] text-slate-600">
-                  Только контакты и коротко суть проблемы. Остальное
-                  администратор уточнит при созвоне и поможет оформить полную
-                  заявку.
-                </p>
-                <div className="mt-2 text-[12px] bg-teal-100 rounded-xl px-3 py-1 text-teal-700 inline-block">
-                  Рекомендуется как первый шаг, если не хотите заполнять
-                  большую форму.
+                <div className="mt-1 text-[13px] font-semibold text-slate-900">
+                  Только контакты и коротко суть проблемы.
                 </div>
+                <p className="mt-1 text-[12px] text-slate-600">
+                  Остальное администратор уточнит при созвоне и поможет
+                  оформить полную заявку.
+                </p>
+                <p className="mt-3 text-[11px] text-emerald-800 bg-emerald-50 rounded-2xl px-3 py-2">
+                  Рекомендуется как первый шаг, если вы не хотите сразу
+                  заполнять большую форму.
+                </p>
               </button>
 
-              {/* Подробная заявка */}
+              {/* Подробная */}
               <button
                 type="button"
-                onClick={() => {
-                  setMode("full");
-                  scrollToForm();
-                }}
-                className={`
-                  text-left rounded-3xl border p-4 shadow-soft transition-all
-                  hover:-translate-y-[2px] hover:shadow-[0_14px_32px_rgba(15,23,42,0.1)]
-                  ${
-                    mode === "full"
-                      ? "border-emerald-400 bg-emerald-50"
-                      : "border-slate-300 bg-white"
-                  }
-                `}
+                onClick={() => setKind("full")}
+                className={cnCard(
+                  kind === "full",
+                  "border-emerald-200",
+                  "hover:border-emerald-300"
+                )}
               >
-                <div className="text-[15px] font-semibold">
+                <div className="text-[12px] uppercase tracking-[0.12em] text-emerald-700">
                   Подробная онлайн-заявка
                 </div>
-                <p className="text-[13px] text-slate-600 mt-1">
+                <div className="mt-1 text-[13px] font-semibold text-slate-900">
                   Полное описание ситуации, выбор услуги и врача, удобная дата и
                   время — всё в одной форме.
-                </p>
-                <div className="mt-2 text-[12px] bg-emerald-100 rounded-xl px-3 py-1 text-emerald-700 inline-block">
-                  Для сложных и неясных случаев, когда важно учесть все детали.
                 </div>
+                <p className="mt-1 text-[12px] text-slate-600">
+                  Для сложных и неясных случаев, когда важно учесть все детали.
+                </p>
+                <p className="mt-3 text-[11px] text-emerald-800 bg-emerald-50 rounded-2xl px-3 py-2">
+                  Оптимально, если вы готовы сразу приложить анализы и хотите
+                  получить максимально развернутый ответ.
+                </p>
               </button>
 
               {/* Telegram */}
-              <a
-                href="https://t.me/onlyvet_clinic"
-                target="_blank"
-                rel="noreferrer"
-                onClick={() => setMode("telegram")}
-                className={`
-                  text-left rounded-3xl border p-4 shadow-soft transition-all
-                  hover:-translate-y-[2px] hover:shadow-[0_14px_32px_rgba(15,23,42,0.1)]
-                  ${
-                    mode === "telegram"
-                      ? "border-[#229ED9] bg-[#E8F7FF]"
-                      : "border-slate-300 bg-white"
-                  }
-                `}
+              <button
+                type="button"
+                onClick={handleTelegramClick}
+                className="
+                  flex flex-col items-start rounded-3xl border border-sky-200 
+                  bg-sky-50 px-4 py-4 md:px-5 md:py-5 
+                  shadow-sm hover:shadow-[0_18px_40px_rgba(56,189,248,0.35)]
+                  transition
+                "
               >
-                <div className="flex items-center gap-2 mb-1">
-                  <img
-                    src="/img/free-icon-telegram-2111646.svg"
-                    alt="Telegram"
-                    className="w-6 h-6"
-                  />
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-sky-500 flex items-center justify-center">
+                    <img
+                      src="/img/free-icon-telegram-2111646.svg"
+                      alt="Telegram"
+                      className="w-4 h-4"
+                    />
+                  </div>
+                  <div className="text-[12px] uppercase tracking-[0.12em] text-sky-800">
+                    Написать в Telegram
+                  </div>
                 </div>
-                <div className="text-[15px] font-semibold mb-1">
-                  Написать в Telegram
-                </div>
-                <p className="text-[13px] text-slate-600">
+                <div className="mt-2 text-[13px] font-semibold text-slate-900">
                   Можно сразу написать администратору, отправить анализы и
                   задать вопросы по формату.
-                </p>
-                <div className="mt-2 text-[12px] text-[#229ED9]">
-                  Подходит, если удобнее общаться в мессенджере.
                 </div>
-              </a>
+                <p className="mt-1 text-[12px] text-slate-700">
+                  Подходит, если удобнее общаться в мессенджере.
+                </p>
+              </button>
             </div>
 
-            <div className="text-[13px] text-slate-600 mt-2">
+            <div className="mt-3 text-[12px] text-slate-600">
               Предпочитаете запись по телефону?{" "}
-              <a
-                href="tel:+79000000000"
-                className="text-onlyvet-coral hover:underline"
-              >
+              <a href="tel:+79000000000" className="text-onlyvet-coral">
                 Позвонить +7 900 000-00-00.
               </a>
             </div>
           </section>
 
-          {/* Полная форма (для обоих режимов заявки) */}
-          <div id="full-form">
-            <form
-              onSubmit={handleSubmit}
-              className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 md:p-6 space-y-6"
-            >
-              {/* Сообщения */}
-              {serverSuccess && (
-                <div className="text-[12px] text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-2xl px-3 py-2">
-                  {serverSuccess}
-                </div>
-              )}
-              {serverError && (
-                <div className="text-[12px] text-rose-700 bg-rose-50 border border-rose-100 rounded-2xl px-3 py-2">
-                  {serverError}
-                </div>
-              )}
+          <form
+            onSubmit={handleSubmit}
+            className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 md:p-6 space-y-6"
+          >
+            {/* Сообщения об успехе/ошибке */}
+            {serverSuccess && (
+              <div className="text-[12px] text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-2xl px-3 py-2">
+                {serverSuccess}
+              </div>
+            )}
+            {serverError && (
+              <div className="text-[12px] text-rose-700 bg-rose-50 border border-rose-100 rounded-2xl px-3 py-2">
+                {serverError}
+              </div>
+            )}
 
-              {/* Контактные данные */}
-              <section className="space-y-3">
-                <h2 className="text-[15px] font-semibold">
-                  Контактные данные
-                </h2>
+            {/* Контактные данные */}
+            <section className="space-y-3">
+              <h2 className="text-[15px] font-semibold">Контактные данные</h2>
 
-                <div className="grid md:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-[12px] text-slate-600 mb-1">
-                      Фамилия<span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
-                        lastNameError
-                          ? "border-rose-400 focus:ring-rose-300"
-                          : "border-slate-300 focus:ring-onlyvet-teal/40"
-                      }`}
-                      placeholder="Иванов"
-                    />
-                    {lastNameError && (
-                      <p className="mt-1 text-[11px] text-rose-600">
-                        Укажите фамилию.
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-[12px] text-slate-600 mb-1">
-                      Имя<span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
-                        firstNameError
-                          ? "border-rose-400 focus:ring-rose-300"
-                          : "border-slate-300 focus:ring-onlyvet-teal/40"
-                      }`}
-                      placeholder="Иван"
-                    />
-                    {firstNameError && (
-                      <p className="mt-1 text-[11px] text-rose-600">
-                        Укажите имя.
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-[12px] text-slate-600 mb-1">
-                      Отчество
-                      {!noMiddleName && (
-                        <span className="text-red-500">*</span>
-                      )}
-                    </label>
-                    <input
-                      type="text"
-                      value={middleName}
-                      onChange={(e) => setMiddleName(e.target.value)}
-                      disabled={noMiddleName}
-                      className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
-                        noMiddleName
-                          ? "border-slate-200 bg-slate-50 text-slate-400"
-                          : middleNameError
-                          ? "border-rose-400 focus:ring-rose-300"
-                          : "border-slate-300 focus:ring-onlyvet-teal/40"
-                      }`}
-                      placeholder={noMiddleName ? "Не указано" : "Иванович"}
-                    />
-                    <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-600">
-                      <input
-                        type="checkbox"
-                        id="no-middle-name"
-                        checked={noMiddleName}
-                        onChange={(e) => setNoMiddleName(e.target.checked)}
-                        className="rounded border-slate-300"
-                      />
-                      <label
-                        htmlFor="no-middle-name"
-                        className="select-none cursor-pointer"
-                      >
-                        Нет отчества
-                      </label>
-                    </div>
-                    {middleNameError && !noMiddleName && (
-                      <p className="mt-1 text-[11px] text-rose-600">
-                        Укажите отчество или отметьте «Нет отчества».
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[12px] text-slate-600 mb-1">
-                      Номер телефона<span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
-                        phoneError
-                          ? "border-rose-400 focus:ring-rose-300"
-                          : "border-slate-300 focus:ring-onlyvet-teal/40"
-                      }`}
-                      placeholder="+7 ..."
-                    />
-                    {phoneError && (
-                      <p className="mt-1 text-[11px] text-rose-600">
-                        Укажите номер телефона, чтобы мы могли связаться с вами.
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-[12px] text-slate-600 mb-1">
-                      Email<span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
-                        emailError
-                          ? "border-rose-400 focus:ring-rose-300"
-                          : "border-slate-300 focus:ring-onlyvet-teal/40"
-                      }`}
-                      placeholder="example@mail.ru"
-                    />
-                    {emailError && (
-                      <p className="mt-1 text-[11px] text-rose-600">
-                        Email обязателен для подтверждений и материалов
-                        консультации.
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[12px] text-slate-600 mb-1">
-                      Логин Telegram
-                    </label>
-                    <input
-                      type="text"
-                      value={telegram}
-                      onChange={(e) => setTelegram(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
-                      placeholder="@username (необязательно)"
-                    />
-                    <p className="text-[11px] text-slate-500 mt-1">
-                      При наличии нам проще общаться через Telegram.
+              <div className "grid md:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[12px] text-slate-600 mb-1">
+                    Фамилия<span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
+                      lastNameError
+                        ? "border-rose-400 focus:ring-rose-300"
+                        : "border-slate-300 focus:ring-onlyvet-teal/40"
+                    }`}
+                    placeholder="Иванов"
+                  />
+                  {lastNameError && (
+                    <p className="mt-1 text-[11px] text-rose-600">
+                      Укажите фамилию.
                     </p>
-                  </div>
+                  )}
                 </div>
-              </section>
+                <div>
+                  <label className="block text-[12px] text-slate-600 mb-1">
+                    Имя<span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
+                      firstNameError
+                        ? "border-rose-400 focus:ring-rose-300"
+                        : "border-slate-300 focus:ring-onlyvet-teal/40"
+                    }`}
+                    placeholder="Иван"
+                  />
+                  {firstNameError && (
+                    <p className="mt-1 text-[11px] text-rose-600">
+                      Укажите имя.
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-[12px] text-slate-600 mb-1">
+                    Отчество{!noMiddleName && (
+                      <span className="text-red-500">*</span>
+                    )}
+                  </label>
+                  <input
+                    type="text"
+                    value={middleName}
+                    onChange={(e) => setMiddleName(e.target.value)}
+                    disabled={noMiddleName}
+                    className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
+                      noMiddleName
+                        ? "border-slate-200 bg-slate-50 text-slate-400"
+                        : middleNameError
+                        ? "border-rose-400 focus:ring-rose-300"
+                        : "border-slate-300 focus:ring-onlyvet-teal/40"
+                    }`}
+                    placeholder={noMiddleName ? "Не указано" : "Иванович"}
+                  />
+                  <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-600">
+                    <input
+                      type="checkbox"
+                      id="no-middle-name"
+                      checked={noMiddleName}
+                      onChange={(e) => setNoMiddleName(e.target.checked)}
+                      className="rounded border-slate-300"
+                    />
+                    <label
+                      htmlFor="no-middle-name"
+                      className="select-none cursor-pointer"
+                    >
+                      Нет отчества
+                    </label>
+                  </div>
+                  {middleNameError && !noMiddleName && (
+                    <p className="mt-1 text-[11px] text-rose-600">
+                      Укажите отчество или отметьте «Нет отчества».
+                    </p>
+                  )}
+                </div>
+              </div>
 
-              {/* Питомец */}
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[12px] text-slate-600 mb-1">
+                    Номер телефона<span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
+                      phoneError
+                        ? "border-rose-400 focus:ring-rose-300"
+                        : "border-slate-300 focus:ring-onlyvet-teal/40"
+                    }`}
+                    placeholder="+7 ..."
+                  />
+                  {phoneError && (
+                    <p className="mt-1 text-[11px] text-rose-600">
+                      Укажите номер телефона, чтобы мы могли связаться с вами.
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-[12px] text-slate-600 mb-1">
+                    Email<span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
+                      emailError
+                        ? "border-rose-400 focus:ring-rose-300"
+                        : "border-slate-300 focus:ring-onlyvet-teal/40"
+                    }`}
+                    placeholder="example@mail.ru"
+                  />
+                  {emailError && (
+                    <p className="mt-1 text-[11px] text-rose-600">
+                      Email обязателен для подтверждений и материалов
+                      консультации.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[12px] text-slate-600 mb-1">
+                    Логин Telegram
+                  </label>
+                  <input
+                    type="text"
+                    value={telegram}
+                    onChange={(e) => setTelegram(e.target.value)}
+                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
+                    placeholder="@username (необязательно)"
+                  />
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    При наличии нам проще общаться через Telegram.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            {/* Питомец – только для подробной заявки */}
+            {showFull && (
               <section className="space-y-3">
                 <h2 className="text-[15px] font-semibold">
                   Информация о питомце
                 </h2>
-                <div className="flex flex-wrap gap-3 text-[12px]">
+                <div className="flex флекс-wrap gap-3 text-[12px]">
                   <label className="inline-flex items-center gap-2">
                     <input
                       type="radio"
@@ -681,8 +697,8 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                     </div>
                   ) : (
                     <p className="text-[12px] text-slate-500">
-                      Для выбора существующего питомца нужен личный кабинет. Пока
-                      можно указать питомца как нового.
+                      Для выбора существующего питомца нужен личный кабинет.
+                      Пока можно указать питомца как нового.
                     </p>
                   )
                 ) : (
@@ -772,441 +788,465 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                     </div>
                   </div>
                 )}
-              </section>
+            </section>
+            )}
 
-              {/* Кратко о проблеме */}
-              <section className="space-y-3">
-                <h2 className="text-[15px] font-semibold">
-                  Кратко о проблеме
-                </h2>
-                <p className="text-[12px] text-slate-600">
-                  Опишите, что вас беспокоит: какие симптомы, с какого времени,
-                  что уже делали (анализы, лечение). Это помогает врачу
-                  подготовиться к приёму.
-                </p>
-                <textarea
-                  value={complaint}
-                  onChange={(e) => setComplaint(e.target.value)}
-                  rows={4}
-                  className="
-                    w-full rounded-2xl border border-slate-300 px-3 py-2
-                    text-[13px] resize-none
-                    focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40
-                  "
-                  placeholder="Например: 2 недели периодическая рвота, снижение аппетита, гастрит в анамнезе, есть анализы крови за прошлую неделю..."
-                />
-                <p className="text-[11px] text-slate-500">
-                  Это поле необязательно, но очень помогает врачу.
-                </p>
-              </section>
+            {/* Кратко о проблеме (общий блок для обоих режимов) */}
+            <section className="space-y-3">
+              <h2 className="text-[15px] font-semibold">
+                Кратко о проблеме
+              </h2>
+              <p className="text-[12px] text-slate-600">
+                Опишите, что вас беспокоит: какие симптомы, с какого времени,
+                что уже делали (анализы, лечение). Это поможет врачу лучше
+                подготовиться к консультации.
+              </p>
+              <textarea
+                value={complaint}
+                onChange={(e) => setComplaint(e.target.value)}
+                rows={kind === "short" ? 4 : 5}
+                className="
+                  w-full rounded-2xl border border-slate-300 px-3 py-2
+                  text-[13px] resize-none
+                  focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40
+                "
+                placeholder="Например: 2 недели периодическая рвота, снижение аппетита, гастрит в анамнезе, есть анализы крови за прошлую неделю..."
+              />
+              <p className="text-[11px] text-slate-500">
+                В короткой заявке этот блок особенно важен: по нему врач и
+                администратор поймут, насколько срочно и какой формат вам
+                подойдёт.
+              </p>
+            </section>
 
-              {/* Услуга */}
-              <section className="space-y-3">
-                <h2 className="text-[15px] font-semibold">Услуга</h2>
-                <div className="space-y-2">
-                  <label className="block text-[12px] text-slate-600 mb-1">
-                    Выберите услугу
-                  </label>
-                  <select
-                    value={selectedServiceId || ""}
-                    onChange={(e) => setSelectedServiceId(e.target.value)}
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
-                  >
-                    <option value="">
-                      Не знаю / нужна помощь с выбором
-                    </option>
-                    <optgroup label="Консультации">
-                      {availableServices
-                        .filter((s) => s.category === "консультация")
-                        .map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.name}
-                          </option>
-                        ))}
-                    </optgroup>
-                    <optgroup label="Второе мнение">
-                      {availableServices
-                        .filter((s) => s.category === "второе мнение")
-                        .map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.name}
-                          </option>
-                        ))}
-                    </optgroup>
-                    <optgroup label="Диагностика">
-                      {availableServices
-                        .filter((s) => s.category === "диагностика")
-                        .map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.name}
-                          </option>
-                        ))}
-                    </optgroup>
-                    <optgroup label="Сопровождение">
-                      {availableServices
-                        .filter((s) => s.category === "сопровождение")
-                        .map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.name}
-                          </option>
-                        ))}
-                    </optgroup>
-                  </select>
-                  {selectedService && (
-                    <p className="mt-1 text-[11px] text-slate-500">
-                      Фокус услуги: {selectedService.shortDescription}
-                    </p>
-                  )}
-                  {!selectedService && (
-                    <p className="mt-1 text-[11px] text-slate-500">
-                      Если вы не уверены, какая услуга нужна — оставьте вариант
-                      «Не знаю». Администратор поможет подобрать формат.
-                    </p>
-                  )}
-                </div>
-              </section>
-
-              {/* Врач */}
-              <section className="space-y-3">
-                <h2 className="text-[15px] font-semibold">Врач</h2>
-                <div className="space-y-2">
-                  <div className="flex flex-col gap-1 text-[12px] mb-1">
-                    <label className="inline-flex items-center gap-2">
-                      <input
-                        type="radio"
-                        name="doctorMode"
-                        value="auto"
-                        checked={doctorMode === "auto"}
-                        onChange={() => setDoctorMode("auto")}
-                        className="rounded-full border-slate-300"
-                      />
-                      <span>
-                        <span className="font-medium">
-                          Автоматический подбор врача
-                        </span>{" "}
-                        <span className="text-slate-500">(рекомендуется)</span>
-                      </span>
+            {/* Услуга / врач / время / файлы — только для подробной формы */}
+            {showFull && (
+              <>
+                {/* Услуга */}
+                <section className="space-y-3">
+                  <h2 className="text-[15px] font-semibold">Услуга</h2>
+                  <div className="space-y-2">
+                    <label className="block text-[12px] text-slate-600 mb-1">
+                      Выберите услугу
                     </label>
-                    <label className="inline-flex items-center gap-2">
-                      <input
-                        type="radio"
-                        name="doctorMode"
-                        value="manual"
-                        checked={doctorMode === "manual"}
-                        onChange={() => setDoctorMode("manual")}
-                        className="rounded-full border-slate-300"
-                      />
-                      <span className="font-medium">
-                        Выбрать врача вручную
-                      </span>
-                    </label>
-                  </div>
-
-                  <select
-                    value={selectedDoctorId}
-                    onChange={(e) => setSelectedDoctorId(e.target.value)}
-                    disabled={doctorMode !== "manual"}
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] disabled:bg-slate-50 disabled:text-slate-400 focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
-                  >
-                    <option value="">Не выбран</option>
-                    {availableDoctors.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.name}
+                    <select
+                      value={selectedServiceId || ""}
+                      onChange={(e) => setSelectedServiceId(e.target.value)}
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
+                    >
+                      <option value="">
+                        Не знаю / нужна помощь с выбором
                       </option>
-                    ))}
-                  </select>
-
-                  {doctorMode === "manual" && selectedDoctor && (
-                    <p className="mt-1 text-[11px] text-slate-500">
-                      Специализация врача: {selectedDoctor.role}
-                    </p>
-                  )}
-                  {doctorMode === "auto" && (
-                    <p className="mt-1 text-[11px] text-slate-500">
-                      Мы подберём врача с нужной специализацией под ваш запрос.
-                    </p>
-                  )}
-                </div>
-              </section>
-
-              {/* Дата и время */}
-              <section className="space-y-3">
-                <h2 className="text-[15px] font-semibold">Дата и время</h2>
-
-                {!timeSelectionLocked && (
-                  <>
-                    <div className="flex flex-wrap gap-3 text-[12px]">
-                      <label className="inline-flex items-center gap-2">
-                        <input
-                          type="radio"
-                          name="timeMode"
-                          value="any"
-                          checked={timeMode === "any"}
-                          onChange={() => setTimeMode("any")}
-                          className="rounded-full border-slate-300"
-                        />
-                        <span>Любое ближайшее время (подберём сами)</span>
-                      </label>
-                      <label className="inline-flex items-center gap-2">
-                        <input
-                          type="radio"
-                          name="timeMode"
-                          value="choose"
-                          checked={timeMode === "choose"}
-                          onChange={() => setTimeMode("choose")}
-                          className="rounded-full border-slate-300"
-                        />
-                        <span>Выбрать дату и время</span>
-                      </label>
-                    </div>
-
-                    {timeMode === "choose" && (
-                      <div className="grid md:grid-cols-[1fr,1fr] gap-4">
-                        <div>
-                          <label className="block text-[12px] text-slate-600 mb-1">
-                            Дата
-                          </label>
-                          <input
-                            type="date"
-                            value={date}
-                            onChange={(e) => setDate(e.target.value)}
-                            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[12px] text-slate-600 mb-1">
-                            Время
-                          </label>
-                          <input
-                            type="time"
-                            value={time}
-                            onChange={(e) => setTime(e.target.value)}
-                            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
-                          />
-                        </div>
-                      </div>
+                      <optgroup label="Консультации">
+                        {availableServices
+                          .filter((s) => s.category === "консультация")
+                          .map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.name}
+                            </option>
+                          ))}
+                      </optgroup>
+                      <optgroup label="Второе мнение">
+                        {availableServices
+                          .filter((s) => s.category === "второе мнение")
+                          .map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.name}
+                            </option>
+                          ))}
+                      </optgroup>
+                      <optgroup label="Диагностика">
+                        {availableServices
+                          .filter((s) => s.category === "диагностика")
+                          .map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.name}
+                            </option>
+                          ))}
+                      </optgroup>
+                      <optgroup label="Сопровождение">
+                        {availableServices
+                          .filter((s) => s.category === "сопровождение")
+                          .map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.name}
+                            </option>
+                          ))}
+                      </optgroup>
+                    </select>
+                    {selectedService && (
+                      <p className="mt-1 text-[11px] text-slate-500">
+                        Фокус услуги: {selectedService.shortDescription}
+                      </p>
                     )}
-                  </>
-                )}
-
-                {timeSelectionLocked && selectedSlot && selectedSlotLabel && (
-                  <div className="bg-onlyvet-bg rounded-2xl border border-slate-200 p-3 text-[12px] text-slate-600 space-y-1">
-                    <div className="font-medium text-slate-700">
-                      Время выбрано: {selectedSlotLabel}
-                    </div>
-                    <p className="text-[11px] text-slate-500">
-                      Если вы хотите изменить дату или время, снимите выбранный
-                      слот через блок ниже.
-                    </p>
-                  </div>
-                )}
-
-                <div className="bg-onlyvet-bg rounded-2xl border border-dashed border-slate-300 p-3 text-[11px] text-slate-600 mt-2">
-                  В реальной версии здесь будут отображаться доступные слоты из
-                  Vetmanager, а выбранный слот будет бронироваться автоматически.
-                </div>
-              </section>
-
-              {/* Файлы */}
-              <section className="space-y-3">
-                <h2 className="text-[15px] font-semibold">
-                  Анализы, документы, фото (при необходимости)
-                </h2>
-                <div className="border border-dashed border-slate-300 rounded-2xl p-4 bg-slate-50/80 text-[13px] text-slate-600">
-                  <p className="mb-2">
-                    Вы можете прикрепить результаты анализов, выписки, УЗИ,
-                    рентген, фото и другие файлы, которые помогут врачу лучше
-                    понять ситуацию.
-                  </p>
-                  <label className="inline-flex items-center gap-2 text-[12px] cursor-pointer">
-                    <span className="px-3 py-1.5 rounded-full bg-white border border-slate-300 shadow-sm">
-                      Выбрать файлы
-                    </span>
-                    <input
-                      type="file"
-                      multiple
-                      onChange={handleFileChange}
-                      className="hidden"
-                      accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.doc,.docx"
-                    />
-                    <span className="text-slate-500">
-                      (pdf, изображения и др. форматы)
-                    </span>
-                  </label>
-                  {files.length > 0 && (
-                    <ul className="mt-2 text-[12px] text-slate-600 list-disc pl-4">
-                      {files.map((file) => (
-                        <li key={file.name}>{file.name}</li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </section>
-
-              {/* Вы выбрали */}
-              {(selectedService || selectedDoctor || selectedSlotLabel) && (
-                <section className="space-y-2">
-                  <h2 className="text-[15px] font-semibold">Вы выбрали</h2>
-                  <div className="bg-onlyvet-bg rounded-3xl border border-slate-200 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 text-[13px] text-slate-700">
-                    <div className="space-y-1">
-                      {selectedService && (
-                        <div>
-                          Услуга:{" "}
-                          <Link
-                            href={`/services/${selectedService.id}`}
-                            className="font-medium text-onlyvet-navy hover:text-onlyvet-coral"
-                          >
-                            {selectedService.name}
-                          </Link>
-                          <span className="text-[12px] text-slate-500">
-                            {" "}
-                            · {selectedService.priceLabel}
-                          </span>
-                        </div>
-                      )}
-                      {selectedDoctor && (
-                        <div>
-                          Врач:{" "}
-                          <Link
-                            href={`/doctors/${selectedDoctor.id}`}
-                            className="font-medium text-onlyvet-navy hover:text-onlyvet-coral"
-                          >
-                            {selectedDoctor.name}
-                          </Link>
-                          <span className="text-[12px] text-slate-500">
-                            {" "}
-                            · {selectedDoctor.role}
-                          </span>
-                        </div>
-                      )}
-                      {selectedSlotLabel && (
-                        <div>
-                          Время:{" "}
-                          <span className="font-medium text-onlyvet-navy">
-                            {selectedSlotLabel}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex flex-wrap gap-2 text-[12px]">
-                      {selectedSlot && (
-                        <button
-                          type="button"
-                          onClick={resetSlot}
-                          className="px-3 py-1.5 rounded-full border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition"
-                        >
-                          Изменить время
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={resetSelection}
-                        className="px-3 py-1.5 rounded-full border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition"
-                      >
-                        Сбросить выбор
-                      </button>
-                    </div>
+                    {!selectedService && (
+                      <p className="mt-1 text-[11px] text-slate-500">
+                        Если вы не уверены, какая услуга нужна — оставьте
+                        вариант «Не знаю». Администратор поможет подобрать
+                        формат.
+                      </p>
+                    )}
                   </div>
                 </section>
-              )}
 
-              {/* Согласия */}
-              <section className="space-y-3">
-                <h2 className="text-[15px] font-semibold">
-                  Согласия и завершение заявки
-                </h2>
-                <div className="space-y-2 text-[12px] text-slate-600">
-                  <label className="flex items-start gap-2">
-                    <input
-                      type="checkbox"
-                      checked={consentPersonalData}
-                      onChange={(e) => setConsentPersonalData(e.target.checked)}
-                      className="mt-[2px]"
-                    />
-                    <span>
-                      Я даю{" "}
-                      <Link
-                        href="/docs/privacy"
-                        className="text-onlyvet-coral underline-offset-2 hover:underline"
-                      >
-                        согласие на обработку персональных данных
-                      </Link>{" "}
-                      в соответствии с Политикой обработки ПДн.
-                    </span>
-                  </label>
-                  <label className="flex items-start gap-2">
-                    <input
-                      type="checkbox"
-                      checked={consentOffer}
-                      onChange={(e) => setConsentOffer(e.target.checked)}
-                      className="mt-[2px]"
-                    />
-                    <span>
-                      Я подтверждаю, что, нажимая кнопку «Записаться», заключаю
-                      договор в соответствии с{" "}
-                      <Link
-                        href="/docs/offer"
-                        className="text-onlyvet-coral underline-offset-2 hover:underline"
-                      >
-                        публичной офертой
-                      </Link>{" "}
-                      сервиса OnlyVet.
-                    </span>
-                  </label>
-                  <label className="flex items-start gap-2">
-                    <input
-                      type="checkbox"
-                      checked={consentRules}
-                      onChange={(e) => setConsentRules(e.target.checked)}
-                      className="mt-[2px]"
-                    />
-                    <span>
-                      Я ознакомлен(а) и согласен(на) с{" "}
-                      <Link
-                        href="/docs/rules"
-                        className="text-onlyvet-coral underline-offset-2 hover:underline"
-                      >
-                        правилами онлайн-клиники
-                      </Link>
-                      .
-                    </span>
-                  </label>
-                  {consentsError && (
-                    <p className="text-[11px] text-rose-600">
-                      Для отправки заявки необходимо отметить все согласия.
-                    </p>
+                {/* Врач */}
+                <section className="space-y-3">
+                  <h2 className="text-[15px] font-semibold">Врач</h2>
+                  <div className="space-y-2">
+                    <div className="flex flex-col gap-1 text-[12px] mb-1">
+                      <label className="inline-flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="doctorMode"
+                          value="auto"
+                          checked={doctorMode === "auto"}
+                          onChange={() => setDoctorMode("auto")}
+                          className="rounded-full border-slate-300"
+                        />
+                        <span>
+                          <span className="font-medium">
+                            Автоматический подбор врача
+                          </span>{" "}
+                          <span className="text-slate-500">
+                            (рекомендуется)
+                          </span>
+                        </span>
+                      </label>
+                      <label className="inline-flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="doctorMode"
+                          value="manual"
+                          checked={doctorMode === "manual"}
+                          onChange={() => setDoctorMode("manual")}
+                          className="rounded-full border-slate-300"
+                        />
+                        <span className="font-medium">
+                          Выбрать врача вручную
+                        </span>
+                      </label>
+                    </div>
+
+                    <select
+                      value={selectedDoctorId}
+                      onChange={(e) => setSelectedDoctorId(e.target.value)}
+                      disabled={doctorMode !== "manual"}
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] disabled:bg-slate-50 disabled:text-slate-400 focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                    >
+                      <option value="">Не выбран</option>
+                      {availableDoctors.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.name}
+                        </option>
+                      ))}
+                    </select>
+
+                    {doctorMode === "manual" && selectedDoctor && (
+                      <p className="mt-1 text-[11px] text-slate-500">
+                        Специализация врача: {selectedDoctor.role}
+                      </p>
+                    )}
+                    {doctorMode === "auto" && (
+                      <p className="mt-1 text-[11px] text-slate-500">
+                        Мы подберём врача с нужной специализацией под ваш
+                        запрос.
+                      </p>
+                    )}
+                  </div>
+                </section>
+
+                {/* Дата и время */}
+                <section className="space-y-3">
+                  <h2 className="text-[15px] font-semibold">Дата и время</h2>
+
+                  {!timeSelectionLocked && (
+                    <>
+                      <div className="flex flex-wrap gap-3 text-[12px]">
+                        <label className="inline-flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name="timeMode"
+                            value="any"
+                            checked={timeMode === "any"}
+                            onChange={() => setTimeMode("any")}
+                            className="rounded-full border-slate-300"
+                          />
+                          <span>Любое ближайшее время (подберём сами)</span>
+                        </label>
+                        <label className="inline-flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name="timeMode"
+                            value="choose"
+                            checked={timeMode === "choose"}
+                            onChange={() => setTimeMode("choose")}
+                            className="rounded-full border-slate-300"
+                          />
+                          <span>Выбрать дату и время</span>
+                        </label>
+                      </div>
+
+                      {timeMode === "choose" && (
+                        <div className="grid md:grid-cols-[1fr,1fr] gap-4">
+                          <div>
+                            <label className="block text-[12px] text-slate-600 mb-1">
+                              Дата
+                            </label>
+                            <input
+                              type="date"
+                              value={date}
+                              onChange={(e) => setDate(e.target.value)}
+                              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[12px] text-slate-600 mb-1">
+                              Время
+                            </label>
+                            <input
+                              type="time"
+                              value={time}
+                              onChange={(e) => setTime(e.target.value)}
+                              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
-                </div>
 
-                <div className="pt-1">
-                  <button
-                    type="submit"
-                    disabled={!isValid || isSubmitting}
-                    className={`
-                      w-full px-4 py-2.5 rounded-full text-[13px] font-medium
-                      ${
-                        !isValid || isSubmitting
-                          ? "bg-slate-200 text-slate-500 cursor-not-allowed"
-                          : "bg-onlyvet-coral text-white shadow-[0_12px_32px_rgба(247,118,92,0.6)] hover:brightness-105 transition"
-                      }
-                    `}
-                  >
-                    {isSubmitting
-                      ? "Отправляем заявку..."
-                      : "Записаться на консультацию"}
-                  </button>
-                  <p className="mt-2 text-[11px] text-slate-500">
-                    Нажимая «Записаться», вы подтверждаете корректность указанных
-                    данных. После обработки заявки с вами свяжется администратор
-                    для уточнения деталей.
+                  {timeSelectionLocked && selectedSlot && selectedSlotLabel && (
+                    <div className="bg-onlyvet-bg rounded-2xl border border-slate-200 p-3 text-[12px] text-slate-600 space-y-1">
+                      <div className="font-medium text-slate-700">
+                        Время выбрано: {selectedSlotLabel}
+                      </div>
+                      <p className="text-[11px] text-slate-500">
+                        Если вы хотите изменить дату или время, нажмите
+                        «Изменить время» в итоговом блоке — слот будет снят, и
+                        вы сможете выбрать другую опцию.
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="bg-onlyvet-bg rounded-2xl border border-dashed border-slate-300 p-3 text-[11px] text-slate-600 mt-2">
+                    В реальной версии здесь будут отображаться доступные слоты
+                    из Vetmanager, а выбранный слот будет бронироваться
+                    автоматически.
+                  </div>
+                </section>
+
+                {/* Анализы, файлы */}
+                <section className="space-y-3">
+                  <h2 className="text-[15px] font-semibold">
+                    Анализы, документы, фото (при необходимости)
+                  </h2>
+                  <div className="border border-dashed border-slate-300 rounded-2xl p-4 bg-slate-50/80 text-[13px] text-slate-600">
+                    <p className="mb-2">
+                      Вы можете прикрепить результаты анализов, выписки, УЗИ,
+                      рентген, фото и другие файлы, которые помогут врачу
+                      лучше понять ситуацию.
+                    </p>
+                    <label className="inline-flex items-center gap-2 text-[12px] cursor-pointer">
+                      <span className="px-3 py-1.5 rounded-full bg-white border border-slate-300 shadow-sm">
+                        Выбрать файлы
+                      </span>
+                      <input
+                        type="file"
+                        multiple
+                        onChange={handleFileChange}
+                        className="hidden"
+                        accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.doc,.docx"
+                      />
+                      <span className="text-slate-500">
+                        (pdf, изображения и др. форматы)
+                      </span>
+                    </label>
+                    {files.length > 0 && (
+                      <ul className="mt-2 text-[12px] text-slate-600 list-disc pl-4">
+                        {files.map((file) => (
+                          <li key={file.name}>{file.name}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </section>
+
+                {/* Вы выбрали */}
+                {(selectedService || selectedDoctor || selectedSlotLabel) && (
+                  <section className="space-y-2">
+                    <h2 className="text-[15px] font-semibold">Вы выбрали</h2>
+                    <div className="bg-onlyvet-bg rounded-3xl border border-slate-200 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 text-[13px] text-slate-700">
+                      <div className="space-y-1">
+                        {selectedService && (
+                          <div>
+                            Услуга:{" "}
+                            <Link
+                              href={`/services/${selectedService.id}`}
+                              className="font-medium text-onlyvet-navy hover:text-onlyvet-coral"
+                            >
+                              {selectedService.name}
+                            </Link>
+                            <span className="text-[12px] text-slate-500">
+                              {" "}
+                              · {selectedService.priceLabel}
+                            </span>
+                          </div>
+                        )}
+                        {selectedDoctor && (
+                          <div>
+                            Врач:{" "}
+                            <Link
+                              href={`/doctors/${selectedDoctor.id}`}
+                              className="font-medium text-onlyvet-navy hover:text-onlyvet-coral"
+                            >
+                              {selectedDoctor.name}
+                            </Link>
+                            <span className="text-[12px] text-slate-500">
+                              {" "}
+                              · {selectedDoctor.role}
+                            </span>
+                          </div>
+                        )}
+                        {selectedSlotLabel && (
+                          <div>
+                            Время:{" "}
+                            <span className="font-medium text-onlyvet-navy">
+                              {selectedSlotLabel}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-2 text-[12px]">
+                        {selectedSlot && (
+                          <button
+                            type="button"
+                            onClick={resetSlot}
+                            className="px-3 py-1.5 rounded-full border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition"
+                          >
+                            Изменить время
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={resetSelection}
+                          className="px-3 py-1.5 rounded-full border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition"
+                        >
+                          Сбросить выбор
+                        </button>
+                      </div>
+                    </div>
+                  </section>
+                )}
+              </>
+            )}
+
+            {/* Согласия */}
+            <section className="space-y-3">
+              <h2 className="text-[15px] font-semibold">
+                Согласия и завершение заявки
+              </h2>
+              <div className="space-y-2 text-[12px] text-slate-600">
+                <label className="flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    checked={consentPersonalData}
+                    onChange={(e) => setConsentPersonalData(e.target.checked)}
+                    className="mt-[2px]"
+                  />
+                  <span>
+                    Я даю{" "}
+                    <Link
+                      href="/docs/privacy"
+                      className="text-onlyvet-coral underline-offset-2 hover:underline"
+                    >
+                      согласие на обработку персональных данных
+                    </Link>{" "}
+                    в соответствии с Политикой обработки ПДн.
+                  </span>
+                </label>
+                <label className="flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    checked={consentOffer}
+                    onChange={(e) => setConsentOffer(e.target.checked)}
+                    className="mt-[2px]"
+                  />
+                  <span>
+                    Я подтверждаю, что, нажимая кнопку «Записаться», заключаю
+                    договор в соответствии с{" "}
+                    <Link
+                      href="/docs/offer"
+                      className="text-onlyvet-coral underline-offset-2 hover:underline"
+                    >
+                      публичной офертой
+                    </Link>{" "}
+                    сервиса OnlyVet.
+                  </span>
+                </label>
+                <label className="flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    checked={consentRules}
+                    onChange={(e) => setConsentRules(e.target.checked)}
+                    className="mt-[2px]"
+                  />
+                  <span>
+                    Я ознакомлен(а) и согласен(на) с{" "}
+                    <Link
+                      href="/docs/rules"
+                      className="text-onlyvet-coral underline-offset-2 hover:underline"
+                    >
+                      правилами онлайн-клиники
+                    </Link>
+                    .
+                  </span>
+                </label>
+                {consentsError && (
+                  <p className="text-[11px] text-rose-600">
+                    Для отправки заявки необходимо отметить все согласия.
                   </p>
-                </div>
-              </section>
-            </form>
-          </div>
+                )}
+              </div>
+
+              <div className="pt-1">
+                <button
+                  type="submit"
+                  disabled={!isValid || isSubmitting}
+                  className={`
+                    w-full px-4 py-2.5 rounded-full text-[13px] font-medium
+                    ${
+                      !isValid || isSubmitting
+                        ? "bg-slate-200 text-slate-500 cursor-not-allowed"
+                        : "bg-onlyvet-coral text-white shadow-[0_12px_32px_rgba(247,118,92,0.6)] hover:brightness-105 transition"
+                    }
+                  `}
+                >
+                  {isSubmitting
+                    ? "Отправляем заявку..."
+                    : "Записаться на консультацию"}
+                </button>
+                <p className="mt-2 text-[11px] text-slate-500">
+                  Нажимая «Записаться», вы подтверждаете корректность указанных
+                  данных. После обработки заявки с вами свяжется администратор
+                  для уточнения деталей.
+                </p>
+              </div>
+            </section>
+          </form>
         </div>
       </main>
       <Footer />
     </>
   );
+}
+
+// утилита для карточек в шапке заявки
+function cnCard(active: boolean, activeBorder: string, hoverBorder: string) {
+  return [
+    "rounded-3xl border px-4 py-4 md:px-5 md:py-5 text-left cursor-pointer transition flex flex-col justify-between",
+    active
+      ? `bg-emerald-50 ${activeBorder} shadow-[0_18px_40px_rgba(15,23,42,0.08)]`
+      : `bg-white border-slate-200 hover:${hoverBorder} hover:bg-slate-50`,
+  ]
+    .join(" ");
 }
