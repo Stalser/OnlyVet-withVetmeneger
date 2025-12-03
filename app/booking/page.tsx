@@ -1,7 +1,7 @@
 // app/booking/page.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import Link from "next/link";
 
@@ -126,6 +126,11 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [serverSuccess, setServerSuccess] = useState<string | null>(null);
 
+  // refs для автоскролла
+  const contactRef = useRef<HTMLDivElement | null>(null);
+  const petRef = useRef<HTMLDivElement | null>(null);
+  const consentsRef = useRef<HTMLDivElement | null>(null);
+
   // подстановка мок-пользователя
   useEffect(() => {
     if (mockIsLoggedIn) {
@@ -226,13 +231,58 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
 
   const showFull = kind === "full";
 
+  const scrollToFirstError = () => {
+    // ошибки в контактах
+    const contactInvalid =
+      !lastName.trim() ||
+      !firstName.trim() ||
+      (!noMiddleName && !middleName.trim()) ||
+      !phone.trim() ||
+      !email.trim();
+
+    if (contactInvalid) {
+      contactRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+      return;
+    }
+
+    // ошибки в питомце (только full, новый питомец)
+    const petInvalid =
+      showFull && petMode === "new" && petNameRequired && !newPetName.trim();
+
+    if (petInvalid) {
+      petRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+      return;
+    }
+
+    // ошибки в согласиях
+    const consentsInvalid =
+      !consentPersonalData || !consentOffer || !consentRules;
+
+    if (consentsInvalid) {
+      consentsRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+      return;
+    }
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setHasSubmitted(true);
     setServerError(null);
     setServerSuccess(null);
 
-    if (!isValid) return;
+    if (!isValid) {
+      scrollToFirstError();
+      return;
+    }
 
     try {
       setIsSubmitting(true);
@@ -258,7 +308,9 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
         email,
         petMode: showFull ? petMode : "new",
         petId:
-          showFull && petMode === "existing" ? selectedPetId || undefined : undefined,
+          showFull && petMode === "existing"
+            ? selectedPetId || undefined
+            : undefined,
         petName:
           showFull && petMode === "new" ? newPetName || undefined : undefined,
         petSpecies,
@@ -384,51 +436,55 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
             )}
 
             {/* Контактные данные */}
-            <BookingContactSection
-              lastName={lastName}
-              firstName={firstName}
-              middleName={middleName}
-              noMiddleName={noMiddleName}
-              phone={phone}
-              email={email}
-              telegram={telegram}
-              setLastName={setLastName}
-              setFirstName={setFirstName}
-              setMiddleName={setMiddleName}
-              setNoMiddleName={setNoMiddleName}
-              setPhone={setPhone}
-              setEmail={setEmail}
-              setTelegram={setTelegram}
-              errors={{
-                lastNameError,
-                firstNameError,
-                middleNameError,
-                phoneError,
-                emailError,
-              }}
-            />
+            <div ref={contactRef}>
+              <BookingContactSection
+                lastName={lastName}
+                firstName={firstName}
+                middleName={middleName}
+                noMiddleName={noMiddleName}
+                phone={phone}
+                email={email}
+                telegram={telegram}
+                setLastName={setLastName}
+                setFirstName={setFirstName}
+                setMiddleName={setMiddleName}
+                setNoMiddleName={setNoMiddleName}
+                setPhone={setPhone}
+                setEmail={setEmail}
+                setTelegram={setTelegram}
+                errors={{
+                  lastNameError,
+                  firstNameError,
+                  middleNameError,
+                  phoneError,
+                  emailError,
+                }}
+              />
+            </div>
 
             {/* Питомец – только для подробной заявки */}
             {showFull && (
-              <BookingPetSection
-                petMode={petMode}
-                setPetMode={setPetMode}
-                selectedPetId={selectedPetId}
-                setSelectedPetId={setSelectedPetId}
-                newPetName={newPetName}
-                setNewPetName={setNewPetName}
-                newPetSpecies={newPetSpecies}
-                setNewPetSpecies={setNewPetSpecies}
-                newPetBreed={newPetBreed}
-                setNewPetBreed={setNewPetBreed}
-                newPetAge={newPetAge}
-                setNewPetAge={setNewPetAge}
-                newPetWeight={newPetWeight}
-                setNewPetWeight={setNewPetWeight}
-                newPetNameError={newPetNameError}
-                isLoggedIn={mockIsLoggedIn}
-                pets={mockUser.pets}
-              />
+              <div ref={petRef}>
+                <BookingPetSection
+                  petMode={petMode}
+                  setPetMode={setPetMode}
+                  selectedPetId={selectedPetId}
+                  setSelectedPetId={setSelectedPetId}
+                  newPetName={newPetName}
+                  setNewPetName={setNewPetName}
+                  newPetSpecies={newPetSpecies}
+                  setNewPetSpecies={setNewPetSpecies}
+                  newPetBreed={newPetBreed}
+                  setNewPetBreed={setNewPetBreed}
+                  newPetAge={newPetAge}
+                  setNewPetAge={setNewPetAge}
+                  newPetWeight={newPetWeight}
+                  setNewPetWeight={setNewPetWeight}
+                  newPetNameError={newPetNameError}
+                  isLoggedIn={mockIsLoggedIn}
+                  pets={mockUser.pets}
+                />
+              </div>
             )}
 
             {/* Кратко о проблеме */}
@@ -489,17 +545,19 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
             )}
 
             {/* Согласия */}
-            <BookingConsentsSection
-              consentPersonalData={consentPersonalData}
-              consentOffer={consentOffer}
-              consentRules={consentRules}
-              setConsentPersonalData={setConsentPersonalData}
-              setConsentOffer={setConsentOffer}
-              setConsentRules={setConsentRules}
-              consentsError={consentsError}
-              isValid={isValid}
-              isSubmitting={isSubmitting}
-            />
+            <div ref={consentsRef}>
+              <BookingConsentsSection
+                consentPersonalData={consentPersonalData}
+                consentOffer={consentOffer}
+                consentRules={consentRules}
+                setConsentPersonalData={setConsentPersonalData}
+                setConsentOffer={setConsentOffer}
+                setConsentRules={setConsentRules}
+                consentsError={consentsError}
+                isValid={isValid}
+                isSubmitting={isSubmitting}
+              />
+            </div>
           </form>
         </div>
       </main>
