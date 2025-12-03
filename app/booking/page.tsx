@@ -401,7 +401,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
               </div>
             )}
 
-            {/* Контактные данные */}
+                        {/* Контактные данные */}
             <BookingContactSection
               lastName={lastName}
               firstName={firstName}
@@ -427,7 +427,6 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
             />
 
             {/* Питомец – только для подробной заявки */}
-                        {/* Питомец – только для подробной заявки */}
             {showFull && (
               <BookingPetSection
                 petMode={petMode}
@@ -448,8 +447,6 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                 isLoggedIn={mockIsLoggedIn}
                 pets={mockUser.pets}
               />
-            )}
-              </section>
             )}
 
             {/* Кратко о проблеме (общий блок для обоих режимов) */}
