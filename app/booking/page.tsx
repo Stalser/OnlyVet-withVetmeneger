@@ -83,7 +83,6 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
   // питомец
   const [petMode, setPetMode] = useState<"existing" | "new">("existing");
   const [selectedPetId, setSelectedPetId] = useState<string>(initialPetId);
-
   const [newPetName, setNewPetName] = useState("");
   const [newPetSpecies, setNewPetSpecies] = useState("");
   const [newPetBreed, setNewPetBreed] = useState("");
@@ -103,7 +102,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
     useState<string>(initialDoctorId);
   const [selectedSlotId, setSelectedSlotId] = useState<string>(initialSlotId);
 
-  // время вручную
+  // время
   const [timeMode, setTimeMode] = useState<"any" | "choose">("any");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
@@ -125,6 +124,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [serverSuccess, setServerSuccess] = useState<string | null>(null);
 
+  // подстановка мок-пользователя
   useEffect(() => {
     if (mockIsLoggedIn) {
       const parts = mockUser.fullName.split(" ");
@@ -139,9 +139,10 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
     }
   }, [selectedPetId]);
 
-  const selectedDoctor = doctors.find((d) => d.id === selectedDoctorId);
-  const selectedService = services.find((s) => s.id === selectedServiceId);
-  const selectedSlot = slots.find((s) => s.id === selectedSlotId);
+  const selectedDoctor = doctors.find((d) => d.id === selectedDoctorId) || null;
+  const selectedService =
+    services.find((s) => s.id === selectedServiceId) || null;
+  const selectedSlot = slots.find((s) => s.id === selectedSlotId) || null;
 
   const timeSelectionLocked = !!selectedSlot;
 
@@ -190,11 +191,8 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
       !availableDoctors.some((d) => d.id === selectedDoctorId)
     ) {
       setSelectedDoctorId("");
-      if (doctorMode === "manual") {
-        setDoctorMode("manual");
-      }
     }
-  }, [selectedServiceId, selectedDoctorId, availableDoctors, doctorMode]);
+  }, [selectedDoctorId, availableDoctors]);
 
   useEffect(() => {
     if (
@@ -203,7 +201,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
     ) {
       setSelectedServiceId("");
     }
-  }, [availableServices, selectedServiceId]);
+  }, [selectedServiceId, availableServices]);
 
   useEffect(() => {
     if (doctorMode !== "manual" && selectedDoctorId) {
@@ -217,15 +215,14 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
     (noMiddleName || middleName.trim().length > 0) &&
     phone.trim().length > 0 &&
     email.trim().length > 0 &&
-    (!petNameRequired || petMode === "existing" || newPetName.trim().length > 0) &&
+    (!petNameRequired ||
+      petMode === "existing" ||
+      newPetName.trim().length > 0) &&
     consentPersonalData &&
     consentOffer &&
     consentRules;
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files) return;
-    setFiles(Array.from(e.target.files));
-  };
+  const showFull = kind === "full";
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -239,57 +236,42 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
       setIsSubmitting(true);
 
       const petSpecies =
-        kind === "full" && petMode === "new"
-          ? newPetSpecies || undefined
-          : undefined;
+        showFull && petMode === "new" ? newPetSpecies || undefined : undefined;
 
       const petNotes =
-        kind === "full" && petMode === "new"
+        showFull && petMode === "new"
           ? [
-              newPetBreed ? `порода: ${newPetBreed}` : "",
-              newPetAge ? `возраст: ${newPetAge}` : "",
-              newPetWeight ? `вес: ${newPetWeight}` : "",
+              newPetBreed && `порода: ${newPetBreed}`,
+              newPetAge && `возраст: ${newPetAge}`,
+              newPetWeight && `вес: ${newPetWeight}`,
             ]
               .filter(Boolean)
               .join("; ")
           : undefined;
-
-      const effectiveServiceId =
-        kind === "full" && selectedServiceId ? selectedServiceId : undefined;
-
-      const effectiveDoctorId =
-        kind === "full" && doctorMode === "manual" && selectedDoctorId
-          ? selectedDoctorId
-          : undefined;
-
-      const effectiveTimeMode = kind === "full" ? timeMode : "any";
-      const effectivePreferredDate =
-        kind === "full" && timeMode === "choose" && date ? date : undefined;
-      const effectivePreferredTime =
-        kind === "full" && timeMode === "choose" && time ? time : undefined;
 
       const payload = {
         fullName,
         phone,
         telegram: telegram || undefined,
         email,
-        petMode: kind === "full" ? petMode : "new",
+        petMode: showFull ? petMode : "new",
         petId:
-          kind === "full" && petMode === "existing"
-            ? selectedPetId || undefined
-            : undefined,
+          showFull && petMode === "existing" ? selectedPetId || undefined : undefined,
         petName:
-          kind === "full" && petMode === "new"
-            ? newPetName || undefined
-            : undefined,
+          showFull && petMode === "new" ? newPetName || undefined : undefined,
         petSpecies,
         petNotes,
-        serviceId: effectiveServiceId,
-        doctorId: effectiveDoctorId,
-        timeMode: effectiveTimeMode,
-        preferredDate: effectivePreferredDate,
-        preferredTime: effectivePreferredTime,
-        vmSlotId: kind === "full" ? selectedSlotId || undefined : undefined,
+        serviceId: showFull && selectedServiceId ? selectedServiceId : undefined,
+        doctorId:
+          showFull && doctorMode === "manual" && selectedDoctorId
+            ? selectedDoctorId
+            : undefined,
+        timeMode: showFull ? timeMode : "any",
+        preferredDate:
+          showFull && timeMode === "choose" ? date || undefined : undefined,
+        preferredTime:
+          showFull && timeMode === "choose" ? time || undefined : undefined,
+        vmSlotId: showFull && selectedSlotId ? selectedSlotId : undefined,
         complaint: complaint || undefined,
       };
 
@@ -299,22 +281,16 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
         body: JSON.stringify(payload),
       });
 
+      const data = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setServerError(
-          data?.error || "Не удалось отправить заявку. Попробуйте позже."
-        );
+        setServerError(data.error || "Не удалось отправить заявку.");
         return;
       }
 
-      await res.json();
-
-      setServerSuccess(
-        "Заявка отправлена. Мы свяжемся с вами для подтверждения консультации."
-      );
+      setServerSuccess("Заявка отправлена. Мы свяжемся с вами.");
     } catch (err) {
-      console.error(err);
-      setServerError("Произошла техническая ошибка. Попробуйте позже.");
+      setServerError("Произошла ошибка. Попробуйте позже.");
     } finally {
       setIsSubmitting(false);
     }
@@ -357,8 +333,6 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
     }
   };
 
-  const showFull = kind === "full";
-
   return (
     <>
       <Header />
@@ -370,21 +344,17 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
               <Link href="/" className="hover:text-onlyvet-coral">
                 Главная
               </Link>{" "}
-              /{" "}
-              <span className="text-slate-700">
-                Записаться на консультацию
-              </span>
+              / <span className="text-slate-700">Записаться на консультацию</span>
             </nav>
             <h1 className="text-xl md:text-2xl font-semibold mb-1">
               Записаться на онлайн-консультацию
             </h1>
             <p className="text-[13px] text-slate-600 max-w-2xl">
-              Выберите удобный формат: короткая заявка, подробная форма или
-              переписка в Telegram.
+              Выберите удобный формат: короткая заявка, подробная форма или переписка в Telegram.
             </p>
           </div>
 
-          {/* Карточки выбора формата */}
+          {/* Карточки формата */}
           <BookingModeCards
             kind={kind}
             onChangeKind={setKind}
@@ -395,7 +365,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
             onSubmit={handleSubmit}
             className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 md:p-6 space-y-6"
           >
-            {/* Сообщения об успехе/ошибке */}
+            {/* Сообщения */}
             {serverSuccess && (
               <div className="text-[12px] text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-2xl px-3 py-2">
                 {serverSuccess}
@@ -407,7 +377,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
               </div>
             )}
 
-                        {/* Контактные данные */}
+            {/* Контакты */}
             <BookingContactSection
               lastName={lastName}
               firstName={firstName}
@@ -432,7 +402,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
               }}
             />
 
-            {/* Питомец – только для подробной заявки */}
+            {/* Питомец */}
             {showFull && (
               <BookingPetSection
                 petMode={petMode}
@@ -455,17 +425,17 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
               />
             )}
 
-                       {/* Кратко о проблеме */}
+            {/* Проблема */}
             <BookingComplaintSection
               complaint={complaint}
               setComplaint={setComplaint}
               kind={kind}
             />
 
-            {/* Услуга / врач / время / файлы — только для подробной формы */}
+            {/* Услуга / врач / время / файлы / summary – только в полной форме */}
             {showFull && (
               <>
-                {/* Услуга */}
+                {/* Услуга (пока inline, можно вынести позже) */}
                 <section className="space-y-3">
                   <h2 className="text-[15px] font-semibold">Услуга</h2>
                   <div className="space-y-2">
@@ -473,13 +443,11 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                       Выберите услугу
                     </label>
                     <select
-                      value={selectedServiceId || ""}
+                      value={selectedServiceId}
                       onChange={(e) => setSelectedServiceId(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
                     >
-                      <option value="">
-                        Не знаю / нужна помощь с выбором
-                      </option>
+                      <option value="">Не знаю / нужна помощь</option>
                       <optgroup label="Консультации">
                         {availableServices
                           .filter((s) => s.category === "консультация")
@@ -518,24 +486,24 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                       </optgroup>
                     </select>
                     {selectedService && (
-                      <p className="mt-1 text-[11px] text-slate-500">
-                        Фокус услуги: {selectedService.shortDescription}
+                      <p className="text-[11px] text-slate-500">
+                        {selectedService.shortDescription}
                       </p>
                     )}
                   </div>
                 </section>
 
-                                {/* Врач */}
+                {/* Врач */}
                 <BookingDoctorSection
                   doctorMode={doctorMode}
                   setDoctorMode={setDoctorMode}
                   selectedDoctorId={selectedDoctorId}
                   setSelectedDoctorId={setSelectedDoctorId}
                   availableDoctors={availableDoctors}
-                  selectedDoctor={selectedDoctor}
+                  selectedDoctor={selectedDoctor || undefined}
                 />
 
-                               {/* Дата и время */}
+                {/* Дата и время */}
                 <BookingTimeSection
                   timeMode={timeMode}
                   setTimeMode={setTimeMode}
@@ -547,20 +515,22 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                   selectedSlotLabel={selectedSlotLabel || undefined}
                 />
 
-                                {/* Анализы, файлы */}
+                {/* Файлы */}
                 <BookingFilesSection
                   files={files}
-                  onFileChange={(newFiles) => setFiles(newFiles)}
+                  onFileChange={setFiles}
                 />
 
-                {/* Вы выбрали */}
-                                <BookingSummarySection
+                {/* Итоговый summary */}
+                <BookingSummarySection
                   selectedService={selectedService}
                   selectedDoctor={selectedDoctor}
-                  selectedSlotLabel={selectedSlotLabel}
+                  selectedSlotLabel={selectedSlotLabel || null}
                   resetSelection={resetSelection}
                   resetSlot={resetSlot}
                 />
+              </>
+            )}
 
             {/* Согласия */}
             <section className="space-y-3">
@@ -582,8 +552,8 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                       className="text-onlyvet-coral underline-offset-2 hover:underline"
                     >
                       согласие на обработку персональных данных
-                    </Link>{" "}
-                    в соответствии с Политикой обработки ПДн.
+                    </Link>
+                    .
                   </span>
                 </label>
                 <label className="flex items-start gap-2">
@@ -601,8 +571,8 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                       className="text-onlyvet-coral underline-offset-2 hover:underline"
                     >
                       публичной офертой
-                    </Link>{" "}
-                    сервиса OnlyVet.
+                    </Link>
+                    .
                   </span>
                 </label>
                 <label className="flex items-start gap-2">
