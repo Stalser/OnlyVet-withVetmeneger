@@ -354,307 +354,13 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
   };
 
   const showFull = kind === "full";
-
-  return (
-    <>
-      <Header />
-      <main className="flex-1 bg-slate-50/70 py-8">
-        <div className="container mx-auto max-w-5xl px-4">
-          {/* Заголовок */}
-          <div className="mb-6">
-            <nav className="text-[12px] text-slate-500 mb-2">
-              <Link href="/" className="hover:text-onlyvet-coral">
-                Главная
-              </Link>{" "}
-              /{" "}
-              <span className="text-slate-700">
-                Записаться на консультацию
-              </span>
-            </nav>
-            <h1 className="text-xl md:text-2xl font-semibold mb-1">
-              Записаться на онлайн-консультацию
-            </h1>
-            <p className="text-[13px] text-slate-600 max-w-2xl">
-              Выберите удобный формат: короткая заявка, подробная форма или
-              переписка в Telegram.
-            </p>
-          </div>
-
-          {/* Карточки выбора формата */}
-          <section className="mb-5">
-            <div className="grid md:grid-cols-3 gap-3">
-              {/* Краткая */}
-              <button
-                type="button"
-                onClick={() => setKind("short")}
-                className={cnCard(
-                  kind === "short",
-                  "border-emerald-200",
-                  "hover:border-emerald-300"
-                )}
-              >
-                <div className="text-[12px] uppercase tracking-[0.12em] text-emerald-700">
-                  Краткая заявка
-                </div>
-                <div className="mt-1 text-[13px] font-semibold text-slate-900">
-                  Только контакты и коротко суть проблемы.
-                </div>
-                <p className="mt-1 text-[12px] text-slate-600">
-                  Остальное администратор уточнит при созвоне и поможет
-                  оформить полную заявку.
-                </p>
-                <p className="mt-3 text-[11px] text-emerald-800 bg-emerald-50 rounded-2xl px-3 py-2">
-                  Рекомендуется как первый шаг, если вы не хотите сразу
-                  заполнять большую форму.
-                </p>
-              </button>
-
-              {/* Подробная */}
-              <button
-                type="button"
-                onClick={() => setKind("full")}
-                className={cnCard(
-                  kind === "full",
-                  "border-emerald-200",
-                  "hover:border-emerald-300"
-                )}
-              >
-                <div className="text-[12px] uppercase tracking-[0.12em] text-emerald-700">
-                  Подробная онлайн-заявка
-                </div>
-                <div className="mt-1 text-[13px] font-semibold text-slate-900">
-                  Полное описание ситуации, выбор услуги и врача, удобная дата и
-                  время — всё в одной форме.
-                </div>
-                <p className="mt-1 text-[12px] text-slate-600">
-                  Для сложных и неясных случаев, когда важно учесть все детали.
-                </p>
-                <p className="mt-3 text-[11px] text-emerald-800 bg-emerald-50 rounded-2xl px-3 py-2">
-                  Оптимально, если вы готовы сразу приложить анализы и хотите
-                  получить максимально развернутый ответ.
-                </p>
-              </button>
-
-              {/* Telegram */}
-              <button
-                type="button"
-                onClick={handleTelegramClick}
-                className="
-                  flex flex-col items-start rounded-3xl border border-sky-200 
-                  bg-sky-50 px-4 py-4 md:px-5 md:py-5 
-                  shadow-sm hover:shadow-[0_18px_40px_rgba(56,189,248,0.35)]
-                  transition
-                "
-              >
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full bg-sky-500 flex items-center justify-center">
-                    <img
-                      src="/img/free-icon-telegram-2111646.svg"
-                      alt="Telegram"
-                      className="w-4 h-4"
-                    />
-                  </div>
-                  <div className="text-[12px] uppercase tracking-[0.12em] text-sky-800">
-                    Написать в Telegram
-                  </div>
-                </div>
-                <div className="mt-2 text-[13px] font-semibold text-slate-900">
-                  Можно сразу написать администратору, отправить анализы и
-                  задать вопросы по формату.
-                </div>
-                <p className="mt-1 text-[12px] text-slate-700">
-                  Подходит, если удобнее общаться в мессенджере.
-                </p>
-              </button>
-            </div>
-
-            <div className="mt-3 text-[12px] text-slate-600">
-              Предпочитаете запись по телефону?{" "}
-              <a href="tel:+79000000000" className="text-onlyvet-coral">
-                Позвонить +7 900 000-00-00.
-              </a>
-            </div>
-          </section>
-
-          <form
-            onSubmit={handleSubmit}
-            className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 md:p-6 space-y-6"
-          >
-            {/* Сообщения об успехе/ошибке */}
-            {serverSuccess && (
-              <div className="text-[12px] text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-2xl px-3 py-2">
-                {serverSuccess}
-              </div>
-            )}
-            {serverError && (
-              <div className="text-[12px] text-rose-700 bg-rose-50 border border-rose-100 rounded-2xl px-3 py-2">
-                {serverError}
-              </div>
-            )}
-
-            {/* Контактные данные */}
-            <section className="space-y-3">
-              <h2 className="text-[15px] font-semibold">Контактные данные</h2>
-
-              <div className="grid md:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-[12px] text-slate-600 mb-1">
-                    Фамилия<span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
-                      lastNameError
-                        ? "border-rose-400 focus:ring-rose-300"
-                        : "border-slate-300 focus:ring-onlyvet-teal/40"
-                    }`}
-                    placeholder="Иванов"
-                  />
-                  {lastNameError && (
-                    <p className="mt-1 text-[11px] text-rose-600">
-                      Укажите фамилию.
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-[12px] text-slate-600 mb-1">
-                    Имя<span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
-                      firstNameError
-                        ? "border-rose-400 focus:ring-rose-300"
-                        : "border-slate-300 focus:ring-onlyvet-teal/40"
-                    }`}
-                    placeholder="Иван"
-                  />
-                  {firstNameError && (
-                    <p className="mt-1 text-[11px] text-rose-600">
-                      Укажите имя.
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-[12px] text-slate-600 mb-1">
-                    Отчество
-                    {!noMiddleName && (
-                      <span className="text-red-500">*</span>
-                    )}
-                  </label>
-                  <input
-                    type="text"
-                    value={middleName}
-                    onChange={(e) => setMiddleName(e.target.value)}
-                    disabled={noMiddleName}
-                    className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
-                      noMiddleName
-                        ? "border-slate-200 bg-slate-50 text-slate-400"
-                        : middleNameError
-                        ? "border-rose-400 focus:ring-rose-300"
-                        : "border-slate-300 focus:ring-onlyvet-teal/40"
-                    }`}
-                    placeholder={noMiddleName ? "Не указано" : "Иванович"}
-                  />
-                  <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-600">
-                    <input
-                      type="checkbox"
-                      id="no-middle-name"
-                      checked={noMiddleName}
-                      onChange={(e) => setNoMiddleName(e.target.checked)}
-                      className="rounded border-slate-300"
-                    />
-                    <label
-                      htmlFor="no-middle-name"
-                      className="select-none cursor-pointer"
-                    >
-                      Нет отчества
-                    </label>
-                  </div>
-                  {middleNameError && !noMiddleName && (
-                    <p className="mt-1 text-[11px] text-rose-600">
-                      Укажите отчество или отметьте «Нет отчества».
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[12px] text-slate-600 mb-1">
-                    Номер телефона<span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
-                      phoneError
-                        ? "border-rose-400 focus:ring-rose-300"
-                        : "border-slate-300 focus:ring-onlyvet-teal/40"
-                    }`}
-                    placeholder="+7 ..."
-                  />
-                  {phoneError && (
-                    <p className="mt-1 text-[11px] text-rose-600">
-                      Укажите номер телефона, чтобы мы могли связаться с вами.
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-[12px] text-slate-600 mb-1">
-                    Email<span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
-                      emailError
-                        ? "border-rose-400 focus:ring-rose-300"
-                        : "border-slate-300 focus:ring-onlyvet-teal/40"
-                    }`}
-                    placeholder="example@mail.ru"
-                  />
-                  {emailError && (
-                    <p className="mt-1 text-[11px] text-rose-600">
-                      Email обязателен для подтверждений и материалов
-                      консультации.
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[12px] text-slate-600 mb-1">
-                    Логин Telegram
-                  </label>
-                  <input
-                    type="text"
-                    value={telegram}
-                    onChange={(e) => setTelegram(e.target.value)}
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
-                    placeholder="@username (необязательно)"
-                  />
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    При наличии нам проще общаться через Telegram.
-                  </p>
-                </div>
-              </div>
-            </section>
-
-            {/* Питомец – только для подробной заявки */}
+              {/* Питомец – только для подробной заявки */}
             {showFull && (
               <section className="space-y-3">
                 <h2 className="text-[15px] font-semibold">
                   Информация о питомце
                 </h2>
-                <div className="flex флекс-wrap gap-3 text-[12px]">
+                <div className="flex flex-wrap gap-3 text-[12px]">
                   <label className="inline-flex items-center gap-2">
                     <input
                       type="radio"
@@ -688,7 +394,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                       <select
                         value={selectedPetId}
                         onChange={(e) => setSelectedPetId(e.target.value)}
-                        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
+                        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
                       >
                         <option value="">Выберите питомца</option>
                         {mockUser.pets.map((pet) => (
@@ -721,7 +427,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                         className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
                           newPetNameError
                             ? "border-rose-400 focus:ring-rose-300"
-                            : "border-slate-300 focus:ring-onlyvet-teал/40"
+                            : "border-slate-300 focus:ring-onlyvet-teal/40"
                         }`}
                         placeholder="Например: Локи"
                       />
@@ -740,7 +446,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                         <select
                           value={newPetSpecies}
                           onChange={(e) => setNewPetSpecies(e.target.value)}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
+                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
                         >
                           <option value="">
                             Выберите вид или оставьте пустым
@@ -761,7 +467,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                           type="text"
                           value={newPetBreed}
                           onChange={(e) => setNewPetBreed(e.target.value)}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
+                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
                           placeholder="Например: шотландская, метис и т.п."
                         />
                       </div>
@@ -776,7 +482,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                           type="text"
                           value={newPetAge}
                           onChange={(e) => setNewPetAge(e.target.value)}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
+                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
                           placeholder="Например: 2 года, 8 месяцев, не знаю"
                         />
                       </div>
@@ -788,17 +494,17 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                           type="text"
                           value={newPetWeight}
                           onChange={(e) => setNewPetWeight(e.target.value)}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
+                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
                           placeholder="Например: 4.5 кг, ~20 кг, не знаю"
                         />
                       </div>
                     </div>
                   </div>
                 )}
-            </section>
+              </section>
             )}
 
-            {/* Кратко о проблеме (общий блок для обоих режимов) */}
+            {/* Кратко о проблеме */}
             <section className="space-y-3">
               <h2 className="text-[15px] font-semibold">
                 Кратко о проблеме
@@ -826,7 +532,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
               </p>
             </section>
 
-            {/* Услуга / врач / время / файлы — только для подробной формы */}
+            {/* Услуга / врач / время / файлы */}
             {showFull && (
               <>
                 {/* Услуга */}
@@ -839,7 +545,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                     <select
                       value={selectedServiceId || ""}
                       onChange={(e) => setSelectedServiceId(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
                     >
                       <option value="">
                         Не знаю / нужна помощь с выбором
@@ -938,7 +644,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                       value={selectedDoctorId}
                       onChange={(e) => setSelectedDoctorId(e.target.value)}
                       disabled={doctorMode !== "manual"}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] disabled:bg-slate-50 disabled:text-slate-400 focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] disabled:bg-slate-50 disabled:text-slate-400 focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
                     >
                       <option value="">Не выбран</option>
                       {availableDoctors.map((d) => (
@@ -1003,7 +709,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                               type="date"
                               value={date}
                               onChange={(e) => setDate(e.target.value)}
-                              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
+                              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
                             />
                           </div>
                           <div>
@@ -1014,7 +720,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                               type="time"
                               value={time}
                               onChange={(e) => setTime(e.target.value)}
-                              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
+                              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
                             />
                           </div>
                         </div>
@@ -1245,14 +951,4 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
       <Footer />
     </>
   );
-}
-
-// утилита для карточек в шапке заявки
-function cnCard(active: boolean, activeBorder: string, hoverBorder: string) {
-  return [
-    "rounded-3xl border px-4 py-4 md:px-5 md:py-5 text-left cursor-pointer transition flex flex-col justify-between",
-    active
-      ? `bg-emerald-50 ${activeBorder} shadow-[0_18px_40px_rgba(15,23,42,0.08)]`
-      : `bg-white border-slate-200 hover:${hoverBorder} hover:bg-slate-50`,
-  ].join(" ");
 }
