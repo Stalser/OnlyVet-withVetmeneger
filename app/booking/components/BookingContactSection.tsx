@@ -1,3 +1,4 @@
+// app/booking/components/BookingContactSection.tsx
 "use client";
 
 type ContactErrors = {
@@ -59,7 +60,7 @@ export function BookingContactSection({
     <section className="space-y-3">
       <h2 className="text-[15px] font-semibold">Контактные данные</h2>
 
-      {/* Фамилия / Имя / Отчество */}
+      {/* ФИО */}
       <div className="grid md:grid-cols-3 gap-3">
         {/* Фамилия */}
         <div>
@@ -148,7 +149,7 @@ export function BookingContactSection({
         </div>
       </div>
 
-      {/* Телефон / Email */}
+      {/* Телефон / email */}
       <div className="grid md:grid-cols-2 gap-4">
         <div>
           <label className="block text-[12px] text-slate-600 mb-1">
@@ -167,11 +168,10 @@ export function BookingContactSection({
           />
           {phoneError && (
             <p className="mt-1 text-[11px] text-rose-600">
-              Укажите номер телефона.
+              Укажите номер телефона, чтобы мы могли связаться с вами.
             </p>
           )}
         </div>
-
         <div>
           <label className="block text-[12px] text-slate-600 mb-1">
             Email<span className="text-red-500">*</span>
@@ -189,7 +189,8 @@ export function BookingContactSection({
           />
           {emailError && (
             <p className="mt-1 text-[11px] text-rose-600">
-              Email обязателен.
+              Email обязателен для подтверждений и материалов
+              консультации.
             </p>
           )}
         </div>
