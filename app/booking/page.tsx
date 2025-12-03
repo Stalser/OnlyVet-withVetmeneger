@@ -20,6 +20,7 @@ import { BookingTimeSection } from "./components/BookingTimeSection";
 import { BookingFilesSection } from "./components/BookingFilesSection";
 import { BookingSummarySection } from "./components/BookingSummarySection";
 import { BookingConsentsSection } from "./components/BookingConsentsSection";
+import { BookingServiceSection } from "./components/BookingServiceSection";
 
 type BookingPageProps = {
   searchParams?: {
@@ -433,66 +434,13 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
               kind={kind}
             />
 
-            {/* Услуга / врач / время / файлы / summary – только в полной форме */}
-            {showFull && (
-              <>
-                {/* Услуга (пока inline, можно вынести позже) */}
-                <section className="space-y-3">
-                  <h2 className="text-[15px] font-semibold">Услуга</h2>
-                  <div className="space-y-2">
-                    <label className="block text-[12px] text-slate-600 mb-1">
-                      Выберите услугу
-                    </label>
-                    <select
-                      value={selectedServiceId}
-                      onChange={(e) => setSelectedServiceId(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
-                    >
-                      <option value="">Не знаю / нужна помощь</option>
-                      <optgroup label="Консультации">
-                        {availableServices
-                          .filter((s) => s.category === "консультация")
-                          .map((s) => (
-                            <option key={s.id} value={s.id}>
-                              {s.name}
-                            </option>
-                          ))}
-                      </optgroup>
-                      <optgroup label="Второе мнение">
-                        {availableServices
-                          .filter((s) => s.category === "второе мнение")
-                          .map((s) => (
-                            <option key={s.id} value={s.id}>
-                              {s.name}
-                            </option>
-                          ))}
-                      </optgroup>
-                      <optgroup label="Диагностика">
-                        {availableServices
-                          .filter((s) => s.category === "диагностика")
-                          .map((s) => (
-                            <option key={s.id} value={s.id}>
-                              {s.name}
-                            </option>
-                          ))}
-                      </optgroup>
-                      <optgroup label="Сопровождение">
-                        {availableServices
-                          .filter((s) => s.category === "сопровождение")
-                          .map((s) => (
-                            <option key={s.id} value={s.id}>
-                              {s.name}
-                            </option>
-                          ))}
-                      </optgroup>
-                    </select>
-                    {selectedService && (
-                      <p className="text-[11px] text-slate-500">
-                        {selectedService.shortDescription}
-                      </p>
-                    )}
-                  </div>
-                </section>
+                            {/* Услуга */}
+                <BookingServiceSection
+                  selectedServiceId={selectedServiceId}
+                  setSelectedServiceId={setSelectedServiceId}
+                  availableServices={availableServices}
+                  selectedService={selectedService}
+                />
 
                 {/* Врач */}
                 <BookingDoctorSection
