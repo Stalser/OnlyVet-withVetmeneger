@@ -10,9 +10,7 @@ import { Footer } from "@/components/Footer";
 import { doctors } from "@/data/doctors";
 import { services } from "@/data/services";
 import { slots } from "@/data/slots";
-import { BookingModeCards } from "./BookingModeCards";
-import { BookingContactSection } from "./components/BookingContactSection";
-import { BookingPetSection } from "./components/BookingPetSection";
+
 import { BookingModeCards } from "./BookingModeCards";
 import { BookingContactSection } from "./components/BookingContactSection";
 import { BookingPetSection } from "./components/BookingPetSection";
