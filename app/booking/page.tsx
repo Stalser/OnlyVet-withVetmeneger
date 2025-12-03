@@ -298,7 +298,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
     }
   };
 
-  const resetSelection = () => {
+    const resetSelection = () => {
     setSelectedDoctorId("");
     setSelectedServiceId("");
     setSelectedSlotId("");
@@ -309,7 +309,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
     setSelectedSlotId("");
   };
 
-    const selectedSlotLabel =
+  const selectedSlotLabel =
     selectedSlot &&
     (() => {
       const dt = new Date(selectedSlot.start);
@@ -342,39 +342,27 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
       <Header />
       <main className="flex-1 bg-slate-50/70 py-8">
         <div className="container mx-auto max-w-5xl px-4">
-
-  const handleTelegramClick = () => {
-    if (typeof window !== "undefined") {
-      window.open(
-        "https://t.me/onlyvet_clinic",
-        "_blank",
-        "noopener,noreferrer"
-      );
-    }
-  };
-
-  return (
-    <>
-      <Header />
-      <main className="flex-1 bg-slate-50/70 py-8">
-        <div className="container mx-auto max-w-5xl px-4">
           {/* Заголовок */}
           <div className="mb-6">
             <nav className="text-[12px] text-slate-500 mb-2">
               <Link href="/" className="hover:text-onlyvet-coral">
                 Главная
               </Link>{" "}
-              / <span className="text-slate-700">Записаться на консультацию</span>
+              /{" "}
+              <span className="text-slate-700">
+                Записаться на консультацию
+              </span>
             </nav>
             <h1 className="text-xl md:text-2xl font-semibold mb-1">
               Записаться на онлайн-консультацию
             </h1>
             <p className="text-[13px] text-slate-600 max-w-2xl">
-              Выберите удобный формат: короткая заявка, подробная форма или переписка в Telegram.
+              Выберите удобный формат: короткая заявка, подробная форма или
+              переписка в Telegram.
             </p>
           </div>
 
-          {/* Карточки формата */}
+          {/* Карточки выбора формата */}
           <BookingModeCards
             kind={kind}
             onChangeKind={setKind}
@@ -385,7 +373,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
             onSubmit={handleSubmit}
             className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 md:p-6 space-y-6"
           >
-            {/* Сообщения */}
+            {/* Сообщения об успехе/ошибке */}
             {serverSuccess && (
               <div className="text-[12px] text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-2xl px-3 py-2">
                 {serverSuccess}
@@ -397,7 +385,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
               </div>
             )}
 
-            {/* Контакты */}
+            {/* Контактные данные */}
             <BookingContactSection
               lastName={lastName}
               firstName={firstName}
@@ -422,7 +410,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
               }}
             />
 
-            {/* Питомец */}
+            {/* Питомец – только для подробной заявки */}
             {showFull && (
               <BookingPetSection
                 petMode={petMode}
@@ -445,14 +433,17 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
               />
             )}
 
-            {/* Проблема */}
+            {/* Кратко о проблеме */}
             <BookingComplaintSection
               complaint={complaint}
               setComplaint={setComplaint}
               kind={kind}
             />
 
-                            {/* Услуга */}
+            {/* Услуга / врач / время / файлы — только для полной формы */}
+            {showFull && (
+              <>
+                {/* Услуга */}
                 <BookingServiceSection
                   selectedServiceId={selectedServiceId}
                   setSelectedServiceId={setSelectedServiceId}
@@ -488,7 +479,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
                   onFileChange={setFiles}
                 />
 
-                {/* Итоговый summary */}
+                {/* Вы выбрали */}
                 <BookingSummarySection
                   selectedService={selectedService}
                   selectedDoctor={selectedDoctor}
