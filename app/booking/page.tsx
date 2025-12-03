@@ -17,6 +17,7 @@ import { BookingPetSection } from "./components/BookingPetSection";
 import { BookingComplaintSection } from "./components/BookingComplaintSection";
 import { BookingDoctorSection } from "./components/BookingDoctorSection";
 import { BookingTimeSection } from "./components/BookingTimeSection";
+import { BookingFilesSection } from "./components/BookingFilesSection";
 
 type BookingPageProps = {
   searchParams?: {
