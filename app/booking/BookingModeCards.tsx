@@ -17,7 +17,7 @@ export function BookingModeCards({
   return (
     <section className="mb-5">
       <div className="grid md:grid-cols-3 gap-3">
-        {/* Краткая */}
+        {/* Краткая заявка */}
         <button
           type="button"
           onClick={() => onChangeKind("short")}
@@ -44,7 +44,7 @@ export function BookingModeCards({
           </p>
         </button>
 
-        {/* Подробная */}
+        {/* Подробная заявка */}
         <button
           type="button"
           onClick={() => onChangeKind("full")}
@@ -71,7 +71,7 @@ export function BookingModeCards({
           </p>
         </button>
 
-        {/* Telegram — всегда голубая, без состояния "выбрана" */}
+        {/* Telegram — всегда голубая, не «выбранная» */}
         <button
           type="button"
           onClick={onTelegramClick}
@@ -115,7 +115,7 @@ export function BookingModeCards({
   );
 }
 
-// внутренняя утилита для карточек (краткая/подробная)
+// внутренняя утилита для двух карточек
 function cnCard(active: boolean, activeBorder: string, hoverBorder: string) {
   return [
     "rounded-3xl border px-4 py-4 md:px-5 md:py-5 text-left cursor-pointer",
