@@ -71,7 +71,7 @@ export function BookingModeCards({
           </p>
         </button>
 
-        {/* Telegram — всегда голубая, не имеет состояния «выбрано» */}
+        {/* Telegram — всегда голубая, без состояния "выбрана" */}
         <button
           type="button"
           onClick={onTelegramClick}
@@ -115,7 +115,7 @@ export function BookingModeCards({
   );
 }
 
-// утилита для карточек (краткая/подробная)
+// внутренняя утилита для карточек (краткая/подробная)
 function cnCard(active: boolean, activeBorder: string, hoverBorder: string) {
   return [
     "rounded-3xl border px-4 py-4 md:px-5 md:py-5 text-left cursor-pointer",
