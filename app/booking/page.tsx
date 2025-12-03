@@ -12,6 +12,7 @@ import { services } from "@/data/services";
 import { slots } from "@/data/slots";
 import { BookingModeCards } from "./BookingModeCards";
 import { BookingContactSection } from "./components/BookingContactSection";
+import { BookingPetSection } from "./components/BookingPetSection";
 
 type BookingPageProps = {
   searchParams?: {
@@ -426,152 +427,28 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
             />
 
             {/* Питомец – только для подробной заявки */}
+                        {/* Питомец – только для подробной заявки */}
             {showFull && (
-              <section className="space-y-3">
-                <h2 className="text-[15px] font-semibold">
-                  Информация о питомце
-                </h2>
-                <div className="flex flex-wrap gap-3 text-[12px]">
-                  <label className="inline-flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="petMode"
-                      value="existing"
-                      checked={petMode === "existing"}
-                      onChange={() => setPetMode("existing")}
-                      className="rounded-full border-slate-300"
-                    />
-                    <span>Выбрать из существующих (личный кабинет)</span>
-                  </label>
-                  <label className="inline-flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="petMode"
-                      value="new"
-                      checked={petMode === "new"}
-                      onChange={() => setPetMode("new")}
-                      className="rounded-full border-slate-300"
-                    />
-                    <span>Новый питомец</span>
-                  </label>
-                </div>
-
-                {petMode === "existing" ? (
-                  mockIsLoggedIn && mockUser.pets.length > 0 ? (
-                    <div>
-                      <label className="block text-[12px] text-slate-600 mb-1">
-                        Питомец
-                      </label>
-                      <select
-                        value={selectedPetId}
-                        onChange={(e) => setSelectedPetId(e.target.value)}
-                        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
-                      >
-                        <option value="">Выберите питомца</option>
-                        {mockUser.pets.map((pet) => (
-                          <option key={pet.id} value={pet.id}>
-                            {pet.name}
-                          </option>
-                        ))}
-                      </select>
-                      <p className="text-[11px] text-slate-500 mt-1">
-                        В реальной версии здесь будут данные из личного
-                        кабинета.
-                      </p>
-                    </div>
-                  ) : (
-                    <p className="text-[12px] text-slate-500">
-                      Для выбора существующего питомца нужен личный кабинет.
-                      Пока можно указать питомца как нового.
-                    </p>
-                  )
-                ) : (
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-[12px] text-slate-600 mb-1">
-                        Кличка<span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={newPetName}
-                        onChange={(e) => setNewPetName(e.target.value)}
-                        className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
-                          newPetNameError
-                            ? "border-rose-400 focus:ring-rose-300"
-                            : "border-slate-300 focus:ring-onlyvet-teal/40"
-                        }`}
-                        placeholder="Например: Локи"
-                      />
-                      {newPetNameError && (
-                        <p className="mt-1 text-[11px] text-rose-600">
-                          Укажите кличку питомца.
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="grid md:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[12px] text-slate-600 mb-1">
-                          Вид
-                        </label>
-                        <select
-                          value={newPetSpecies}
-                          onChange={(e) => setNewPetSpecies(e.target.value)}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
-                        >
-                          <option value="">
-                            Выберите вид или оставьте пустым
-                          </option>
-                          <option value="кошка">Кошка</option>
-                          <option value="собака">Собака</option>
-                          <option value="грызун">Грызун</option>
-                          <option value="птица">Птица</option>
-                          <option value="другое">Другое</option>
-                          <option value="не знаю">Не знаю</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-[12px] text-slate-600 mb-1">
-                          Порода
-                        </label>
-                        <input
-                          type="text"
-                          value={newPetBreed}
-                          onChange={(e) => setNewPetBreed(e.target.value)}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
-                          placeholder="Например: шотландская, метис"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid md:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[12px] text-slate-600 mb-1">
-                          Возраст
-                        </label>
-                        <input
-                          type="text"
-                          value={newPetAge}
-                          onChange={(e) => setNewPetAge(e.target.value)}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
-                          placeholder="Например: 2 года, 8 месяцев"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[12px] text-slate-600 mb-1">
-                          Вес (примерно)
-                        </label>
-                        <input
-                          type="text"
-                          value={newPetWeight}
-                          onChange={(e) => setNewPetWeight(e.target.value)}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
-                          placeholder="Например: 4.5 кг, ~20 кг"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
+              <BookingPetSection
+                petMode={petMode}
+                setPetMode={setPetMode}
+                selectedPetId={selectedPetId}
+                setSelectedPetId={setSelectedPetId}
+                newPetName={newPetName}
+                setNewPetName={setNewPetName}
+                newPetSpecies={newPetSpecies}
+                setNewPetSpecies={setNewPetSpecies}
+                newPetBreed={newPetBreed}
+                setNewPetBreed={setNewPetBreed}
+                newPetAge={newPetAge}
+                setNewPetAge={setNewPetAge}
+                newPetWeight={newPetWeight}
+                setNewPetWeight={setNewPetWeight}
+                newPetNameError={newPetNameError}
+                isLoggedIn={mockIsLoggedIn}
+                pets={mockUser.pets}
+              />
+            )}
               </section>
             )}
 
