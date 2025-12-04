@@ -92,59 +92,57 @@ export default function HomePage() {
         </section>
 
         {/* Почему OnlyVet */}
-        <section className="py-7">
-          <div className="container mx-auto max-w-5xl px-4">
-            <div className="flex items-baseline justify-between gap-4 mb-4">
-              <div>
-                <h2 className="text-lg md:text-xl font-semibold">
-                  Почему OnlyVet
-                </h2>
-                <p className="text-[13px] text-slate-600 max-w-xl">
-                  Клиника, где на первом месте — доказательная медицина,
-                  спокойная коммуникация с владельцем и чёткий план лечения.
-                </p>
-              </div>
-            </div>
+<section className="py-7">
+  <div className="container mx-auto max-w-5xl px-4">
+    <div className="flex items-baseline justify-between gap-4 mb-4">
+      <div>
+        <h2 className="text-lg md:text-xl font-semibold">Почему OnlyVet</h2>
+        <p className="text-[13px] text-slate-600 max-w-xl">
+          Онлайн-клиника, где решения опираются на доказательную медицину, 
+          а владельцу всегда объясняют, что и зачем делается.
+        </p>
+      </div>
+    </div>
 
-            <div className="bg-white rounded-3xl shadow-soft p-4 md:p-5">
-              <div className="grid gap-3 md:grid-cols-4">
-                <article className="bg-onlyvet-bg rounded-2xl border border-slate-200 p-3">
-                  <div className="text-sm font-semibold mb-1">
-                    Доказательная медицина
-                  </div>
-                  <div className="text-[13px] text-slate-600">
-                    Решения опираются на протоколы и анализ сложных случаев.
-                  </div>
-                </article>
-                <article className="bg-onlyvet-bg rounded-2xl border border-slate-200 p-3">
-                  <div className="text-sm font-semibold mb-1">
-                    Онлайн без хаоса
-                  </div>
-                  <div className="text-[13px] text-slate-600">
-                    Чёткая структура приёма, документы и план в личном
-                    кабинете.
-                  </div>
-                </article>
-                <article className="bg-onlyvet-bg rounded-2xl border border-slate-200 p-3">
-                  <div className="text-sm font-semibold mb-1">
-                    Сложные пациенты
-                  </div>
-                  <div className="text-[13px] text-slate-600">
-                    Онкология, хроника, непонятные диагнозы — наша зона.
-                  </div>
-                </article>
-                <article className="bg-onlyvet-bg rounded-2xl border border-slate-200 p-3">
-                  <div className="text-sm font-semibold mb-1">
-                    Этика и прозрачность
-                  </div>
-                  <div className="text-[13px] text-slate-600">
-                    Без паники и давления. Только по делу.
-                  </div>
-                </article>
-              </div>
-            </div>
+    <div className="bg-white rounded-3xl shadow-soft p-4 md:p-5">
+      <div className="grid gap-3 md:grid-cols-4">
+        
+        {/* 1. Доказательная медицина */}
+        <article className="bg-onlyvet-bg rounded-2xl border border-slate-200 p-3">
+          <div className="text-sm font-semibold mb-1">Доказательная медицина</div>
+          <div className="text-[13px] text-slate-600">
+            Решения опираются на протоколы и разбор сложных случаев.
           </div>
-        </section>
+        </article>
+
+        {/* 2. Онлайн без хаоса */}
+        <article className="bg-onlyvet-bg rounded-2xl border border-slate-200 p-3">
+          <div className="text-sm font-semibold mb-1">Онлайн без хаоса</div>
+          <div className="text-[13px] text-slate-600">
+            Понятная структура приёма, все документы и план лечения — в личном кабинете.
+          </div>
+        </article>
+
+        {/* 3. Сложные пациенты */}
+        <article className="bg-onlyvet-bg rounded-2xl border border-slate-200 p-3">
+          <div className="text-sm font-semibold mb-1">Сложные пациенты</div>
+          <div className="text-[13px] text-slate-600">
+            Онкология, хроника и ситуации, когда «непонятно что делать дальше».
+          </div>
+        </article>
+
+        {/* 4. Этика и прозрачность */}
+        <article className="bg-onlyvet-bg rounded-2xl border border-slate-200 p-3">
+          <div className="text-sm font-semibold mb-1">Этика и прозрачность</div>
+          <div className="text-[13px] text-slate-600">
+            Без паники и давления. Объясняем честно и только по делу.
+          </div>
+        </article>
+
+      </div>
+    </div>
+  </div>
+</section>
 
         {/* Врачи */}
         <DoctorsSection specFilter={specFilter} setSpecFilter={setSpecFilter} />
