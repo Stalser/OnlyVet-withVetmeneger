@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 
-// Те же типы статуса, что и в /account/page.tsx
 type ConsultationStatus = "new" | "in_progress" | "done";
 
 type ConsultationDetail = {
@@ -21,7 +20,6 @@ type ConsultationDetail = {
   files: { id: string; name: string; type: string }[];
 };
 
-// Моки — в реальной версии сюда придут данные из БД / API
 const mockConsultations: ConsultationDetail[] = [
   {
     id: "c1",
@@ -58,7 +56,34 @@ const mockConsultations: ConsultationDetail[] = [
       "Дана рекомендация по дообследованию и мягкая корректировка дозировки гепатопротектора.",
     ],
     files: [
-      { id: "f3", name: "Биохимический анализ крови 15.11.2024.pdf", type: "Анализы" },
+      {
+        id: "f3",
+        name: "Биохимический анализ крови 15.11.2024.pdf",
+        type: "Анализы",
+      },
+    ],
+  },
+  {
+    id: "c3",
+    petName: "Локи",
+    serviceName: "Разбор УЗИ и плана лечения",
+    date: "2024-11-10 18:30",
+    status: "done",
+    complaint:
+      "Нужно обсудить результаты УЗИ брюшной полости, сопоставить с анализами и скорректировать дальнейший план лечения.",
+    doctorName: "Чемерилова Диана Сергеевна",
+    doctorSpec: "Терапевт, гастроэнтерология",
+    notes: [
+      "Проанализированы результаты УЗИ: подтверждены изменения, соответствующие хроническому гастриту и лёгкому гепатиту.",
+      "Согласован щадящий план диеты и поддерживающей терапии.",
+      "Договорённость о повторной связи через 3–4 недели или при ухудшении состояния.",
+    ],
+    files: [
+      {
+        id: "f4",
+        name: "УЗИ брюшной полости 05.11.2024.pdf",
+        type: "УЗИ",
+      },
     ],
   },
 ];
@@ -93,7 +118,8 @@ export default function ConsultationDetailPage({
               <span className="text-slate-700">Карточка консультации</span>
             </nav>
             <h1 className="text-xl md:text-2xl font-semibold mb-1">
-              Консультация {consultation ? `по питомцу ${consultation.petName}` : ""}
+              Консультация{" "}
+              {consultation ? `по питомцу ${consultation.petName}` : ""}
             </h1>
             <p className="text-[13px] text-slate-600 max-w-2xl">
               Здесь собрана ключевая информация по конкретной онлайн-консультации:
