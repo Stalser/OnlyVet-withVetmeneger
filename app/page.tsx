@@ -36,11 +36,20 @@ export default function HomePage() {
       <Header />
       <main className="flex-1">
         {/* HERO */}
-        <section className="bg-[#101827] text-white">
-  <div className="container mx-auto max-w-5xl px-4 py-10 md:py-16">
-    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8">
+        <section className="relative overflow-hidden bg-[#101827] text-white">
+  {/* Мягкий фон-градиент за контентом */}
+  <div
+    className="
+      pointer-events-none
+      absolute inset-x-[-120px] top-[-180px] h-[360px]
+      bg-gradient-to-br from-onlyvet-teal/30 via-onlyvet-coral/10 to-transparent
+      opacity-70 blur-3xl
+    "
+  />
 
-      {/* Левая часть: слоган и кнопки */}
+  <div className="relative container mx-auto max-w-5xl px-4 py-12 md:py-16">
+    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8">
+      {/* Левая колонка: слоган и кнопки */}
       <div className="max-w-xl space-y-6">
         <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold leading-tight">
           <span className="block">Мы рядом,</span>
@@ -77,6 +86,12 @@ export default function HomePage() {
           </Link>
         </div>
       </div>
+
+      {/* Правая часть — просто воздух на десктопе, чтобы блок не был тяжёлым */}
+      <div className="hidden md:block flex-1" />
+    </div>
+  </div>
+</section>
 
       {/* Правая часть — просто «воздух» на десктопе */}
       <div className="hidden md:block flex-1" />
