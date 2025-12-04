@@ -1,6 +1,7 @@
 // app/auth/login/page.tsx
+export const dynamic = "force-dynamic"; // важная строка
 "use client";
-export const dynamic = "force-dynamic";
+
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -43,19 +44,26 @@ export default function LoginPage() {
         });
 
       if (authError) {
+        // Показываем реальное сообщение Supabase
         setError(authError.message || "Ошибка входа. Проверьте данные.");
+        setLoading(false);
         return;
       }
 
       if (!data.session) {
-        setError("Не удалось войти. Попробуйте ещё раз.");
+        setError("Не удалось создать сессию. Попробуйте ещё раз.");
+        setLoading(false);
         return;
       }
 
+      // Успешный вход — в личный кабинет
       router.push("/account");
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setError("Произошла ошибка. Попробуйте позже.");
+      // Если вдруг упадёт сам supabaseClient, покажем текст ошибки
+      const msg =
+        err?.message || "Произошла ошибка подключения. Попробуйте позже.";
+      setError(msg);
     } finally {
       setLoading(false);
     }
