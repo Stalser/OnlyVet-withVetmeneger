@@ -594,21 +594,21 @@ function SocialBlock() {
             </p>
           </a>
 
-          {/* OK */}
-          <a
-            href="#"
-            className="bg-white rounded-3xl border border-slate-200 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/60 transition-all text-center"
-          >
-            <img
-              src="/img/free-icon-odnoklassniki-3670250.svg"
-              alt="Одноклассники"
-              className="w-14 h-14"
-            />
-            <div className="text-[14px] font-semibold">Одноклассники</div>
-            <p className="text-[12px] text-slate-600">
-              Полезные советы и материалы.
-            </p>
-          </a>
+          // Внутри SocialBlock, только блок OK:
+<a
+  href="#"
+  className="bg-white rounded-3xl border border-slate-200 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/60 transition-all text-center"
+>
+  <img
+    src="/img/free-icon-odnoklassniki-3670250.svg"
+    alt="Одноклассники"
+    className="w-14 h-14"
+  />
+  <div className="text-[14px] font-semibold">Одноклассники</div>
+  <p className="text-[12px] text-slate-600">
+    Полезные советы и материалы.
+  </p>
+</a>
 
         <p className="mt-3 text-[10px] text-slate-400 max-w-xl">
           * Instagram принадлежит компании Meta Platforms Inc., деятельность
