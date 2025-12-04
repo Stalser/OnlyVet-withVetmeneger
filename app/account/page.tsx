@@ -1,6 +1,8 @@
 // app/account/page.tsx
 "use client";
+
 export const dynamic = "force-dynamic";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -8,7 +10,6 @@ import { useRouter } from "next/navigation";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { getSupabaseClient } from "@/lib/supabaseClient";
-
 // --------------------
 // Типы и мок-данные
 // --------------------
