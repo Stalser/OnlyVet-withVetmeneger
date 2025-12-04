@@ -39,6 +39,17 @@ type PetDocument = {
   description?: string;
 };
 
+// доступ к конкретному питомцу
+type PetAccess = {
+  ownerName: string;
+  ownerDescription: string;
+  trusted: {
+    name: string;
+    description: string;
+    access: string;
+  }[];
+};
+
 // =============================
 // 🔹 Демоданные
 // =============================
@@ -131,6 +142,32 @@ const demoDocs: Record<string, PetDocument[]> = {
   ],
 };
 
+// демо-доступ для каждого питомца
+const demoAccess: Record<string, PetAccess> = {
+  pet1: {
+    ownerName: "Иванов Иван Иванович",
+    ownerDescription: "Основной владелец аккаунта и питомца.",
+    trusted: [
+      {
+        name: "Ольга Петрова",
+        description: "Помогает с лечением и общением с врачами.",
+        access: "Просмотр и участие в консультациях по Локи.",
+      },
+    ],
+  },
+  pet2: {
+    ownerName: "Иванов Иван Иванович",
+    ownerDescription: "Основной владелец аккаунта и питомца.",
+    trusted: [
+      {
+        name: "Фонд «Хвосты и лапы»",
+        description: "Куратор, который участвует в лечении и наблюдении.",
+        access: "Просмотр документов и участие в консультациях по Рексу.",
+      },
+    ],
+  },
+};
+
 // =============================
 // 🔹 Основная логика
 // =============================
@@ -144,6 +181,7 @@ export default function PetPage({ params }: { params: { id: string } }) {
 
   const visits = demoVisits[pet.id] || [];
   const docs = demoDocs[pet.id] || [];
+  const access = demoAccess[pet.id];
 
   const analyzes = docs.filter((d) => d.category === "analyzes");
   const imaging = docs.filter((d) => d.category === "imaging");
@@ -166,7 +204,7 @@ export default function PetPage({ params }: { params: { id: string } }) {
               Личный кабинет
             </Link>{" "}
             /{" "}
-            <Link href="/account/pets" className="hover:text-onlyvet-coral">
+            <Link href="/account" className="hover:text-onlyvet-coral">
               Питомцы
             </Link>{" "}
             / <span className="text-slate-700">{pet.name}</span>
@@ -194,7 +232,7 @@ export default function PetPage({ params }: { params: { id: string } }) {
             <div className="flex flex-col sm:flex-row gap-2 text-[12px]">
               <Link
                 href={`/booking?petId=${pet.id}`}
-                className="px-4 py-2 rounded-full bg-onlyvet-coral text-white font-medium shadow-[0_10px_26px_rgба(247,118,92,0.45)] hover:brightness-105 transition text-center"
+                className="px-4 py-2 rounded-full bg-onlyvet-coral text-white font-medium shadow-[0_10px_26px_rgba(247,118,92,0.45)] hover:brightness-105 transition text-center"
               >
                 Записаться с этим питомцем
               </Link>
@@ -313,6 +351,61 @@ export default function PetPage({ params }: { params: { id: string } }) {
               </div>
             </div>
           </section>
+
+          {/* Блок доступа к питомцу */}
+          <section className="bg-onlyvet-bg rounded-3xl border border-dashed border-slate-300 p-5 space-y-2 text-[12px] text-slate-700">
+            <h3 className="text-[13px] font-semibold mb-1.5">
+              Кто имеет доступ к этому питомцу
+            </h3>
+
+            {access ? (
+              <>
+                <p className="text-[12px] text-slate-700">
+                  Вы видите эту карточку как{" "}
+                  <span className="font-medium">основной владелец</span>{" "}
+                  питомца <span className="font-medium">{pet.name}</span>.
+                </p>
+
+                <ul className="space-y-1.5">
+                  <li>
+                    • <span className="font-medium">{access.ownerName}</span> —{" "}
+                    {access.ownerDescription}
+                  </li>
+                  {access.trusted.map((t) => (
+                    <li key={t.name}>
+                      • <span className="font-medium">{t.name}</span> —{" "}
+                      {t.description}{" "}
+                      <span className="text-slate-600">
+                        (доступ: {t.access})
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+
+                <p className="text-[11px] text-slate-500 mt-2">
+                  Управлять доверенными лицами вы можете во вкладке{" "}
+                  <Link
+                    href="/account"
+                    className="text-onlyvet-navy hover:text-onlyvet-coral underline underline-offset-2"
+                  >
+                    «Доверенные лица»
+                  </Link>{" "}
+                  в личном кабинете.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-[12px] text-slate-700">
+                  Сейчас доступ к этому питомцу есть только у вас как у{" "}
+                  <span className="font-medium">основного владельца</span>.
+                </p>
+                <p className="text-[11px] text-slate-500 mt-2">
+                  При необходимости вы можете выдать доступ доверенному лицу
+                  во вкладке «Доверенные лица» в личном кабинете.
+                </p>
+              </>
+            )}
+          </section>
         </div>
       </main>
 
@@ -344,7 +437,7 @@ function DocCategory({
           {docs.map((d) => (
             <li
               key={d.id}
-              className="flex justify_between items-start gap-3 text-[12px]"
+              className="flex justify-between items-start gap-3 text-[12px]"
             >
               <div className="flex-1">
                 <div className="font-medium text-slate-800">{d.title}</div>
@@ -371,7 +464,7 @@ function DocCategory({
 }
 
 // =============================
-// 🔹 Генерация статических маршрутов
+// 🔹 Генерация статических маршрутов (демо)
 // =============================
 export function generateStaticParams() {
   return demoPets.map((p) => ({ id: p.id }));
