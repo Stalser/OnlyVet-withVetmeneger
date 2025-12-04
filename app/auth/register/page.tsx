@@ -7,6 +7,7 @@ import Link from "next/link";
 
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -74,38 +75,48 @@ export default function RegisterPage() {
     try {
       setLoading(true);
 
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          phone,
-          email,
-          lastName,
-          firstName,
-          middleName: noMiddleName ? "" : middleName,
-          password,
-          password2,
-          telegram: telegram || undefined,
-        }),
+      // Собираем ФИО
+      const fullName = [lastName, firstName, !noMiddleName && middleName]
+        .filter(Boolean)
+        .join(" ");
+
+      // РЕАЛЬНАЯ регистрация в Supabase по email + пароль
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password: password.trim(),
+        options: {
+          data: {
+            full_name: fullName || null,
+            last_name: lastName || null,
+            first_name: firstName || null,
+            middle_name: noMiddleName ? null : middleName || null,
+            phone: phone.trim(),
+            telegram: telegram.trim() || null,
+            consentPersonalData,
+            consentOffer,
+            consentRules,
+          },
+        },
       });
 
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
+      if (error) {
         setServerError(
-          data?.error || "Не удалось создать аккаунт. Попробуйте позже."
+          error.message || "Не удалось создать аккаунт. Попробуйте позже."
         );
         return;
       }
 
+      // В Supabase по настройкам может быть:
+      //  - либо сразу активная сессия,
+      //  - либо отправка письма подтверждения.
+      // Для простоты показываем сообщение и ведём на логин.
       setServerSuccess(
         "Аккаунт создан. Теперь вы можете войти в личный кабинет."
       );
 
-      // небольшой редирект на страницу входа
       setTimeout(() => {
         router.push("/auth/login");
-      }, 1000);
+      }, 1200);
     } catch (err) {
       console.error(err);
       setServerError("Произошла техническая ошибка. Попробуйте позже.");
@@ -175,7 +186,9 @@ export default function RegisterPage() {
                       <input
                         type="text"
                         value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
+                        onChange={(e) =>
+                          setFirstName(e.target.value)
+                        }
                         className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
                           firstNameError
                             ? "border-rose-400 focus:ring-rose-300"
@@ -214,7 +227,9 @@ export default function RegisterPage() {
                           type="checkbox"
                           id="no-middle-name"
                           checked={noMiddleName}
-                          onChange={(e) => setNoMiddleName(e.target.checked)}
+                          onChange={(e) =>
+                            setNoMiddleName(e.target.checked)
+                          }
                           className="rounded border-slate-300"
                         />
                         <label
@@ -453,11 +468,9 @@ export default function RegisterPage() {
               </form>
 
               <p className="text-[11px] text-slate-500">
-                Эта форма работает с API <code>/api/auth/register</code>, который
-                использует <code>lib/db</code> и <code>lib/auth</code>. Внутри
-                можно подключить Supabase или свою БД в Yandex Cloud, не меняя
-                фронтенд — достаточно адаптировать реализацию{" "}
-                <code>createUser / getUserByPhone / getUserByEmail</code>.
+                Сейчас регистрация выполняется через Supabase Auth (email + пароль).
+                Телефон и прочие данные сохраняются в метаданных пользователя и
+                дальше могут быть связаны с Vetmanager или собственной БД.
               </p>
             </div>
           </div>
