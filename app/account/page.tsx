@@ -301,12 +301,12 @@ function ConsultationsSection() {
             </div>
             <div className="flex items-center gap-2">
               <StatusBadge status={c.status} />
-              <button
-                type="button"
+              <Link
+                href={`/account/consultations/${c.id}`}
                 className="text-[12px] text-onlyvet-navy hover:text-onlyvet-coral underline underline-offset-2"
               >
                 Открыть карточку
-              </button>
+              </Link>
             </div>
           </div>
         ))}
@@ -508,7 +508,7 @@ function TrustedSection({
           </button>
         </div>
 
-        {trustedPeople.length === 0 ? (
+        {mockTrustedPeople.length === 0 ? (
           <p className="text-[12px] text-slate-500">
             Пока у вас нет доверенных лиц. Вы можете выдать доступ, если кто-то
             помогает вам с лечением питомца (например, родственник или куратор
@@ -516,7 +516,7 @@ function TrustedSection({
           </p>
         ) : (
           <div className="space-y-3 text-[13px]">
-            {trustedPeople.map((person) => (
+            {mockTrustedPeople.map((person) => (
               <div
                 key={person.id}
                 className="rounded-2xl border border-slate-200 bg-onlyvet-bg p-3 md:p-3.5 flex flex-col gap-1.5"
@@ -585,14 +585,14 @@ function TrustedSection({
           просматриваете или редактируете.
         </p>
 
-        {trustedForMe.length === 0 ? (
+        {mockTrustedForMe.length === 0 ? (
           <p className="text-[12px] text-slate-500">
             Сейчас вы не являетесь доверенным лицом ни у одного владельца в
             системе.
           </p>
         ) : (
           <div className="space-y-3 text-[13px]">
-            {trustedForMe.map((item) => (
+            {mockTrustedForMe.map((item) => (
               <div
                 key={item.id}
                 className="rounded-2xl border border-slate-200 bg-onlyvet-bg p-3 md:p-3.5 flex flex-col gap-1.5"
@@ -699,7 +699,7 @@ function NotificationsSection({
             <input type="checkbox" checked={email.billingEvents} readOnly />
             <span>Финансовые уведомления (счета, оплаты)</span>
           </label>
-          <label className="flex items-center gap-2">
+          <label className="flex items_center gap-2">
             <input type="checkbox" checked={email.reminderEvents} readOnly />
             <span>Напоминания (повторные анализы, контроль)</span>
           </label>
