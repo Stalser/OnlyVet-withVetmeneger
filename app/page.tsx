@@ -373,12 +373,13 @@ function ServicesSection({
   return (
     <section className="py-7">
       <div className="container mx-auto max-w-5xl px-4">
+        {/* Заголовок блока */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
           <div>
             <h2 className="text-lg md:text-xl font-semibold">Услуги OnlyVet</h2>
             <p className="text-[13px] text-slate-600 max-w-xl">
-              Основные форматы работы: консультации, второе мнение, диагностика
-              и сопровождение хронических пациентов.
+              Структурированные онлайн-форматы: первичные консультации, второе мнение,
+              разбор анализов и сопровождение хронических пациентов.
             </p>
           </div>
           <Link
@@ -390,6 +391,7 @@ function ServicesSection({
           </Link>
         </div>
 
+        {/* Фильтр по типу услуги */}
         <div className="flex flex-wrap items-center gap-2 text-[12px] mb-2">
           <span className="text-slate-500 mr-1">Тип услуги:</span>
           {[
@@ -416,6 +418,7 @@ function ServicesSection({
           ))}
         </div>
 
+        {/* Фильтр по специализации врача */}
         <div className="flex flex-wrap items-center gap-2 text-[12px] mb-4">
           <span className="text-slate-500 mr-1">Специализация врача:</span>
           {[
@@ -440,6 +443,7 @@ function ServicesSection({
           ))}
         </div>
 
+        {/* Карточки услуг */}
         <div className="grid gap-4 md:grid-cols-3 sm:grid-cols-2">
           {filteredServices.slice(0, 3).map((service) => (
             <Link
@@ -455,7 +459,6 @@ function ServicesSection({
     </section>
   );
 }
-
 ////////////////////////////////////////////////////////////////////////////////
 // КАРУСЕЛЬ ОТЗЫВОВ НА ГЛАВНОЙ
 ////////////////////////////////////////////////////////////////////////////////
