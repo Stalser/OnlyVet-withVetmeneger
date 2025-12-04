@@ -1,11 +1,13 @@
 // app/account/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { supabase } from "@/lib/supabaseClient";
 
 // --------------------
 // Типы и мок-данные
@@ -75,7 +77,7 @@ const mockConsultations: MockConsultation[] = [
   },
 ];
 
-// ID питомцев — pet1, pet2 (как в app/account/pets/[id]/page.tsx)
+// ID питомцев — те же, что и в app/account/pets/[id]/page.tsx
 const mockPets: MockPet[] = [
   {
     id: "pet1",
@@ -140,14 +142,71 @@ const mockNotificationSettings = {
   },
 };
 
-const currentUserName = "Иванов Иван Иванович";
-
 // --------------------
 // Страница
 // --------------------
 
 export default function AccountPage() {
+  const router = useRouter();
   const [tab, setTab] = useState<AccountTab>("consultations");
+
+  const [currentUserName, setCurrentUserName] = useState<string>("Пользователь");
+  const [currentUserEmail, setCurrentUserEmail] = useState<string>("");
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const checkAuth = async () => {
+      const { data, error } = await supabase.auth.getUser();
+
+      if (cancelled) return;
+
+      if (error || !data.user) {
+        // нет пользователя → на страницу входа
+        router.replace("/auth/login");
+        return;
+      }
+
+      const user = data.user;
+      const meta = (user.user_metadata || {}) as any;
+
+      const fullNameFromMeta =
+        meta.full_name ||
+        [meta.last_name, meta.first_name].filter(Boolean).join(" ");
+
+      setCurrentUserName(
+        fullNameFromMeta && fullNameFromMeta.trim().length > 0
+          ? fullNameFromMeta
+          : user.email || "Пользователь"
+      );
+      setCurrentUserEmail(user.email || "");
+      setCheckingAuth(false);
+    };
+
+    checkAuth();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
+
+  // Пока проверяем сессию — показываем простую «заглушку»
+  if (checkingAuth) {
+    return (
+      <>
+        <Header />
+        <main className="flex-1 bg-slate-50/70 py-8">
+          <div className="container mx-auto max-w-5xl px-4">
+            <p className="text-[13px] text-slate-600">
+              Загружаем личный кабинет...
+            </p>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
 
   return (
     <>
@@ -166,8 +225,11 @@ export default function AccountPage() {
               Личный кабинет
             </h1>
             <p className="text-[13px] text-slate-600 max-w-2xl">
-              Здесь собрана основная информация о ваших онлайн-консультациях, питомцах,
-              доверенных лицах и настройках уведомлений.
+              Аккаунт:{" "}
+              <span className="font-medium">{currentUserName}</span>
+              {currentUserEmail && (
+                <> · <span className="text-slate-500">{currentUserEmail}</span></>
+              )}
             </p>
           </div>
 
@@ -215,7 +277,10 @@ export default function AccountPage() {
               <NotificationsSection settings={mockNotificationSettings} />
             )}
             {tab === "profile" && (
-              <ProfileSection currentUserName={currentUserName} />
+              <ProfileSection
+                currentUserName={currentUserName}
+                currentUserEmail={currentUserEmail}
+              />
             )}
           </div>
         </div>
@@ -735,7 +800,13 @@ function NotificationsSection({
 
 // --- Профиль ---
 
-function ProfileSection({ currentUserName }: { currentUserName: string }) {
+function ProfileSection({
+  currentUserName,
+  currentUserEmail,
+}: {
+  currentUserName: string;
+  currentUserEmail: string;
+}) {
   return (
     <section className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4 md:p-5 space-y-4">
       <div>
@@ -744,7 +815,7 @@ function ProfileSection({ currentUserName }: { currentUserName: string }) {
         </h2>
         <p className="text-[12px] text-slate-600 max-w-2xl">
           Здесь будут редактироваться ваши контактные данные, пароль и базовые
-          настройки аккаунта. Сейчас данные демонстрационные.
+          настройки аккаунта. Сейчас данные частично берутся из Supabase, остальное — демонстрационные поля.
         </p>
       </div>
 
@@ -775,7 +846,7 @@ function ProfileSection({ currentUserName }: { currentUserName: string }) {
           </label>
           <input
             type="email"
-            defaultValue="user@example.com"
+            defaultValue={currentUserEmail || "user@example.com"}
             className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
           />
         </div>
