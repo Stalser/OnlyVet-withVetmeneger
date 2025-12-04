@@ -1,9 +1,7 @@
-// app/account/page.tsx
 "use client";
-
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -11,9 +9,12 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 
-// --------------------
-// Типы и мок-данные
-// --------------------
+// импортируем вынесенные вкладки
+import ConsultationsSection from "./components/ConsultationsSection";
+import PetsSection from "./components/PetsSection";
+import TrustedSection from "./components/TrustedSection";
+import NotificationsSection from "./components/NotificationsSection";
+import ProfileSection from "./components/ProfileSection";
 
 type AccountTab =
   | "consultations"
@@ -22,173 +23,16 @@ type AccountTab =
   | "notifications"
   | "profile";
 
-type ConsultationStatus = "new" | "in_progress" | "done";
-
-type MockConsultation = {
-  id: string;
-  petName: string;
-  serviceName: string;
-  date: string;
-  status: ConsultationStatus;
-};
-
-type MockPet = {
-  id: string;
-  name: string;
-  species: string;
-  age: string;
-  weight?: string;
-};
-
-type AccessLevel = "view" | "manage" | "finance";
-
-type TrustedPerson = {
-  id: string;
-  name: string;
-  contact: string;
-  accessLevel: AccessLevel[];
-  scope: "all_pets" | "selected_pets";
-  petNames?: string[];
-};
-
-type TrustedForMe = {
-  id: string;
-  ownerName: string;
-  ownerContact: string;
-  accessLevel: AccessLevel[];
-  scope: "all_pets" | "selected_pets";
-  petNames?: string[];
-};
-
-const mockConsultations: MockConsultation[] = [
-  {
-    id: "c1",
-    petName: "Локи",
-    serviceName: "Онлайн-консультация терапевта",
-    date: "2024-12-01 19:00",
-    status: "in_progress",
-  },
-  {
-    id: "c2",
-    petName: "Рекс",
-    serviceName: "Второе мнение по анализам",
-    date: "2024-11-20 14:00",
-    status: "done",
-  },
-  {
-    id: "c3",
-    petName: "Локи",
-    serviceName: "Разбор УЗИ и плана лечения",
-    date: "2024-11-10 18:30",
-    status: "done",
-  },
-];
-
-// ID питомцев — те же, что и в app/account/pets/[id]/page.tsx
-const mockPets: MockPet[] = [
-  {
-    id: "pet1",
-    name: "Локи",
-    species: "Кошка, шотландская",
-    age: "2 года 6 месяцев",
-    weight: "4.8 кг",
-  },
-  {
-    id: "pet2",
-    name: "Рекс",
-    species: "Собака, метис",
-    age: "6 лет",
-    weight: "22 кг",
-  },
-];
-
-const mockTrustedPeople: TrustedPerson[] = [
-  {
-    id: "t1",
-    name: "Ольга Петрова",
-    contact: "Телефон: +7 900 000-00-01",
-    accessLevel: ["view", "manage"],
-    scope: "all_pets",
-  },
-  {
-    id: "t2",
-    name: "Фонд «Хвосты и лапы»",
-    contact: "Email: curator@tails.ru",
-    accessLevel: ["view"],
-    scope: "selected_pets",
-    petNames: ["Рекс"],
-  },
-];
-
-const mockTrustedForMe: TrustedForMe[] = [
-  {
-    id: "tm1",
-    ownerName: "Анна Смирнова",
-    ownerContact: "Телефон: +7 900 123-45-67",
-    accessLevel: ["view", "manage"],
-    scope: "selected_pets",
-    petNames: ["Марта"],
-  },
-];
-
-const mockNotificationSettings = {
-  email: {
-    address: "user@example.com",
-    serviceEvents: true,
-    medicalEvents: true,
-    billingEvents: true,
-    reminderEvents: false,
-  },
-  telegram: {
-    connected: false,
-    username: "",
-    serviceEvents: true,
-    medicalEvents: true,
-    billingEvents: false,
-    reminderEvents: false,
-  },
-};
-
-// --------------------
-// Простые данные стран для телефона
-// --------------------
-
-type CountryOption = {
-  code: string;
-  name: string;
-  dialCode: string;
-};
-
-const COUNTRIES: CountryOption[] = [
-  { code: "RU", name: "Россия", dialCode: "+7" },
-  { code: "KZ", name: "Казахстан", dialCode: "+7" },
-  { code: "BY", name: "Беларусь", dialCode: "+375" },
-  { code: "AM", name: "Армения", dialCode: "+374" },
-  { code: "AZ", name: "Азербайджан", dialCode: "+994" },
-  { code: "GE", name: "Грузия", dialCode: "+995" },
-  { code: "UA", name: "Украина", dialCode: "+380" },
-  { code: "DE", name: "Германия", dialCode: "+49" },
-  { code: "GB", name: "Великобритания", dialCode: "+44" },
-  { code: "US", name: "США", dialCode: "+1" },
-];
-
-// --------------------
-// Страница
-// --------------------
-
 export default function AccountPage() {
   const router = useRouter();
   const [tab, setTab] = useState<AccountTab>("consultations");
 
-  const [currentUserName, setCurrentUserName] =
-    useState<string>("Пользователь");
-  const [currentUserEmail, setCurrentUserEmail] = useState<string>("");
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-
-    const checkAuth = async () => {
+    const load = async () => {
       const supabase = getSupabaseClient();
       const { data, error } = await supabase.auth.getUser();
 
@@ -199,24 +43,11 @@ export default function AccountPage() {
         return;
       }
 
-      const user = data.user;
-      const meta = (user.user_metadata || {}) as any;
-
-      const fullNameFromMeta =
-        meta.full_name ||
-        [meta.last_name, meta.first_name].filter(Boolean).join(" ");
-
-      setCurrentUserName(
-        fullNameFromMeta && fullNameFromMeta.trim().length > 0
-          ? fullNameFromMeta
-          : user.email || "Пользователь"
-      );
-      setCurrentUserEmail(user.email || "");
+      setCurrentUser(data.user);
       setCheckingAuth(false);
     };
 
-    checkAuth();
-
+    load();
     return () => {
       cancelled = true;
     };
@@ -228,9 +59,7 @@ export default function AccountPage() {
         <Header />
         <main className="flex-1 bg-slate-50/70 py-8">
           <div className="container mx-auto max-w-5xl px-4">
-            <p className="text-[13px] text-slate-600">
-              Загружаем личный кабинет...
-            </p>
+            <p className="text-[13px] text-slate-600">Загружаем профиль…</p>
           </div>
         </main>
         <Footer />
@@ -238,12 +67,18 @@ export default function AccountPage() {
     );
   }
 
+  const fullName =
+    currentUser?.user_metadata?.full_name ??
+    `${currentUser?.user_metadata?.last_name ?? ""} ${
+      currentUser?.user_metadata?.first_name ?? ""
+    }`;
+
   return (
     <>
       <Header />
       <main className="flex-1 bg-slate-50/60">
         <div className="container mx-auto max-w-5xl px-4 py-6 md:py-8">
-          {/* Заголовок страницы */}
+          {/* Заголовок */}
           <div className="mb-5 md:mb-6">
             <nav className="text-[11px] text-slate-500 mb-1">
               <Link href="/" className="hover:text-onlyvet-coral">
@@ -251,903 +86,60 @@ export default function AccountPage() {
               </Link>{" "}
               / <span className="text-slate-700">Личный кабинет</span>
             </nav>
+
             <h1 className="text-xl md:text-2xl font-semibold mb-1">
               Личный кабинет
             </h1>
+
             <p className="text-[13px] text-slate-600 max-w-2xl">
               Аккаунт:{" "}
-              <span className="font-medium">{currentUserName}</span>
-              {currentUserEmail && (
-                <>
-                  {" "}
-                  · <span className="text-slate-500">{currentUserEmail}</span>
-                </>
-              )}
+              <span className="font-medium">
+                {fullName?.trim() || currentUser.email}
+              </span>{" "}
+              ·{" "}
+              <span className="text-slate-500">
+                {currentUser.email ?? "email отсутствует"}
+              </span>
             </p>
           </div>
 
-          {/* Навигация по вкладкам */}
+          {/* Навигация */}
           <div className="mb-5 border-b border-slate-200">
             <div className="flex flex-wrap gap-2 text-[12px] md:text-[13px]">
-              <AccountTabButton
-                tab="consultations"
-                current={tab}
-                setTab={setTab}
-              >
-                Консультации
-              </AccountTabButton>
-              <AccountTabButton tab="pets" current={tab} setTab={setTab}>
-                Питомцы
-              </AccountTabButton>
-              <AccountTabButton tab="trusted" current={tab} setTab={setTab}>
-                Доверенные лица
-              </AccountTabButton>
-              <AccountTabButton
-                tab="notifications"
-                current={tab}
-                setTab={setTab}
-              >
-                Уведомления
-              </AccountTabButton>
-              <AccountTabButton tab="profile" current={tab} setTab={setTab}>
-                Профиль
-              </AccountTabButton>
+              {(["consultations", "pets", "trusted", "notifications", "profile"] as AccountTab[]).map(
+                (t) => (
+                  <button
+                    key={t}
+                    onClick={() => setTab(t)}
+                    className={`px-3 py-1.5 rounded-full transition ${
+                      tab === t
+                        ? "bg-white text-onlyvet-navy border border-slate-200 shadow-sm"
+                        : "text-slate-600 hover:text-onlyvet-navy hover:bg-white/70"
+                    }`}
+                  >
+                    {{
+                      consultations: "Консультации",
+                      pets: "Питомцы",
+                      trusted: "Доверенные лица",
+                      notifications: "Уведомления",
+                      profile: "Профиль",
+                    }[t]}
+                  </button>
+                )
+              )}
             </div>
           </div>
 
-          {/* Контент вкладок */}
-          <div className="space-y-4 md:space-y-5">
-            {tab === "consultations" && <ConsultationsSection />}
-            {tab === "pets" && <PetsSection />}
-            {tab === "trusted" && (
-              <TrustedSection
-                currentUserName={currentUserName}
-                trustedPeople={mockTrustedPeople}
-                trustedForMe={mockTrustedForMe}
-              />
-            )}
-            {tab === "notifications" && (
-              <NotificationsSection settings={mockNotificationSettings} />
-            )}
-            {tab === "profile" && (
-              <ProfileSection
-                currentUserName={currentUserName}
-                currentUserEmail={currentUserEmail}
-              />
-            )}
-          </div>
+          {/* Контент вкладки */}
+          {tab === "consultations" && <ConsultationsSection user={currentUser} />}
+          {tab === "pets" && <PetsSection user={currentUser} />}
+          {tab === "trusted" && <TrustedSection user={currentUser} />}
+          {tab === "notifications" && <NotificationsSection user={currentUser} />}
+          {tab === "profile" && <ProfileSection user={currentUser} />}
         </div>
       </main>
+
       <Footer />
     </>
-  );
-}
-
-// --------------------
-// Вкладки / вспомогательные компоненты
-// --------------------
-
-function AccountTabButton({
-  tab,
-  current,
-  setTab,
-  children,
-}: {
-  tab: AccountTab;
-  current: AccountTab;
-  setTab: (tab: AccountTab) => void;
-  children: React.ReactNode;
-}) {
-  const isActive = tab === current;
-  return (
-    <button
-      type="button"
-      onClick={() => setTab(tab)}
-      className={`
-        relative px-3 py-1.5 rounded-full
-        transition text-xs md:text-[13px]
-        ${
-          isActive
-            ? "bg-white text-onlyvet-navy border border-slate-200 shadow-sm"
-            : "text-slate-600 hover:text-onlyvet-navy hover:bg-white/70"
-        }
-      `}
-    >
-      {children}
-    </button>
-  );
-}
-
-// --- Консультации ---
-
-function ConsultationsSection() {
-  return (
-    <section className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4 md:p-5">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
-        <div>
-          <h2 className="text-[15px] md:text-[16px] font-semibold">
-            Ваши консультации
-          </h2>
-          <p className="text-[12px] text-slate-600 max-w-xl">
-            Ниже — список заявок и консультаций в OnlyVet. В реальной версии
-            здесь будут данные из вашей истории обращений.
-          </p>
-        </div>
-        <Link
-          href="/booking"
-          className="inline-flex items-center justify-center px-3.5 py-1.5 rounded-full text-[12px] font-medium bg-onlyvet-coral text-white shadow-[0_8px_20px_rgba(247,118,92,0.5)] hover:brightness-105 transition"
-        >
-          Новая консультация
-        </Link>
-      </div>
-
-      <div className="divide-y divide-slate-100 text-[13px]">
-        {mockConsultations.map((c) => (
-          <div
-            key={c.id}
-            className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 py-3"
-          >
-            <div className="space-y-0.5">
-              <div className="font-medium text-slate-900">
-                {c.serviceName}
-              </div>
-              <div className="text-slate-600">
-                Питомец: <span className="font-medium">{c.petName}</span>
-              </div>
-              <div className="text-[12px] text-slate-500">
-                Дата и время: {c.date}
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <StatusBadge status={c.status} />
-              <Link
-                href={`/account/consultations/${c.id}`}
-                className="text-[12px] text-onlyvet-navy hover:text-onlyvet-coral underline underline-offset-2"
-              >
-                Открыть карточку
-              </Link>
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function StatusBadge({ status }: { status: ConsultationStatus }) {
-  const map: Record<ConsultationStatus, { label: string; className: string }> =
-    {
-      new: {
-        label: "Новая заявка",
-        className: "bg-sky-50 text-sky-700 border-sky-200",
-      },
-      in_progress: {
-        label: "В работе",
-        className: "bg-amber-50 text-amber-700 border-amber-200",
-      },
-      done: {
-        label: "Завершена",
-        className: "bg-emerald-50 text-emerald-700 border-emerald-200",
-      },
-    };
-
-  const cfg = map[status];
-
-  return (
-    <span
-      className={`inline-flex items-center px-2.5 py-1 rounded-full border text-[11px] font-medium ${cfg.className}`}
-    >
-      {cfg.label}
-    </span>
-  );
-}
-
-// --- Питомцы ---
-
-function PetsSection() {
-  return (
-    <section className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4 md:p-5">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
-        <div>
-          <h2 className="text-[15px] md:text-[16px] font-semibold">
-            Ваши питомцы
-          </h2>
-          <p className="text-[12px] text-slate-600 max-w-xl">
-            Для каждого питомца можно будет смотреть историю консультаций и
-            документы. Пока здесь примерная структура на мок-данных.
-          </p>
-        </div>
-        <button
-          type="button"
-          className="inline-flex items-center justify-center px-3.5 py-1.5 rounded-full text-[12px] font-medium border border-slate-300 text-onlyvet-navy bg-white hover:bg-slate-50 transition"
-        >
-          Добавить питомца
-        </button>
-      </div>
-
-      <div className="grid gap-3 md:grid-cols-2">
-        {mockPets.map((pet) => (
-          <div
-            key={pet.id}
-            className="rounded-2xl border border-slate-200 bg-onlyvet-bg p-3 space-y-1 text-[13px]"
-          >
-            <div className="flex items-center justify-between">
-              <div className="font-semibold text-slate-900">{pet.name}</div>
-              <span className="text-[11px] text-slate-500">
-                ID: {pet.id.toUpperCase()}
-              </span>
-            </div>
-            <div className="text-slate-700">{pet.species}</div>
-            <div className="text-[12px] text-slate-600">
-              Возраст: {pet.age}
-              {pet.weight && <> · Вес: {pet.weight}</>}
-            </div>
-            <Link
-              href={`/account/pets/${pet.id}`}
-              className="mt-1 inline-flex text-[12px] text-onlyvet-navy hover:text-onlyvet-coral underline underline-offset-2"
-            >
-              Открыть карточку питомца
-            </Link>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-// --- Доверенные лица ---
-
-function TrustedSection({
-  currentUserName,
-  trustedPeople,
-  trustedForMe,
-}: {
-  currentUserName: string;
-  trustedPeople: TrustedPerson[];
-  trustedForMe: TrustedForMe[];
-}) {
-  const isOwner = true; // в реале — из auth/ролей
-  const isAlsoTrusted = trustedForMe.length > 0;
-
-  return (
-    <section className="space-y-4 md:space-y-5">
-      {/* Общая шапка */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4 md:p-5">
-        <h2 className="text-[15px] md:text-[16px] font-semibold mb-2">
-          Доверенные лица
-        </h2>
-        <p className="text-[12px] text-slate-600 max-w-2xl mb-2">
-          Здесь видно, кому вы доверили доступ к информации о питомцах и
-          консультациях, а также для кого вы сами являетесь доверенным лицом.
-        </p>
-        <p className="text-[12px] text-slate-500 max-w-2xl">
-          <span className="font-medium">Важно:</span> у каждого доверенного лица
-          может быть свой уровень доступа (просмотр, управление, оплата) и
-          список питомцев, к которым этот доступ относится.
-        </p>
-      </div>
-
-      {/* Статус текущего пользователя */}
-      <div className="grid gap-3 md:grid-cols-2">
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4 text-[13px]">
-          <h3 className="text-[14px] font-semibold mb-1">
-            Ваш статус в системе
-          </h3>
-          <p className="text-slate-700 mb-2">
-            Вы вошли как <span className="font-medium">{currentUserName}</span>.
-          </p>
-          <ul className="text-[12px] text-slate-600 space-y-1.5">
-            {isOwner && (
-              <li>
-                • Вы являетесь{" "}
-                <span className="font-medium">основным владельцем</span> для
-                своих питомцев в OnlyVet.
-              </li>
-            )}
-            {isAlsoTrusted && (
-              <li>
-                • Также вы указаны как{" "}
-                <span className="font-medium">доверенное лицо</span> у других
-                владельцев. Это значит, что вы можете участвовать в
-                консультациях их питомцев в рамках выданных прав.
-              </li>
-            )}
-            {!isAlsoTrusted && (
-              <li>
-                • Сейчас вы не указаны доверенным лицом ни у кого. При
-                необходимости другой владелец может выдать вам доступ из своего
-                личного кабинета.
-              </li>
-            )}
-          </ul>
-        </div>
-
-        {/* Быстрая памятка */}
-        <div className="bg-onlyvet-bg rounded-3xl border border-dashed border-slate-300 p-4 text-[12px] text-slate-700">
-          <h3 className="text-[13px] font-semibold mb-2">
-            Как работает система доверенных лиц
-          </h3>
-          <ul className="space-y-1.5">
-            <li>
-              • <span className="font-medium">Доверитель</span> — это основной
-              владелец аккаунта и питомцев.
-            </li>
-            <li>
-              • <span className="font-medium">Доверенное лицо</span> — человек,
-              которому доверитель разрешил видеть и/или управлять частью
-              информации.
-            </li>
-            <li>
-              • Доступ можно выдать ко всем питомцам или только к выбранным.
-            </li>
-            <li>
-              • Уровни доступа: просмотр, участие в консультациях, оплата услуг.
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      {/* Кому вы доверяете */}
-      <section className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4 md:p-5">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
-          <div>
-            <h3 className="text-[14px] font-semibold mb-1">
-              Кому вы доверяете доступ
-            </h3>
-            <p className="text-[12px] text-slate-600 max-w-xl">
-              Эти люди или организации могут видеть данные о ваших питомцах и
-              консультациях согласно указанному уровню доступа.
-            </p>
-          </div>
-          <button
-            type="button"
-            className="inline-flex items-center justify-center px-3 py-1.5 rounded-full text-[12px] font-medium border border-slate-300 text-onlyvet-navy bg-white hover:bg-slate-50 transition"
-          >
-            Добавить доверенное лицо
-          </button>
-        </div>
-
-        {mockTrustedPeople.length === 0 ? (
-          <p className="text-[12px] text-slate-500">
-            Пока у вас нет доверенных лиц. Вы можете выдать доступ, если кто-то
-            помогает вам с лечением питомца (например, родственник или куратор
-            фонда).
-          </p>
-        ) : (
-          <div className="space-y-3 text-[13px]">
-            {mockTrustedPeople.map((person) => (
-              <div
-                key={person.id}
-                className="rounded-2xl border border-slate-200 bg-onlyvet-bg p-3 md:p-3.5 flex flex-col gap-1.5"
-              >
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-1.5">
-                  <div>
-                    <div className="font-semibold text-slate-900">
-                      {person.name}
-                    </div>
-                    <div className="text-[12px] text-slate-600">
-                      {person.contact}
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5 text-[11px]">
-                    {person.accessLevel.map((level) => (
-                      <span
-                        key={level}
-                        className="inline-flex items-center px-2 py-0.5 rounded-full bg-white border border-slate-200 text-slate-700"
-                      >
-                        {accessLevelLabel(level)}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <div className="text-[12px] text-slate-600">
-                  Доступ:{" "}
-                  {person.scope === "all_pets" ? (
-                    <span>ко всем вашим питомцам</span>
-                  ) : (
-                    <>
-                      к выбранным питомцам:{" "}
-                      <span className="font-medium">
-                        {person.petNames?.join(", ")}
-                      </span>
-                    </>
-                  )}
-                </div>
-                <div className="flex flex-wrap gap-2 text-[11px] mt-1">
-                  <button
-                    type="button"
-                    className="px-2.5 py-1 rounded-full border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition"
-                  >
-                    Изменить доступ
-                  </button>
-                  <button
-                    type="button"
-                    className="px-2.5 py-1 rounded-full border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 transition"
-                  >
-                    Отменить доверие
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Для кого вы доверенное лицо */}
-      <section className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4 md:p-5">
-        <h3 className="text-[14px] font-semibold mb-1">
-          Где вы указаны как доверенное лицо
-        </h3>
-        <p className="text-[12px] text-slate-600 max-w-xl mb-3">
-          Здесь показаны владельцы, которые выдали вам доступ к информации по
-          своим питомцам. Это важно, чтобы вы всегда понимали, чьи данные вы
-          просматриваете или редактируете.
-        </p>
-
-        {mockTrustedForMe.length === 0 ? (
-          <p className="text-[12px] text-slate-500">
-            Сейчас вы не являетесь доверенным лицом ни у одного владельца в
-            системе.
-          </p>
-        ) : (
-          <div className="space-y-3 text-[13px]">
-            {mockTrustedForMe.map((item) => (
-              <div
-                key={item.id}
-                className="rounded-2xl border border-slate-200 bg-onlyvet-bg p-3 md:p-3.5 flex flex-col gap-1.5"
-              >
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-1.5">
-                  <div>
-                    <div className="font-semibold text-slate-900">
-                      {item.ownerName}
-                    </div>
-                    <div className="text-[12px] text-slate-600">
-                      {item.ownerContact}
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5 text-[11px]">
-                    {item.accessLevel.map((level) => (
-                      <span
-                        key={level}
-                        className="inline-flex items-center px-2 py-0.5 rounded-full bg-white border border-slate-200 text-slate-700"
-                      >
-                        {accessLevelLabel(level)}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <div className="text-[12px] text-slate-600">
-                  Ваш доступ:{" "}
-                  {item.scope === "all_pets" ? (
-                    <span>ко всем питомцам этого владельца</span>
-                  ) : (
-                    <>
-                      к питомцам:{" "}
-                      <span className="font-medium">
-                        {item.petNames?.join(", ")}
-                      </span>
-                    </>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-    </section>
-  );
-}
-
-function accessLevelLabel(level: AccessLevel): string {
-  switch (level) {
-    case "view":
-      return "Просмотр";
-    case "manage":
-      return "Участие в консультациях";
-    case "finance":
-      return "Оплата услуг";
-    default:
-      return level;
-  }
-}
-
-// --- Уведомления ---
-
-function NotificationsSection({
-  settings,
-}: {
-  settings: typeof mockNotificationSettings;
-}) {
-  const { email, telegram } = settings;
-
-  return (
-    <section className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4 md:p-5 space-y-4">
-      <div>
-        <h2 className="text-[15px] md:text-[16px] font-semibold mb-1">
-          Настройки уведомлений
-        </h2>
-        <p className="text-[12px] text-slate-600 max-w-2xl">
-          Здесь вы сможете управлять тем, какие уведомления получать и по
-          каким каналам. Сейчас данные демонстрационные.
-        </p>
-      </div>
-
-      {/* Email */}
-      <div className="rounded-2xl border border-slate-200 bg-onlyvet-bg p-3 md:p-3.5 text-[13px]">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-2">
-          <div>
-            <div className="font-semibold text-slate-900">Email</div>
-            <div className="text-[12px] text-slate-600">
-              {email.address || "email не указан"}
-            </div>
-          </div>
-          <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700">
-            Канал активен
-          </span>
-        </div>
-        <div className="grid md:grid-cols-2 gap-2 text-[12px] text-slate-700">
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={email.serviceEvents} readOnly />
-            <span>Сервисные уведомления (заявки, время приёма)</span>
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={email.medicalEvents} readOnly />
-            <span>Медицинские события (план лечения, заключения)</span>
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={email.billingEvents} readOnly />
-            <span>Финансовые уведомления (счета, оплаты)</span>
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={email.reminderEvents} readOnly />
-            <span>Напоминания (повторные анализы, контроль)</span>
-          </label>
-        </div>
-      </div>
-
-      {/* Telegram */}
-      <div className="rounded-2xl border border-slate-200 bg-onlyvet-bg p-3 md:p-3.5 text-[13px]">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-2">
-          <div>
-            <div className="font-semibold text-slate-900">Telegram</div>
-            <div className="text-[12px] text-slate-600">
-              {telegram.connected
-                ? `Подключён (@${telegram.username})`
-                : "Не подключён"}
-            </div>
-          </div>
-          <button
-            type="button"
-            className="inline-flex items-center px-3 py-1.5 rounded-full text-[12px] font-medium border border-sky-300 bg-white text-sky-700 hover:bg-sky-50 transition"
-          >
-            Подключить Telegram
-          </button>
-        </div>
-        <p className="text-[12px] text-slate-600 mb-2">
-          В будущем вы сможете получать уведомления от OnlyVet через Telegram-бота.
-        </p>
-      </div>
-    </section>
-  );
-}
-
-// --- Профиль ---
-
-function ProfileSection({
-  currentUserName,
-  currentUserEmail,
-}: {
-  currentUserName: string;
-  currentUserEmail: string;
-}) {
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [avatarLoading, setAvatarLoading] = useState(false);
-  const [avatarError, setAvatarError] = useState<string | null>(null);
-
-  const [lastName, setLastName] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [middleName, setMiddleName] = useState("");
-
-  const [country, setCountry] = useState<CountryOption>(COUNTRIES[0]);
-  const [localPhone, setLocalPhone] = useState("");
-  const [phoneError, setPhoneError] = useState<string | null>(null);
-
-  const [email, setEmail] = useState(currentUserEmail || "");
-  const [telegram, setTelegram] = useState("@onlyvet_user");
-
-  // подгружаем avatar_url + имя из Supabase
-  useEffect(() => {
-    const supabase = getSupabaseClient();
-    let cancelled = false;
-
-    const load = async () => {
-      const { data } = await supabase.auth.getUser();
-      if (cancelled || !data.user) return;
-
-      const meta = (data.user.user_metadata || {}) as any;
-
-      if (meta.avatar_url) {
-        setAvatarUrl(meta.avatar_url);
-      }
-
-      if (meta.last_name) setLastName(meta.last_name);
-      if (meta.first_name) setFirstName(meta.first_name);
-      if (meta.middle_name) setMiddleName(meta.middle_name);
-
-      // если телефон уже сохранён в metadata — можно позже распарсить
-    };
-
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const handleAvatarChange = async (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const supabase = getSupabaseClient();
-    setAvatarError(null);
-
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setAvatarLoading(true);
-
-    try {
-      const { data: userData, error: userError } =
-        await supabase.auth.getUser();
-
-      if (userError || !userData.user) {
-        setAvatarError("Не удалось определить пользователя.");
-        setAvatarLoading(false);
-        return;
-      }
-
-      const user = userData.user;
-      const ext = file.name.split(".").pop() || "jpg";
-      const filePath = `${user.id}/${Date.now()}.${ext}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(filePath, file, {
-          cacheControl: "3600",
-          upsert: true,
-        });
-
-      if (uploadError) {
-        setAvatarError(
-          uploadError.message || "Не удалось загрузить файл."
-        );
-        setAvatarLoading(false);
-        return;
-      }
-
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("avatars").getPublicUrl(filePath);
-
-      const { error: updateError } = await supabase.auth.updateUser({
-        data: {
-          avatar_url: publicUrl,
-        },
-      });
-
-      if (updateError) {
-        setAvatarError(
-          updateError.message || "Не удалось сохранить ссылку на аватар."
-        );
-        setAvatarLoading(false);
-        return;
-      }
-
-      setAvatarUrl(publicUrl);
-    } catch (err) {
-      console.error(err);
-      setAvatarError("Техническая ошибка при загрузке аватара.");
-    } finally {
-      setAvatarLoading(false);
-    }
-  };
-
-  const initialLetter =
-    (lastName || currentUserName)
-      .trim()
-      .charAt(0)
-      .toUpperCase() || "U";
-
-  // Валидация номера: только цифры, длина 5–15
-  const handleLocalPhoneChange = (raw: string) => {
-    const digits = raw.replace(/\D/g, "");
-    setLocalPhone(digits);
-
-    if (!digits) {
-      setPhoneError("Укажите номер телефона.");
-    } else if (digits.length < 5 || digits.length > 15) {
-      setPhoneError("Проверьте длину номера.");
-    } else {
-      setPhoneError(null);
-    }
-  };
-
-  const fullPhone =
-    localPhone && !phoneError ? `${country.dialCode}${localPhone}` : "";
-
-  return (
-    <section className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4 md:p-5 space-y-4">
-      <div>
-        <h2 className="text-[15px] md:text-[16px] font-semibold mb-1">
-          Профиль
-        </h2>
-        <p className="text-[12px] text-slate-600 max-w-2xl">
-          Здесь редактируются контакты и аватар. Фамилия, имя и отчество
-          разбиты на отдельные поля, телефон — в международном формате.
-        </p>
-      </div>
-
-      {/* Аватар */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full border border-slate-200 bg-slate-100 overflow-hidden flex items-center justify-center text-[20px] font-semibold text-slate-700">
-            {avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={avatarUrl}
-                alt={lastName || currentUserName}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              initialLetter
-            )}
-          </div>
-          <div className="space-y-1 text-[12px] text-slate-600">
-            <div className="font-medium text-slate-800">Фото профиля</div>
-            <p>
-              Это фото будет отображаться в шапке и в карточках консультаций.
-              Рекомендуемый размер: 400×400px.
-            </p>
-            {avatarError && (
-              <p className="text-[11px] text-rose-600">{avatarError}</p>
-            )}
-          </div>
-        </div>
-        <div className="flex sm:flex-col gap-2 text-[12px]">
-          <label className="inline-flex items-center justify-center px-3 py-1.5 rounded-full border border-slate-300 bg-white text-slate-700 cursor-pointer hover:bg-slate-50 transition">
-            {avatarLoading ? "Загружаем..." : "Загрузить новое фото"}
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleAvatarChange}
-              disabled={avatarLoading}
-            />
-          </label>
-        </div>
-      </div>
-
-      {/* ФИО */}
-      <div className="grid md:grid-cols-3 gap-3 text-[13px] pt-2 border-t border-slate-100 mt-2">
-        <div>
-          <label className="block text-[12px] text-slate-600 mb-1">
-            Фамилия
-          </label>
-          <input
-            type="text"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
-          />
-        </div>
-        <div>
-          <label className="block text-[12px] text-slate-600 mb-1">
-            Имя
-          </label>
-          <input
-            type="text"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
-          />
-        </div>
-        <div>
-          <label className="block text-[12px] text-slate-600 mb-1">
-            Отчество
-          </label>
-          <input
-            type="text"
-            value={middleName}
-            onChange={(e) => setMiddleName(e.target.value)}
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
-          />
-        </div>
-      </div>
-
-      {/* Контактные данные */}
-      <div className="grid md:grid-cols-2 gap-3 text-[13px]">
-        {/* Телефон с выбором страны */}
-        <div>
-          <label className="block text-[12px] text-slate-600 mb-1">
-            Телефон (международный формат)
-          </label>
-          <div className="flex gap-2">
-            <select
-              value={country.code}
-              onChange={(e) => {
-                const next =
-                  COUNTRIES.find((c) => c.code === e.target.value) ||
-                  COUNTRIES[0];
-                setCountry(next);
-              }}
-              className="w-[40%] md:w-[35%] rounded-xl border border-slate-300 px-2 py-2 text-[13px] bg-white focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
-            >
-              {COUNTRIES.map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.name} {c.dialCode}
-                </option>
-              ))}
-            </select>
-            <input
-              type="tel"
-              value={localPhone}
-              onChange={(e) => handleLocalPhoneChange(e.target.value)}
-              className={`flex-1 rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
-                phoneError
-                  ? "border-rose-400 focus:ring-rose-300"
-                  : "border-slate-300 focus:ring-onlyvet-teal/40"
-              }`}
-              placeholder="Номер телефона"
-            />
-          </div>
-          {fullPhone && !phoneError && (
-            <p className="mt-1 text-[11px] text-slate-500">
-              Будет сохранён как: <span className="font-medium">{fullPhone}</span>
-            </p>
-          )}
-          {phoneError && (
-            <p className="mt-1 text-[11px] text-rose-600">{phoneError}</p>
-          )}
-        </div>
-
-        {/* Email */}
-        <div>
-          <label className="block text-[12px] text-slate-600 mb-1">Email</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
-          />
-        </div>
-
-        {/* Telegram */}
-        <div>
-          <label className="block text-[12px] text-slate-600 mb-1">
-            Telegram
-          </label>
-          <input
-            type="text"
-            value={telegram}
-            onChange={(e) => setTelegram(e.target.value)}
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
-            placeholder="@username"
-          />
-        </div>
-      </div>
-
-      <div className="flex flex-wrap gap-2 text-[12px]">
-        <button
-          type="button"
-          className="px-4 py-2 rounded-full bg-onlyvet-coral text-white font-medium shadow-[0_10px_26px_rgba(247,118,92,0.45)] hover:brightness-105 transition"
-        >
-          Сохранить изменения
-        </button>
-        <button
-          type="button"
-          className="px-4 py-2 rounded-full border border-slate-300 text-slate-700 bg-white hover:bg-slate-50 transition"
-        >
-          Изменить пароль
-        </button>
-      </div>
-    </section>
   );
 }
