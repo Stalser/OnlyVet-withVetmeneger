@@ -14,14 +14,14 @@ type SupabaseSession = {
 } | null;
 
 const NAV_ITEMS = [
-    { href: "/", label: "Главная" },
-    { href: "/doctors", label: "Врачи" },
-    { href: "/services", label: "Услуги" },
-    { href: "/prices", label: "Цены" },
-    { href: "/reviews", label: "Отзывы" },
-    { href: "/how-it-works", label: "Как это работает" },
-    { href: "/faq", label: "FAQ" },
-    { href: "/docs", label: "Документы" },
+  { href: "/", label: "Главная" },
+  { href: "/doctors", label: "Врачи" },
+  { href: "/services", label: "Услуги" },
+  { href: "/prices", label: "Цены" },
+  { href: "/reviews", label: "Отзывы" },
+  { href: "/how-it-works", label: "Как это работает" },
+  { href: "/faq", label: "FAQ" },
+  { href: "/docs", label: "Документы" },
 ];
 
 export function Header() {
@@ -31,7 +31,7 @@ export function Header() {
   const [authLoading, setAuthLoading] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Проверяем текущую сессию и подписываемся на изменения
+  // Проверка сессии + подписка на изменения
   useEffect(() => {
     const supabase = getSupabaseClient();
     let cancelled = false;
@@ -48,9 +48,7 @@ export function Header() {
 
     const { data: listener } = supabase.auth.onAuthStateChange(
       (_event, newSession) => {
-        if (!cancelled) {
-          setSession(newSession as any);
-        }
+        if (!cancelled) setSession(newSession as any);
       }
     );
 
@@ -74,12 +72,12 @@ export function Header() {
     return false;
   };
 
+  const meta = session?.user?.user_metadata || {};
   const displayName =
-    session?.user?.user_metadata?.full_name ||
-    session?.user?.email ||
-    "Аккаунт";
+    meta.full_name || session?.user?.email || "Аккаунт";
 
-  const avatarLetter = displayName.trim().charAt(0).toUpperCase() || "U";
+  const avatarUrl = meta.avatar_url as string | undefined;
+  const avatarLetter = (displayName || "U").trim().charAt(0).toUpperCase();
 
   const handleNavClick = (href: string) => {
     setMobileOpen(false);
@@ -90,8 +88,7 @@ export function Header() {
     <header className="sticky top-0 z-40 border-b border-slate-900/40 bg-[#050816]/85 backdrop-blur-xl">
       <div className="container mx-auto max-w-6xl px-4">
         <div className="flex h-16 md:h-18 items-center justify-between gap-4">
-
-          {/* ЛОГОТИП */}
+          {/* ЛОГО */}
           <button
             type="button"
             onClick={() => handleNavClick("/")}
@@ -114,19 +111,18 @@ export function Header() {
             </div>
           </button>
 
-          {/* ДЕСКТОП-НАВИГАЦИЯ */}
+          {/* ДЕСКТОП-МЕНЮ */}
           <nav className="hidden lg:flex items-center gap-6 text-[13px]">
             {NAV_ITEMS.map((item) => (
               <button
                 key={item.href}
                 type="button"
                 onClick={() => handleNavClick(item.href)}
-                className={`
-                  relative pb-1 transition
-                  ${isActive(item.href)
+                className={`relative pb-1 transition ${
+                  isActive(item.href)
                     ? "text-slate-50"
-                    : "text-slate-300 hover:text-slate-100"}
-                `}
+                    : "text-slate-300 hover:text-slate-100"
+                }`}
               >
                 {item.label}
                 {isActive(item.href) && (
@@ -136,10 +132,9 @@ export function Header() {
             ))}
           </nav>
 
-          {/* ПРАВЫЙ БЛОК (кнопки + аккаунт) */}
+          {/* ПРАВЫЙ БЛОК */}
           <div className="flex items-center gap-2">
-
-            {/* Кнопка "Записаться" — всегда */}
+            {/* Записаться (десктоп) */}
             <button
               type="button"
               onClick={() => handleNavClick("/booking")}
@@ -148,28 +143,36 @@ export function Header() {
               Записаться
             </button>
 
-            {/* Состояние авторизации */}
             {authLoading ? (
-              // Лоадер состояния — небольшой скелетон
               <div className="h-8 w-24 rounded-full bg-slate-700/40 animate-pulse" />
             ) : session ? (
-              // Залогиненный пользователь
-              <div className="flex items-center gap-2">
-                {/* Чип аккаунта */}
+              <>
+                {/* Чип аккаунта (десктоп) */}
                 <button
                   type="button"
                   onClick={() => handleNavClick("/account")}
                   className="hidden sm:flex items-center gap-2 rounded-full border border-slate-500/70 bg-slate-900/40 px-2.5 py-1.5 text-[12px] text-slate-100 hover:bg-slate-800/80 hover:border-slate-300/70 transition"
                 >
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-700 text-[11px] font-semibold uppercase text-slate-50">
-                    {avatarLetter}
-                  </span>
+                  {avatarUrl ? (
+                    <span className="h-6 w-6 rounded-full overflow-hidden border border-slate-500/70 bg-slate-800 flex items-center justify-center">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={avatarUrl}
+                        alt={displayName}
+                        className="h-full w-full object-cover"
+                      />
+                    </span>
+                  ) : (
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-700 text-[11px] font-semibold uppercase text-slate-50">
+                      {avatarLetter}
+                    </span>
+                  )}
                   <span className="max-w-[140px] truncate" title={displayName}>
                     {displayName}
                   </span>
                 </button>
 
-                {/* Кнопка "Выйти" */}
+                {/* Выйти (десктоп) */}
                 <button
                   type="button"
                   onClick={handleLogout}
@@ -182,13 +185,20 @@ export function Header() {
                 <button
                   type="button"
                   onClick={() => handleNavClick("/account")}
-                  className="sm:hidden flex items-center justify-center rounded-full border border-slate-600 w-8 h-8 text-[12px] font-semibold"
+                  className="sm:hidden flex items-center justify-center rounded-full border border-slate-600 w-8 h-8 text-[12px] font-semibold overflow-hidden bg-slate-800"
                 >
-                  {avatarLetter}
+                  {avatarUrl ? (
+                    <img
+                      src={avatarUrl}
+                      alt={displayName}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    avatarLetter
+                  )}
                 </button>
-              </div>
+              </>
             ) : (
-              // Не залогинен
               <button
                 type="button"
                 onClick={() => handleNavClick("/auth/login")}
@@ -198,7 +208,7 @@ export function Header() {
               </button>
             )}
 
-            {/* Бургер на мобильных */}
+            {/* Бургер (мобилка) */}
             <button
               type="button"
               onClick={() => setMobileOpen((v) => !v)}
@@ -249,8 +259,18 @@ export function Header() {
                       onClick={() => handleNavClick("/account")}
                       className="flex items-center gap-2"
                     >
-                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-700 text-[13px] font-semibold">
-                        {avatarLetter}
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-700 overflow-hidden">
+                        {avatarUrl ? (
+                          <img
+                            src={avatarUrl}
+                            alt={displayName}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-[13px] font-semibold">
+                            {avatarLetter}
+                          </span>
+                        )}
                       </span>
                       <span className="text-[13px] text-slate-100 truncate max-w-[180px]">
                         {displayName}
