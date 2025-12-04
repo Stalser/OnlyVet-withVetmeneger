@@ -5,8 +5,8 @@ let browserClient: SupabaseClient | null = null;
 
 /**
  * Ленивая инициализация Supabase-клиента.
- * Вызывается только в браузере (из хендлеров/эффектов),
- * не на уровне модуля, поэтому не ломает билд.
+ * Вызывается только там, где реально нужен (в браузерных обработчиках/эффектах),
+ * а не во время сборки.
  */
 export function getSupabaseClient(): SupabaseClient {
   if (!browserClient) {
@@ -14,8 +14,7 @@ export function getSupabaseClient(): SupabaseClient {
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseAnonKey) {
-      // Здесь уже можно кидать ошибку — это будет в рантайме браузера,
-      // а не на этапе сборки.
+      // Это будет вызываться уже в рантайме браузера, а не на билде
       throw new Error(
         "Supabase env vars are not set. Please define NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY."
       );
