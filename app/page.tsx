@@ -92,57 +92,57 @@ export default function HomePage() {
         </section>
 
         {/* Почему OnlyVet */}
-<section className="py-7">
-  <div className="container mx-auto max-w-5xl px-4">
-    <div className="flex items-baseline justify-between gap-4 mb-4">
-      <div>
-        <h2 className="text-lg md:text-xl font-semibold">Почему OnlyVet</h2>
-        <p className="text-[13px] text-slate-600 max-w-xl">
-          Онлайн-клиника, где решения опираются на доказательную медицину, 
-          а владельцу всегда объясняют, что и зачем делается.
-        </p>
-      </div>
-    </div>
+        <section className="py-7">
+          <div className="container mx-auto max-w-5xl px-4">
+            <div className="flex items-baseline justify-between gap-4 mb-4">
+              <div>
+                <h2 className="text-lg md:text-xl font-semibold">Почему OnlyVet</h2>
+                <p className="text-[13px] text-slate-600 max-w-xl">
+                  Онлайн-клиника, где решения опираются на доказательную медицину, 
+                  а владельцу всегда объясняют, что и зачем делается.
+                </p>
+              </div>
+            </div>
 
-    <div className="bg-white rounded-3xl shadow-soft p-4 md:p-5">
-      <div className="grid gap-3 md:grid-cols-4">
-        
-        {/* 1. Доказательная медицина */}
-        <article className="bg-onlyvet-bg rounded-2xl border border-slate-200 p-3">
-          <div className="text-sm font-semibold mb-1">Доказательная медицина</div>
-          <div className="text-[13px] text-slate-600">
-            Решения опираются на протоколы и разбор сложных случаев.
+            <div className="bg-white rounded-3xl shadow-soft p-4 md:p-5">
+              <div className="grid gap-3 md:grid-cols-4">
+                {/* 1. Доказательная медицина */}
+                <article className="bg-onlyvet-bg rounded-2xl border border-slate-200 p-3">
+                  <div className="text-sm font-semibold mb-1">
+                    Доказательная медицина
+                  </div>
+                  <div className="text-[13px] text-slate-600">
+                    Решения опираются на протоколы и разбор сложных случаев.
+                  </div>
+                </article>
+
+                {/* 2. Онлайн без хаоса */}
+                <article className="bg-onlyvet-bg rounded-2xl border border-slate-200 p-3">
+                  <div className="text-sm font-semibold mb-1">Онлайн без хаоса</div>
+                  <div className="text-[13px] text-slate-600">
+                    Понятная структура приёма, все документы и план лечения — в личном кабинете.
+                  </div>
+                </article>
+
+                {/* 3. Сложные пациенты */}
+                <article className="bg-onlyvet-bg rounded-2xl border border-slate-200 p-3">
+                  <div className="text-sm font-semibold mb-1">Сложные пациенты</div>
+                  <div className="text-[13px] text-slate-600">
+                    Онкология, хроника и ситуации, когда «непонятно что делать дальше».
+                  </div>
+                </article>
+
+                {/* 4. Этика и прозрачность */}
+                <article className="bg-onlyvet-bg rounded-2xl border border-slate-200 p-3">
+                  <div className="text-sm font-semibold mb-1">Этика и прозрачность</div>
+                  <div className="text-[13px] text-slate-600">
+                    Без паники и давления. Объясняем честно и только по делу.
+                  </div>
+                </article>
+              </div>
+            </div>
           </div>
-        </article>
-
-        {/* 2. Онлайн без хаоса */}
-        <article className="bg-onlyvet-bg rounded-2xl border border-slate-200 p-3">
-          <div className="text-sm font-semibold mb-1">Онлайн без хаоса</div>
-          <div className="text-[13px] text-slate-600">
-            Понятная структура приёма, все документы и план лечения — в личном кабинете.
-          </div>
-        </article>
-
-        {/* 3. Сложные пациенты */}
-        <article className="bg-onlyvet-bg rounded-2xl border border-slate-200 p-3">
-          <div className="text-sm font-semibold mb-1">Сложные пациенты</div>
-          <div className="text-[13px] text-slate-600">
-            Онкология, хроника и ситуации, когда «непонятно что делать дальше».
-          </div>
-        </article>
-
-        {/* 4. Этика и прозрачность */}
-        <article className="bg-onlyvet-bg rounded-2xl border border-slate-200 p-3">
-          <div className="text-sm font-semibold mb-1">Этика и прозрачность</div>
-          <div className="text-[13px] text-slate-600">
-            Без паники и давления. Объясняем честно и только по делу.
-          </div>
-        </article>
-
-      </div>
-    </div>
-  </div>
-</section>
+        </section>
 
         {/* Врачи */}
         <DoctorsSection specFilter={specFilter} setSpecFilter={setSpecFilter} />
@@ -160,10 +160,10 @@ export default function HomePage() {
           <div className="container mx-auto max-w-5xl px-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
               <div>
-                <h2 className="text-lg md:text-xl font-semibold">Отзывы</h2>
+                <h2 className="text-lg md:text-xl font-semibold">Отзывы владельцев</h2>
                 <p className="text-[13px] text-slate-600 max-w-xl">
-                  Несколько свежих отзывов от владельцев. Полный список — на
-                  странице «Все отзывы».
+                  Несколько свежих историй о том, как мы помогали пациентам онлайн. 
+                  Полный список — на странице «Все отзывы».
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -275,6 +275,7 @@ function DoctorsSection({
     </section>
   );
 }
+
 function DoctorsCarousel({ specFilter }: { specFilter: HomeSpecFilter }) {
   const [page, setPage] = useState(0);
   const perPage = 4;
@@ -462,6 +463,7 @@ function ServicesSection({
     </section>
   );
 }
+
 ////////////////////////////////////////////////////////////////////////////////
 // КАРУСЕЛЬ ОТЗЫВОВ НА ГЛАВНОЙ
 ////////////////////////////////////////////////////////////////////////////////
@@ -595,10 +597,10 @@ function SocialBlock() {
           {/* OK */}
           <a
             href="#"
-            className="bg-white rounded-3xl border border-slate-200 px-5 py-6 flex flex-col items_center gap-3 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/60 transition-all text-center"
+            className="bg-white rounded-3xl border border-slate-200 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/60 transition-all text-center"
           >
             <img
-              src="/img/free-icon-odnoklassniki-3670250.svg"
+              src="/img/free-icon-odnokлассники-3670250.svg"
               alt="Одноклассники"
               className="w-14 h-14"
             />
@@ -627,7 +629,7 @@ function FeedbackBlock() {
   return (
     <section className="py-7" id="contact">
       <div className="container mx-auto max-w-5xl px-4">
-        <div className="bg_white rounded-3xl border border-slate-200 shadow-soft p-5 md:p-6 flex flex-col md:flex-row gap-6 items-start">
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 md:p-6 flex flex-col md:flex-row gap-6 items-start">
           <div className="flex-1">
             <h2 className="text-lg md:text-xl font-semibold mb-2">
               Есть вопрос по питомцу или сервису OnlyVet?
