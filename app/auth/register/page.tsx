@@ -1,6 +1,7 @@
 // app/auth/register/page.tsx
-"use client";
 export const dynamic = "force-dynamic";
+"use client";
+
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
