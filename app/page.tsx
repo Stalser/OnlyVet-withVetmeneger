@@ -591,7 +591,7 @@ function SocialBlock() {
           {/* OK */}
           <a
             href="#"
-            className="bg-white rounded-3xl border border-slate-200 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/60 transition-all text-center"
+            className="bg-white rounded-3xl border border-slate-200 px-5 py-6 flex flex-col items_center gap-3 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/60 transition-all text-center"
           >
             <img
               src="/img/free-icon-odnoklassniki-3670250.svg"
@@ -623,7 +623,7 @@ function FeedbackBlock() {
   return (
     <section className="py-7" id="contact">
       <div className="container mx-auto max-w-5xl px-4">
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 md:p-6 flex flex-col md:flex-row gap-6 items-start">
+        <div className="bg_white rounded-3xl border border-slate-200 shadow-soft p-5 md:p-6 flex flex-col md:flex-row gap-6 items-start">
           <div className="flex-1">
             <h2 className="text-lg md:text-xl font-semibold mb-2">
               Есть вопрос по питомцу или сервису OnlyVet?
