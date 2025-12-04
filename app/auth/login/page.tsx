@@ -5,7 +5,7 @@ import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-import { supabase } from "@/lib/supabaseClient";
+import { getSupabaseClient } from "@/lib/supabaseClient";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 
@@ -34,10 +34,13 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password: password.trim(),
-      });
+      const supabase = getSupabaseClient();
+
+      const { data, error: authError } =
+        await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password: password.trim(),
+        });
 
       if (authError) {
         setError(authError.message || "Ошибка входа. Проверьте данные.");
@@ -49,7 +52,6 @@ export default function LoginPage() {
         return;
       }
 
-      // Вход успешный
       router.push("/account");
     } catch (err) {
       console.error(err);
@@ -146,7 +148,10 @@ export default function LoginPage() {
                 </button>
 
                 <div className="flex flex-col gap-1 text-[12px] text-slate-600">
-                  <Link href="/auth/forgot" className="text-onlyvet-coral hover:underline">
+                  <Link
+                    href="/auth/forgot"
+                    className="text-onlyvet-coral hover:underline"
+                  >
                     Забыли пароль?
                   </Link>
 
