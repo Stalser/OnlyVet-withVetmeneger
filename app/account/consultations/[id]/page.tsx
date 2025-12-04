@@ -9,6 +9,7 @@ type ConsultationStatus = "new" | "in_progress" | "done";
 
 type ConsultationDetail = {
   id: string;
+  petId: string;
   petName: string;
   serviceName: string;
   date: string;
@@ -23,6 +24,7 @@ type ConsultationDetail = {
 const mockConsultations: ConsultationDetail[] = [
   {
     id: "c1",
+    petId: "pet1",
     petName: "Локи",
     serviceName: "Онлайн-консультация терапевта",
     date: "2024-12-01 19:00",
@@ -43,6 +45,7 @@ const mockConsultations: ConsultationDetail[] = [
   },
   {
     id: "c2",
+    petId: "pet2",
     petName: "Рекс",
     serviceName: "Второе мнение по анализам",
     date: "2024-11-20 14:00",
@@ -65,6 +68,7 @@ const mockConsultations: ConsultationDetail[] = [
   },
   {
     id: "c3",
+    petId: "pet1",
     petName: "Локи",
     serviceName: "Разбор УЗИ и плана лечения",
     date: "2024-11-10 18:30",
@@ -108,10 +112,7 @@ export default function ConsultationDetailPage({
                 Главная
               </Link>{" "}
               /{" "}
-              <Link
-                href="/account"
-                className="hover:text-onlyvet-coral"
-              >
+              <Link href="/account" className="hover:text-onlyvet-coral">
                 Личный кабинет
               </Link>{" "}
               /{" "}
@@ -158,7 +159,12 @@ export default function ConsultationDetailPage({
                     </h2>
                     <div className="text-[13px] text-slate-700">
                       Питомец:{" "}
-                      <span className="font-medium">{consultation.petName}</span>
+                      <Link
+                        href={`/account/pets/${consultation.petId}`}
+                        className="font-medium text-onlyvet-navy hover:text-onlyvet-coral underline underline-offset-2"
+                      >
+                        {consultation.petName}
+                      </Link>
                     </div>
                     <div className="text-[12px] text-slate-500">
                       Дата и время: {consultation.date}
