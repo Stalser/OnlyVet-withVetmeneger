@@ -125,6 +125,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [serverSuccess, setServerSuccess] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false); // флаг успешной отправки
 
   // refs для автоскролла
   const contactRef = useRef<HTMLDivElement | null>(null);
@@ -343,6 +344,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
       }
 
       setServerSuccess("Заявка отправлена. Мы свяжемся с вами.");
+      setSubmitted(true);
     } catch (err) {
       setServerError("Произошла ошибка. Попробуйте позже.");
     } finally {
@@ -387,6 +389,12 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
     }
   };
 
+  const handleNewRequest = () => {
+    if (typeof window !== "undefined") {
+      window.location.reload();
+    }
+  };
+
   return (
     <>
       <Header />
@@ -419,146 +427,215 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
             onTelegramClick={handleTelegramClick}
           />
 
-          <form
-            onSubmit={handleSubmit}
-            className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 md:p-6 space-y-6"
-          >
-            {/* Сообщения об успехе/ошибке */}
-            {serverSuccess && (
-              <div className="text-[12px] text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-2xl px-3 py-2">
-                {serverSuccess}
+          {submitted ? (
+            // Экран успешной отправки
+            <section className="mt-4 bg-white rounded-3xl border border-emerald-200 shadow-soft p-6 md:p-8 space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="mt-1 w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                  <span className="text-emerald-700 text-xl">✓</span>
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-900">
+                    Заявка отправлена
+                  </h2>
+                  <p className="mt-1 text-[13px] text-slate-600">
+                    {serverSuccess ??
+                      "Мы получили вашу заявку. Администратор свяжется с вами в ближайшее время для подтверждения времени консультации и уточнения деталей."}
+                  </p>
+                </div>
               </div>
-            )}
-            {serverError && (
-              <div className="text-[12px] text-rose-700 bg-rose-50 border border-rose-100 rounded-2xl px-3 py-2">
-                {serverError}
-              </div>
-            )}
 
-            {/* Контактные данные */}
-            <div ref={contactRef}>
-              <BookingContactSection
-                lastName={lastName}
-                firstName={firstName}
-                middleName={middleName}
-                noMiddleName={noMiddleName}
-                phone={phone}
-                email={email}
-                telegram={telegram}
-                setLastName={setLastName}
-                setFirstName={setFirstName}
-                setMiddleName={setMiddleName}
-                setNoMiddleName={setNoMiddleName}
-                setPhone={setPhone}
-                setEmail={setEmail}
-                setTelegram={setTelegram}
-                errors={{
-                  lastNameError,
-                  firstNameError,
-                  middleNameError,
-                  phoneError,
-                  emailError,
-                }}
+              {(selectedService || selectedDoctor || selectedSlotLabel) && (
+                <div className="mt-4 bg-onlyvet-bg rounded-2xl border border-slate-200 p-4 text-[13px] text-slate-700 space-y-1">
+                  {selectedService && (
+                    <div>
+                      Услуга:{" "}
+                      <span className="font-medium">
+                        {selectedService.name}
+                      </span>{" "}
+                      {selectedService.priceLabel && (
+                        <span className="text-[12px] text-slate-500">
+                          · {selectedService.priceLabel}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {selectedDoctor && (
+                    <div>
+                      Врач:{" "}
+                      <span className="font-medium">
+                        {selectedDoctor.name}
+                      </span>{" "}
+                      <span className="text-[12px] text-slate-500">
+                        · {selectedDoctor.role}
+                      </span>
+                    </div>
+                  )}
+                  {selectedSlotLabel && (
+                    <div>
+                      Время:{" "}
+                      <span className="font-medium text-onlyvet-navy">
+                        {selectedSlotLabel}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="flex flex-wrap gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleNewRequest}
+                  className="px-4 py-2.5 rounded-full bg-onlyvet-coral text-white text-[13px] font-medium shadow-[0_10px_24px_rgba(247,118,92,0.5)] hover:brightness-105 transition"
+                >
+                  Создать новую заявку
+                </button>
+                <Link
+                  href="/"
+                  className="px-4 py-2.5 rounded-full border border-slate-300 text-[13px] text-slate-700 hover:bg-slate-50 transition"
+                >
+                  На главную
+                </Link>
+              </div>
+            </section>
+          ) : (
+            // Основная форма (до отправки)
+            <form
+              onSubmit={handleSubmit}
+              className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 md:p-6 space-y-6"
+            >
+              {/* Сообщения об ошибке */}
+              {serverError && (
+                <div className="text-[12px] text-rose-700 bg-rose-50 border border-rose-100 rounded-2xl px-3 py-2">
+                  {serverError}
+                </div>
+              )}
+
+              {/* Контактные данные */}
+              <div ref={contactRef}>
+                <BookingContactSection
+                  lastName={lastName}
+                  firstName={firstName}
+                  middleName={middleName}
+                  noMiddleName={noMiddleName}
+                  phone={phone}
+                  email={email}
+                  telegram={telegram}
+                  setLastName={setLastName}
+                  setFirstName={setFirstName}
+                  setMiddleName={setMiddleName}
+                  setNoMiddleName={setNoMiddleName}
+                  setPhone={setPhone}
+                  setEmail={setEmail}
+                  setTelegram={setTelegram}
+                  errors={{
+                    lastNameError,
+                    firstNameError,
+                    middleNameError,
+                    phoneError,
+                    emailError,
+                  }}
+                />
+              </div>
+
+              {/* Питомец – только для подробной заявки */}
+              {showFull && (
+                <div ref={petRef}>
+                  <BookingPetSection
+                    petMode={petMode}
+                    setPetMode={setPetMode}
+                    selectedPetId={selectedPetId}
+                    setSelectedPetId={setSelectedPetId}
+                    newPetName={newPetName}
+                    setNewPetName={setNewPetName}
+                    newPetSpecies={newPetSpecies}
+                    setNewPetSpecies={setNewPetSpecies}
+                    newPetBreed={newPetBreed}
+                    setNewPetBreed={setNewPetBreed}
+                    newPetAge={newPetAge}
+                    setNewPetAge={setNewPetAge}
+                    newPetWeight={newPetWeight}
+                    setNewPetWeight={setNewPetWeight}
+                    newPetNameError={newPetNameError}
+                    isLoggedIn={mockIsLoggedIn}
+                    pets={mockUser.pets}
+                  />
+                </div>
+              )}
+
+              {/* Кратко о проблеме */}
+              <BookingComplaintSection
+                complaint={complaint}
+                setComplaint={setComplaint}
+                kind={kind}
               />
-            </div>
 
-            {/* Питомец – только для подробной заявки */}
-            {showFull && (
-              <div ref={petRef}>
-                <BookingPetSection
-                  petMode={petMode}
-                  setPetMode={setPetMode}
-                  selectedPetId={selectedPetId}
-                  setSelectedPetId={setSelectedPetId}
-                  newPetName={newPetName}
-                  setNewPetName={setNewPetName}
-                  newPetSpecies={newPetSpecies}
-                  setNewPetSpecies={setNewPetSpecies}
-                  newPetBreed={newPetBreed}
-                  setNewPetBreed={setNewPetBreed}
-                  newPetAge={newPetAge}
-                  setNewPetAge={setNewPetAge}
-                  newPetWeight={newPetWeight}
-                  setNewPetWeight={setNewPetWeight}
-                  newPetNameError={newPetNameError}
-                  isLoggedIn={mockIsLoggedIn}
-                  pets={mockUser.pets}
+              {/* Услуга / врач / время / файлы — только для полной формы */}
+              {showFull && (
+                <>
+                  {/* Услуга */}
+                  <BookingServiceSection
+                    selectedServiceId={selectedServiceId}
+                    setSelectedServiceId={setSelectedServiceId}
+                    availableServices={availableServices}
+                    selectedService={selectedService}
+                  />
+
+                  {/* Врач */}
+                  <BookingDoctorSection
+                    doctorMode={doctorMode}
+                    setDoctorMode={setDoctorMode}
+                    selectedDoctorId={selectedDoctorId}
+                    setSelectedDoctorId={setSelectedDoctorId}
+                    availableDoctors={availableDoctors}
+                    selectedDoctor={selectedDoctor || undefined}
+                  />
+
+                  {/* Дата и время */}
+                  <BookingTimeSection
+                    timeMode={timeMode}
+                    setTimeMode={setTimeMode}
+                    date={date}
+                    setDate={setDate}
+                    time={time}
+                    setTime={setTime}
+                    timeSelectionLocked={timeSelectionLocked}
+                    selectedSlotLabel={selectedSlotLabel || undefined}
+                  />
+
+                  {/* Файлы */}
+                  <BookingFilesSection
+                    files={files}
+                    onFileChange={setFiles}
+                  />
+
+                  {/* Вы выбрали */}
+                  <BookingSummarySection
+                    selectedService={selectedService}
+                    selectedDoctor={selectedDoctor}
+                    selectedSlotLabel={selectedSlotLabel || null}
+                    resetSelection={resetSelection}
+                    resetSlot={resetSlot}
+                  />
+                </>
+              )}
+
+              {/* Согласия */}
+              <div ref={consentsRef}>
+                <BookingConsentsSection
+                  consentPersonalData={consentPersonalData}
+                  consentOffer={consentOffer}
+                  consentRules={consentRules}
+                  setConsentPersonalData={setConsentPersonalData}
+                  setConsentOffer={setConsentOffer}
+                  setConsentRules={setConsentRules}
+                  consentsError={consentsError}
+                  isValid={isValid}
+                  isSubmitting={isSubmitting}
                 />
               </div>
-            )}
-
-            {/* Кратко о проблеме */}
-            <BookingComplaintSection
-              complaint={complaint}
-              setComplaint={setComplaint}
-              kind={kind}
-            />
-
-            {/* Услуга / врач / время / файлы — только для полной формы */}
-            {showFull && (
-              <>
-                {/* Услуга */}
-                <BookingServiceSection
-                  selectedServiceId={selectedServiceId}
-                  setSelectedServiceId={setSelectedServiceId}
-                  availableServices={availableServices}
-                  selectedService={selectedService}
-                />
-
-                {/* Врач */}
-                <BookingDoctorSection
-                  doctorMode={doctorMode}
-                  setDoctorMode={setDoctorMode}
-                  selectedDoctorId={selectedDoctorId}
-                  setSelectedDoctorId={setSelectedDoctorId}
-                  availableDoctors={availableDoctors}
-                  selectedDoctor={selectedDoctor || undefined}
-                />
-
-                {/* Дата и время */}
-                <BookingTimeSection
-                  timeMode={timeMode}
-                  setTimeMode={setTimeMode}
-                  date={date}
-                  setDate={setDate}
-                  time={time}
-                  setTime={setTime}
-                  timeSelectionLocked={timeSelectionLocked}
-                  selectedSlotLabel={selectedSlotLabel || undefined}
-                />
-
-                {/* Файлы */}
-                <BookingFilesSection
-                  files={files}
-                  onFileChange={setFiles}
-                />
-
-                {/* Вы выбрали */}
-                <BookingSummarySection
-                  selectedService={selectedService}
-                  selectedDoctor={selectedDoctor}
-                  selectedSlotLabel={selectedSlotLabel || null}
-                  resetSelection={resetSelection}
-                  resetSlot={resetSlot}
-                />
-              </>
-            )}
-
-            {/* Согласия */}
-            <div ref={consentsRef}>
-              <BookingConsentsSection
-                consentPersonalData={consentPersonalData}
-                consentOffer={consentOffer}
-                consentRules={consentRules}
-                setConsentPersonalData={setConsentPersonalData}
-                setConsentOffer={setConsentOffer}
-                setConsentRules={setConsentRules}
-                consentsError={consentsError}
-                isValid={isValid}
-                isSubmitting={isSubmitting}
-              />
-            </div>
-          </form>
+            </form>
+          )}
         </div>
       </main>
       <Footer />
