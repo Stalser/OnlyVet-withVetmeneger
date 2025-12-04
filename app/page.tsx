@@ -226,11 +226,13 @@ function DoctorsSection({
   return (
     <section className="py-7">
       <div className="container mx-auto max-w-5xl px-4">
+        {/* Заголовок блока */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
           <div>
             <h2 className="text-lg md:text-xl font-semibold">Врачи OnlyVet</h2>
             <p className="text-[13px] text-slate-600 max-w-xl">
-              Подберите специалиста под вашу задачу.
+              Онлайн-команда с клиническим опытом: терапия, онкология,
+              диагностика и кураторство сложных, «неочевидных» случаев.
             </p>
           </div>
           <Link
@@ -242,6 +244,7 @@ function DoctorsSection({
           </Link>
         </div>
 
+        {/* Фильтр по специализации */}
         <div className="flex flex-wrap items-center gap-2 text-[12px] mb-4">
           <span className="text-slate-500 mr-1">Специализация:</span>
           {[
@@ -266,12 +269,12 @@ function DoctorsSection({
           ))}
         </div>
 
+        {/* Карусель врачей */}
         <DoctorsCarousel specFilter={specFilter} />
       </div>
     </section>
   );
 }
-
 function DoctorsCarousel({ specFilter }: { specFilter: HomeSpecFilter }) {
   const [page, setPage] = useState(0);
   const perPage = 4;
