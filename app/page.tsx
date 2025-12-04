@@ -32,73 +32,66 @@ export default function HomePage() {
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
 
   return (
-    <>
+   <>
       <Header />
       <main className="flex-1">
         {/* HERO */}
         <section className="relative overflow-hidden bg-[#101827] text-white">
-  {/* Мягкий фон-градиент за контентом */}
-  <div
-    className="
-      pointer-events-none
-      absolute inset-x-[-120px] top-[-180px] h-[360px]
-      bg-gradient-to-br from-onlyvet-teal/30 via-onlyvet-coral/10 to-transparent
-      opacity-70 blur-3xl
-    "
-  />
-
-  <div className="relative container mx-auto max-w-5xl px-4 py-12 md:py-16">
-    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8">
-      {/* Левая колонка: слоган и кнопки */}
-      <div className="max-w-xl space-y-6">
-        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold leading-tight">
-          <span className="block">Мы рядом,</span>
-          <span className="block text-slate-100/90">
-            даже если вы далеко.
-          </span>
-        </h1>
-
-        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-          <Link
-            href="/booking"
+          {/* Мягкий фон-градиент за контентом */}
+          <div
             className="
-              inline-flex items-center justify-center
-              px-5 py-2.5 rounded-full
-              bg-onlyvet-coral text-[13px] font-medium
-              shadow-[0_12px_32px_rgba(247,118,92,0.6)]
-              hover:brightness-105 transition
+              pointer-events-none
+              absolute inset-x-[-120px] top-[-180px] h-[360px]
+              bg-gradient-to-br from-onlyvet-teal/30 via-onlyvet-coral/10 to-transparent
+              opacity-70 blur-3xl
             "
-          >
-            Записаться на консультацию
-          </Link>
+          />
 
-          <Link
-            href="/auth/login"
-            className="
-              inline-flex items-center justify-center
-              px-5 py-2.5 rounded-full
-              border border-slate-500
-              text-[13px] font-medium text-slate-100
-              hover:bg-slate-800/60 transition
-            "
-          >
-            Войти в личный кабинет
-          </Link>
-        </div>
-      </div>
+          <div className="relative container mx-auto max-w-5xl px-4 py-12 md:py-16">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8">
+              {/* Левая колонка: слоган и кнопки */}
+              <div className="max-w-xl space-y-6">
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold leading-tight">
+                  <span className="block">Мы рядом,</span>
+                  <span className="block text-slate-100/90">
+                    даже если вы далеко.
+                  </span>
+                </h1>
 
-      {/* Правая часть — просто воздух на десктопе, чтобы блок не был тяжёлым */}
-      <div className="hidden md:block flex-1" />
-    </div>
-  </div>
-</section>
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                  <Link
+                    href="/booking"
+                    className="
+                      inline-flex items-center justify-center
+                      px-5 py-2.5 rounded-full
+                      bg-onlyvet-coral text-[13px] font-medium
+                      shadow-[0_12px_32px_rgba(247,118,92,0.6)]
+                      hover:brightness-105 transition
+                    "
+                  >
+                    Записаться на консультацию
+                  </Link>
 
-      {/* Правая часть — просто «воздух» на десктопе */}
-      <div className="hidden md:block flex-1" />
+                  <Link
+                    href="/auth/login"
+                    className="
+                      inline-flex items-center justify-center
+                      px-5 py-2.5 rounded-full
+                      border border-slate-500
+                      text-[13px] font-medium text-slate-100
+                      hover:bg-slate-800/60 transition
+                    "
+                  >
+                    Войти в личный кабинет
+                  </Link>
+                </div>
+              </div>
 
-    </div>
-  </div>
-</section>
+              {/* Правая часть — просто воздух на десктопе, чтобы блок не был тяжёлым */}
+              <div className="hidden md:block flex-1" />
+            </div>
+          </div>
+        </section>
 
         {/* Почему OnlyVet */}
         <section className="py-7">
