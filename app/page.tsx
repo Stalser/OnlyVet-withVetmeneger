@@ -61,27 +61,55 @@ function Hero() {
         "
       />
       <div className="relative container mx-auto max-w-5xl px-4 py-14 md:py-20">
-        <div className="flex flex-col items-center text-center gap-8">
+        <div className="flex flex-col items-center text-center gap-6 md:gap-8">
+
+          {/* Слоган */}
           <div className="max-w-2xl mx-auto space-y-6">
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold leading-tight">
               <span className="block">Мы рядом,</span>
-              <span className="block text-slate-100/90">даже если вы далеко.</span>
+              <span className="block text-slate-100/90">
+                даже если вы далеко.
+              </span>
             </h1>
           </div>
+
+          {/* Кнопки */}
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <Link
               href="/booking"
-              className="inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-onlyvet-coral text-[13px] font-medium shadow-[0_12px_32px_rgba(247,118,92,0.6)] hover:brightness-105 transition"
+              className="
+                inline-flex items-center justify-center
+                px-5 py-2.5 rounded-full
+                bg-onlyvet-coral text-[13px] font-medium
+                shadow-[0_12px_32px_rgba(247,118,92,0.6)]
+                hover:brightness-105 transition
+              "
             >
               Записаться на консультацию
             </Link>
+
             <Link
               href="/auth/login"
-              className="inline-flex items-center justify-center px-5 py-2.5 rounded-full border border-slate-500 text-[13px] font-medium text-slate-100 hover:bg-slate-800/60 transition"
+              className="
+                inline-flex items-center justify-center
+                px-5 py-2.5 rounded-full
+                border border-slate-500
+                text-[13px] font-medium text-slate-100
+                hover:bg-slate-800/60 transition
+              "
             >
               Войти в личный кабинет
             </Link>
           </div>
+
+          {/* Ссылка "Как это работает" */}
+          <Link
+            href="/how-it-works"
+            className="text-[12px] md:text-[13px] text-slate-300 hover:text-slate-100 underline-offset-4 hover:underline transition"
+          >
+            Как проходит онлайн-консультация в OnlyVet →
+          </Link>
+
         </div>
       </div>
     </section>
