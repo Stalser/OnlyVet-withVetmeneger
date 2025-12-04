@@ -10,11 +10,17 @@ import { useRouter } from "next/navigation";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { getSupabaseClient } from "@/lib/supabaseClient";
+
 // --------------------
 // Типы и мок-данные
 // --------------------
 
-type AccountTab = "consultations" | "pets" | "trusted" | "notifications" | "profile";
+type AccountTab =
+  | "consultations"
+  | "pets"
+  | "trusted"
+  | "notifications"
+  | "profile";
 
 type ConsultationStatus = "new" | "in_progress" | "done";
 
@@ -144,6 +150,29 @@ const mockNotificationSettings = {
 };
 
 // --------------------
+// Простые данные стран для телефона
+// --------------------
+
+type CountryOption = {
+  code: string;
+  name: string;
+  dialCode: string;
+};
+
+const COUNTRIES: CountryOption[] = [
+  { code: "RU", name: "Россия", dialCode: "+7" },
+  { code: "KZ", name: "Казахстан", dialCode: "+7" },
+  { code: "BY", name: "Беларусь", dialCode: "+375" },
+  { code: "AM", name: "Армения", dialCode: "+374" },
+  { code: "AZ", name: "Азербайджан", dialCode: "+994" },
+  { code: "GE", name: "Грузия", dialCode: "+995" },
+  { code: "UA", name: "Украина", dialCode: "+380" },
+  { code: "DE", name: "Германия", dialCode: "+49" },
+  { code: "GB", name: "Великобритания", dialCode: "+44" },
+  { code: "US", name: "США", dialCode: "+1" },
+];
+
+// --------------------
 // Страница
 // --------------------
 
@@ -151,7 +180,8 @@ export default function AccountPage() {
   const router = useRouter();
   const [tab, setTab] = useState<AccountTab>("consultations");
 
-  const [currentUserName, setCurrentUserName] = useState<string>("Пользователь");
+  const [currentUserName, setCurrentUserName] =
+    useState<string>("Пользователь");
   const [currentUserEmail, setCurrentUserEmail] = useState<string>("");
   const [checkingAuth, setCheckingAuth] = useState(true);
 
@@ -192,7 +222,6 @@ export default function AccountPage() {
     };
   }, [router]);
 
-  // Пока проверяем сессию — показываем простую «заглушку»
   if (checkingAuth) {
     return (
       <>
@@ -229,7 +258,10 @@ export default function AccountPage() {
               Аккаунт:{" "}
               <span className="font-medium">{currentUserName}</span>
               {currentUserEmail && (
-                <> · <span className="text-slate-500">{currentUserEmail}</span></>
+                <>
+                  {" "}
+                  · <span className="text-slate-500">{currentUserEmail}</span>
+                </>
               )}
             </p>
           </div>
@@ -337,8 +369,8 @@ function ConsultationsSection() {
             Ваши консультации
           </h2>
           <p className="text-[12px] text-slate-600 max-w-xl">
-            Ниже — список заявок и консультаций в OnlyVet. В реальной версии здесь
-            будут данные из вашей истории обращений.
+            Ниже — список заявок и консультаций в OnlyVet. В реальной версии
+            здесь будут данные из вашей истории обращений.
           </p>
         </div>
         <Link
@@ -421,8 +453,8 @@ function PetsSection() {
             Ваши питомцы
           </h2>
           <p className="text-[12px] text-slate-600 max-w-xl">
-            Для каждого питомца можно будет смотреть историю консультаций и документы.
-            Пока здесь примерная структура на мок-данных.
+            Для каждого питомца можно будет смотреть историю консультаций и
+            документы. Пока здесь примерная структура на мок-данных.
           </p>
         </div>
         <button
@@ -485,13 +517,13 @@ function TrustedSection({
           Доверенные лица
         </h2>
         <p className="text-[12px] text-slate-600 max-w-2xl mb-2">
-          Здесь видно, кому вы доверили доступ к информации о питомцах и консультациях,
-          а также для кого вы сами являетесь доверенным лицом.
+          Здесь видно, кому вы доверили доступ к информации о питомцах и
+          консультациях, а также для кого вы сами являетесь доверенным лицом.
         </p>
         <p className="text-[12px] text-slate-500 max-w-2xl">
           <span className="font-medium">Важно:</span> у каждого доверенного лица
-          может быть свой уровень доступа (просмотр, управление, оплата) и список питомцев,
-          к которым этот доступ относится.
+          может быть свой уровень доступа (просмотр, управление, оплата) и
+          список питомцев, к которым этот доступ относится.
         </p>
       </div>
 
@@ -516,8 +548,8 @@ function TrustedSection({
               <li>
                 • Также вы указаны как{" "}
                 <span className="font-medium">доверенное лицо</span> у других
-                владельцев. Это значит, что вы можете участвовать в консультациях
-                их питомцев в рамках выданных прав.
+                владельцев. Это значит, что вы можете участвовать в
+                консультациях их питомцев в рамках выданных прав.
               </li>
             )}
             {!isAlsoTrusted && (
@@ -537,8 +569,8 @@ function TrustedSection({
           </h3>
           <ul className="space-y-1.5">
             <li>
-              • <span className="font-medium">Доверитель</span> — это
-              основной владелец аккаунта и питомцев.
+              • <span className="font-medium">Доверитель</span> — это основной
+              владелец аккаунта и питомцев.
             </li>
             <li>
               • <span className="font-medium">Доверенное лицо</span> — человек,
@@ -735,8 +767,8 @@ function NotificationsSection({
           Настройки уведомлений
         </h2>
         <p className="text-[12px] text-slate-600 max-w-2xl">
-          Здесь вы сможете управлять тем, какие уведомления получать и по каким
-          каналам. Сейчас данные демонстрационные.
+          Здесь вы сможете управлять тем, какие уведомления получать и по
+          каким каналам. Сейчас данные демонстрационные.
         </p>
       </div>
 
@@ -812,23 +844,37 @@ function ProfileSection({
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
 
-  const [name, setName] = useState(currentUserName);
+  const [lastName, setLastName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [middleName, setMiddleName] = useState("");
+
+  const [country, setCountry] = useState<CountryOption>(COUNTRIES[0]);
+  const [localPhone, setLocalPhone] = useState("");
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+
   const [email, setEmail] = useState(currentUserEmail || "");
-  const [phone, setPhone] = useState("+7 900 000-00-00");
   const [telegram, setTelegram] = useState("@onlyvet_user");
 
-  // подгружаем avatar_url из Supabase
+  // подгружаем avatar_url + имя из Supabase
   useEffect(() => {
     const supabase = getSupabaseClient();
     let cancelled = false;
 
     const load = async () => {
       const { data } = await supabase.auth.getUser();
-      if (cancelled) return;
-      const meta = (data.user?.user_metadata || {}) as any;
+      if (cancelled || !data.user) return;
+
+      const meta = (data.user.user_metadata || {}) as any;
+
       if (meta.avatar_url) {
         setAvatarUrl(meta.avatar_url);
       }
+
+      if (meta.last_name) setLastName(meta.last_name);
+      if (meta.first_name) setFirstName(meta.first_name);
+      if (meta.middle_name) setMiddleName(meta.middle_name);
+
+      // если телефон уже сохранён в metadata — можно позже распарсить
     };
 
     load();
@@ -849,7 +895,6 @@ function ProfileSection({
     setAvatarLoading(true);
 
     try {
-      // получаем текущего пользователя
       const { data: userData, error: userError } =
         await supabase.auth.getUser();
 
@@ -863,7 +908,6 @@ function ProfileSection({
       const ext = file.name.split(".").pop() || "jpg";
       const filePath = `${user.id}/${Date.now()}.${ext}`;
 
-      // загружаем файл
       const { error: uploadError } = await supabase.storage
         .from("avatars")
         .upload(filePath, file, {
@@ -872,17 +916,17 @@ function ProfileSection({
         });
 
       if (uploadError) {
-        setAvatarError(uploadError.message || "Не удалось загрузить файл.");
+        setAvatarError(
+          uploadError.message || "Не удалось загрузить файл."
+        );
         setAvatarLoading(false);
         return;
       }
 
-      // получаем публичный URL
       const {
         data: { publicUrl },
       } = supabase.storage.from("avatars").getPublicUrl(filePath);
 
-      // обновляем метаданные пользователя
       const { error: updateError } = await supabase.auth.updateUser({
         data: {
           avatar_url: publicUrl,
@@ -898,7 +942,7 @@ function ProfileSection({
       }
 
       setAvatarUrl(publicUrl);
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
       setAvatarError("Техническая ошибка при загрузке аватара.");
     } finally {
@@ -906,7 +950,28 @@ function ProfileSection({
     }
   };
 
-  const initialLetter = name.trim().charAt(0).toUpperCase() || "U";
+  const initialLetter =
+    (lastName || currentUserName)
+      .trim()
+      .charAt(0)
+      .toUpperCase() || "U";
+
+  // Валидация номера: только цифры, длина 5–15
+  const handleLocalPhoneChange = (raw: string) => {
+    const digits = raw.replace(/\D/g, "");
+    setLocalPhone(digits);
+
+    if (!digits) {
+      setPhoneError("Укажите номер телефона.");
+    } else if (digits.length < 5 || digits.length > 15) {
+      setPhoneError("Проверьте длину номера.");
+    } else {
+      setPhoneError(null);
+    }
+  };
+
+  const fullPhone =
+    localPhone && !phoneError ? `${country.dialCode}${localPhone}` : "";
 
   return (
     <section className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4 md:p-5 space-y-4">
@@ -915,9 +980,8 @@ function ProfileSection({
           Профиль
         </h2>
         <p className="text-[12px] text-slate-600 max-w-2xl">
-          Здесь будут редактироваться ваши контактные данные, пароль и
-          базовые настройки аккаунта. Аватар используется в шапке и в
-          карточках консультаций.
+          Здесь редактируются контакты и аватар. Фамилия, имя и отчество
+          разбиты на отдельные поля, телефон — в международном формате.
         </p>
       </div>
 
@@ -929,7 +993,7 @@ function ProfileSection({
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={avatarUrl}
-                alt={name}
+                alt={lastName || currentUserName}
                 className="h-full w-full object-cover"
               />
             ) : (
@@ -937,12 +1001,10 @@ function ProfileSection({
             )}
           </div>
           <div className="space-y-1 text-[12px] text-slate-600">
-            <div className="font-medium text-slate-800">
-              Фото профиля
-            </div>
+            <div className="font-medium text-slate-800">Фото профиля</div>
             <p>
-              Это фото будет отображаться в шапке и в карточках
-              консультаций. Рекомендуемый размер: 400×400px.
+              Это фото будет отображаться в шапке и в карточках консультаций.
+              Рекомендуемый размер: 400×400px.
             </p>
             {avatarError && (
               <p className="text-[11px] text-rose-600">{avatarError}</p>
@@ -963,34 +1025,92 @@ function ProfileSection({
         </div>
       </div>
 
-      {/* Контактные данные */}
-      <div className="grid md:grid-cols-2 gap-3 text-[13px] pt-2 border-t border-slate-100 mt-2">
+      {/* ФИО */}
+      <div className="grid md:grid-cols-3 gap-3 text-[13px] pt-2 border-t border-slate-100 mt-2">
         <div>
           <label className="block text-[12px] text-slate-600 mb-1">
-            ФИО
+            Фамилия
           </label>
           <input
             type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
             className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
           />
         </div>
         <div>
           <label className="block text-[12px] text-slate-600 mb-1">
-            Телефон
+            Имя
           </label>
           <input
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            type="text"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
             className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
           />
         </div>
         <div>
           <label className="block text-[12px] text-slate-600 mb-1">
-            Email
+            Отчество
           </label>
+          <input
+            type="text"
+            value={middleName}
+            onChange={(e) => setMiddleName(e.target.value)}
+            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+          />
+        </div>
+      </div>
+
+      {/* Контактные данные */}
+      <div className="grid md:grid-cols-2 gap-3 text-[13px]">
+        {/* Телефон с выбором страны */}
+        <div>
+          <label className="block text-[12px] text-slate-600 mb-1">
+            Телефон (международный формат)
+          </label>
+          <div className="flex gap-2">
+            <select
+              value={country.code}
+              onChange={(e) => {
+                const next =
+                  COUNTRIES.find((c) => c.code === e.target.value) ||
+                  COUNTRIES[0];
+                setCountry(next);
+              }}
+              className="w-[40%] md:w-[35%] rounded-xl border border-slate-300 px-2 py-2 text-[13px] bg-white focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+            >
+              {COUNTRIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.name} {c.dialCode}
+                </option>
+              ))}
+            </select>
+            <input
+              type="tel"
+              value={localPhone}
+              onChange={(e) => handleLocalPhoneChange(e.target.value)}
+              className={`flex-1 rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
+                phoneError
+                  ? "border-rose-400 focus:ring-rose-300"
+                  : "border-slate-300 focus:ring-onlyvet-teal/40"
+              }`}
+              placeholder="Номер телефона"
+            />
+          </div>
+          {fullPhone && !phoneError && (
+            <p className="mt-1 text-[11px] text-slate-500">
+              Будет сохранён как: <span className="font-medium">{fullPhone}</span>
+            </p>
+          )}
+          {phoneError && (
+            <p className="mt-1 text-[11px] text-rose-600">{phoneError}</p>
+          )}
+        </div>
+
+        {/* Email */}
+        <div>
+          <label className="block text-[12px] text-slate-600 mb-1">Email</label>
           <input
             type="email"
             value={email}
@@ -998,6 +1118,8 @@ function ProfileSection({
             className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
           />
         </div>
+
+        {/* Telegram */}
         <div>
           <label className="block text-[12px] text-slate-600 mb-1">
             Telegram
@@ -1007,6 +1129,7 @@ function ProfileSection({
             value={telegram}
             onChange={(e) => setTelegram(e.target.value)}
             className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+            placeholder="@username"
           />
         </div>
       </div>
