@@ -600,7 +600,7 @@ function SocialBlock() {
             className="bg-white rounded-3xl border border-slate-200 px-5 py-6 flex flex-col items-center gap-3 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] hover:border-onlyvet-teal/60 transition-all text-center"
           >
             <img
-              src="/img/free-icon-odnokлассники-3670250.svg"
+              src="/img/free-icon-odnoklassniki-3670250.svg"
               alt="Одноклассники"
               className="w-14 h-14"
             />
@@ -609,7 +609,6 @@ function SocialBlock() {
               Полезные советы и материалы.
             </p>
           </a>
-        </div>
 
         <p className="mt-3 text-[10px] text-slate-400 max-w-xl">
           * Instagram принадлежит компании Meta Platforms Inc., деятельность
