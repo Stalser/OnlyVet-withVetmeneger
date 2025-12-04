@@ -1,114 +1,109 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
+import { getSupabaseClient } from "@/lib/supabaseClient";
 
-const navLinks = [
-  { href: "/", label: "Главная" },
-  { href: "/doctors", label: "Врачи" },
-  { href: "/services", label: "Услуги" },
-  { href: "/prices", label: "Цены" },
-  { href: "/reviews", label: "Отзывы" },
-  { href: "/how-it-works", label: "Как это работает" },
-  { href: "/faq", label: "FAQ" },
-  { href: "/docs", label: "Документы" },
-];
-
-export function Header() {
+export default function Header() {
+  const router = useRouter();
   const pathname = usePathname();
+  const supabase = getSupabaseClient();
 
-  const isActive = (href: string) => {
-    if (href === "/") return pathname === "/";
-    return pathname.startsWith(href);
+  const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Проверяем сессию
+  useEffect(() => {
+    let ignore = false;
+
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!ignore) {
+        setSession(data.session);
+        setLoading(false);
+      }
+    };
+
+    checkSession();
+
+    // Подписка на изменения сессии (login/logout)
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
+    });
+
+    return () => {
+      ignore = true;
+      sub?.subscription.unsubscribe();
+    };
+  }, [supabase]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/auth/login");
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-900/60 bg-[#101827]/95 backdrop-blur">
-      <div className="container mx-auto max-w-5xl px-4 py-3 flex items-center justify-between gap-4">
-        {/* Логотип слева */}
-        <Link href="/" className="flex items-center gap-2 select-none">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-onlyvet-teal to-onlyvet-coral flex items-center justify-center text-[13px] font-semibold text-white shadow-[0_6px_18px_rgba(15,23,42,0.45)]">
-            O
-          </div>
-          <div className="leading-tight">
-            <div className="tracking-[0.18em] text-[10px] text-slate-300 uppercase">
-              OnlyVet
-            </div>
-            <div className="text-[11px] text-slate-400">
-              Ветеринарная онлайн-клиника
-            </div>
-          </div>
+    <header className="w-full border-b border-slate-200 bg-white/70 backdrop-blur-sm">
+      <div className="container mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
+        {/* Логотип */}
+        <Link href="/" className="text-onlyvet-navy font-semibold text-lg">
+          ONLYVET
         </Link>
 
-        {/* Навигация + кнопки */}
-        <nav className="flex items-center gap-4">
-          <ul className="hidden md:flex items-center gap-4 lg:gap-5 text-[13px]">
-            {navLinks.map((link) => {
-              const active = isActive(link.href);
-              const isHowItWorks = link.href === "/how-it-works";
-
-              return (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className={`
-                      relative inline-flex flex-col items-center
-                      ${
-                        active
-                          ? "text-white font-semibold"
-                          : "text-slate-300 hover:text-slate-100"
-                      }
-                    `}
-                  >
-                    <span
-                      className={`
-                        inline-block
-                        ${isHowItWorks ? "whitespace-nowrap" : ""}
-                      `}
-                    >
-                      {link.label}
-                    </span>
-                    {active && (
-                      <span
-                        className={`
-                          mt-1 h-[2px] w-full rounded-full
-                          bg-gradient-to-r from-onlyvet-teal via-onlyvet-coral to-onlyvet-teal
-                        `}
-                      />
-                    )}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-
-          {/* Кнопки справа */}
-          <div className="flex items-center gap-2">
-            <Link
-              href="/booking"
-              className="
-                hidden sm:inline-flex items-center justify-center
-                px-4 py-2 rounded-full text-[13px] font-medium
-                bg-onlyvet-coral text-white
-                shadow-[0_10px_26px_rgba(247,118,92,0.55)]
-                hover:brightness-105 transition
-              "
-            >
-              Записаться
-            </Link>
-            <Link
-              href="/auth/login"
-              className="
-                inline-flex items-center justify-center
-                px-4 py-2 rounded-full text-[13px]
-                border border-slate-500 text-slate-100
-                hover:bg-slate-800/70 transition
-              "
-            >
-              Войти
-            </Link>
-          </div>
+        {/* Меню */}
+        <nav className="hidden md:flex items-center gap-6 text-sm text-slate-700">
+          <Link href="/">Главная</Link>
+          <Link href="/doctors">Врачи</Link>
+          <Link href="/services">Услуги</Link>
+          <Link href="/pricing">Цены</Link>
+          <Link href="/reviews">Отзывы</Link>
+          <Link href="/how-it-works">Как это работает</Link>
+          <Link href="/faq">FAQ</Link>
+          <Link href="/docs">Документы</Link>
         </nav>
+
+        {/* Правый блок: кнопки авторизации */}
+        {!loading && (
+          <div className="flex items-center gap-3">
+            {!session ? (
+              <>
+                <Link
+                  href="/auth/login"
+                  className="px-4 py-1.5 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 transition"
+                >
+                  Войти
+                </Link>
+                <Link
+                  href="/auth/register"
+                  className="px-4 py-1.5 rounded-full bg-onlyvet-coral text-white shadow-md hover:brightness-105 transition"
+                >
+                  Зарегистрироваться
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/account"
+                  className={`px-4 py-1.5 rounded-full ${
+                    pathname.startsWith("/account")
+                      ? "bg-onlyvet-coral text-white shadow"
+                      : "bg-white border border-slate-300 text-slate-700 hover:bg-slate-100"
+                  } transition`}
+                >
+                  Личный кабинет
+                </Link>
+
+                <button
+                  onClick={handleLogout}
+                  className="px-4 py-1.5 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 transition"
+                >
+                  Выйти
+                </button>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </header>
   );
