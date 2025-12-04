@@ -75,16 +75,17 @@ const mockConsultations: MockConsultation[] = [
   },
 ];
 
+// ID питомцев — pet1, pet2 (как в app/account/pets/[id]/page.tsx)
 const mockPets: MockPet[] = [
   {
-    id: "p1",
+    id: "pet1",
     name: "Локи",
     species: "Кошка, шотландская",
     age: "2 года 6 месяцев",
     weight: "4.8 кг",
   },
   {
-    id: "p2",
+    id: "pet2",
     name: "Рекс",
     species: "Собака, метис",
     age: "6 лет",
@@ -225,7 +226,7 @@ export default function AccountPage() {
 }
 
 // --------------------
-// Компоненты вкладок
+// Вкладки / вспомогательные компоненты
 // --------------------
 
 function AccountTabButton({
@@ -383,12 +384,12 @@ function PetsSection() {
               Возраст: {pet.age}
               {pet.weight && <> · Вес: {pet.weight}</>}
             </div>
-            <button
-              type="button"
-              className="mt-1 text-[12px] text-onlyvet-navy hover:text-onlyvet-coral underline underline-offset-2"
+            <Link
+              href={`/account/pets/${pet.id}`}
+              className="mt-1 inline-flex text-[12px] text-onlyvet-navy hover:text-onlyvet-coral underline underline-offset-2"
             >
               Открыть карточку питомца
-            </button>
+            </Link>
           </div>
         ))}
       </div>
@@ -699,7 +700,7 @@ function NotificationsSection({
             <input type="checkbox" checked={email.billingEvents} readOnly />
             <span>Финансовые уведомления (счета, оплаты)</span>
           </label>
-          <label className="flex items_center gap-2">
+          <label className="flex items-center gap-2">
             <input type="checkbox" checked={email.reminderEvents} readOnly />
             <span>Напоминания (повторные анализы, контроль)</span>
           </label>
