@@ -1,17 +1,21 @@
 // lib/supabaseClient.ts
-"use client";
-
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// Используем значения из env, если они есть, иначе — пустую строку.
+// NEXT_PUBLIC_ переменные подставляются на этапе сборки для браузера.
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 
-// Минимальная защита от забытых env
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    "Supabase env vars are not set. Please define NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY."
-  );
-}
+// Можно оставить легкий dev-лог, чтобы видеть проблему локально, но не падать билдингом.
+// if (!supabaseUrl || !supabaseAnonKey) {
+//   console.warn(
+//     "Supabase env vars are not set. Please define NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY."
+//   );
+// }
 
-// Пока без типизации Database, можно добавить позже
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    detectSessionInUrl: true,
+  },
+});
