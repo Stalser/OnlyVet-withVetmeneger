@@ -36,62 +36,54 @@ export default function HomePage() {
       <Header />
       <main className="flex-1">
         {/* HERO */}
-        <section className="bg-onlyvet-navy text-white py-10 relative overflow-hidden">
-          <div className="container mx-auto max-w-5xl px-4 grid md:grid-cols-[1.4fr,1.1fr] gap-10 items-center">
-            <div>
-              <div className="text-[11px] tracking-[0.16em] uppercase text-onlyvet-teal mb-3">
-                Цифровая ветеринария OnlyVet
-              </div>
-              <h1 className="text-2xl md:text-3xl font-semibold leading-tight mb-3">
-                Экспертная помощь питомцу, когда ваша клиника — онлайн.
-              </h1>
-              <p className="text-sm md:text-base text-slate-200 mb-2 max-w-xl">
-                Онлайн-консультации, второе мнение, разбор анализов и
-                сопровождение сложных случаев — без поездок и суеты.
-              </p>
-              <Link
-                href="/how-it-works"
-                className="text-[12px] text-onlyvet-teal underline-offset-2 hover:underline mb-3 inline-block"
-              >
-                Как проходит онлайн-консультация →
-              </Link>
-              <div className="flex flex-wrap gap-2 mb-3">
-                <Link
-                  href="/booking"
-                  className="px-4 py-2 rounded-full bg-onlyvet-coral text-xs font-medium shadow-[0_14px_36px_rgba(247,118,92,0.45)] inline-flex items-center justify-center hover:brightness-105 transition"
-                >
-                  Записаться на консультацию
-                </Link>
-                <Link
-                  href="/auth/login"
-                  className="px-4 py-2 rounded-full border border-slate-500 text-xs inline-flex items-center justify-center hover:bg-white/5 transition"
-                >
-                  Войти в личный кабинет
-                </Link>
-              </div>
-              <div className="flex flex-wrap gap-4 text-[12px] text-slate-200">
-                <span className="inline-flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  Врачи с клиническим опытом
-                </span>
-                <span>Фокус на доказательной медицине</span>
-              </div>
-            </div>
+        <section className="bg-[#101827] text-white">
+  <div className="container mx-auto max-w-5xl px-4 py-10 md:py-16">
+    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8">
 
-            <div className="relative">
-              <div className="rounded-[26px] bg-gradient-to-br from-onlyvet-teal to-onlyvet-navy p-1.5 shadow-hero">
-                <div
-                  className="rounded-[22px] min-h-[220px] bg-cover bg-center"
-                  style={{ backgroundImage: "url('/img/hero.jpg')" }}
-                />
-              </div>
-              <div className="absolute -bottom-3 left-4 bg-slate-900/90 border border-slate-500 rounded-full px-3 py-1 text-[11px] text-slate-100">
-                Спокойный онлайн-приём, где врач действительно читает ваши
-                анализы.
-              </div>
-            </div>
-          </div>
-        </section>
+      {/* Левая часть: слоган и кнопки */}
+      <div className="max-w-xl space-y-6">
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold leading-tight">
+          <span className="block">Мы рядом,</span>
+          <span className="block text-slate-100/90">
+            даже если вы далеко.
+          </span>
+        </h1>
+
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+          <Link
+            href="/booking"
+            className="
+              inline-flex items-center justify-center
+              px-5 py-2.5 rounded-full
+              bg-onlyvet-coral text-[13px] font-medium
+              shadow-[0_12px_32px_rgba(247,118,92,0.6)]
+              hover:brightness-105 transition
+            "
+          >
+            Записаться на консультацию
+          </Link>
+
+          <Link
+            href="/auth/login"
+            className="
+              inline-flex items-center justify-center
+              px-5 py-2.5 rounded-full
+              border border-slate-500
+              text-[13px] font-medium text-slate-100
+              hover:bg-slate-800/60 transition
+            "
+          >
+            Войти в личный кабинет
+          </Link>
+        </div>
+      </div>
+
+      {/* Правая часть — просто «воздух» на десктопе */}
+      <div className="hidden md:block flex-1" />
+
+    </div>
+  </div>
+</section>
 
         {/* Почему OnlyVet */}
         <section className="py-7">
