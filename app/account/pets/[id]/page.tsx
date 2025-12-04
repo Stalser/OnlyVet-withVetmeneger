@@ -5,7 +5,6 @@ import { notFound } from "next/navigation";
 
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { AccountNav } from "@/components/AccountNav";
 import {
   ConsultationCard,
   type ConsultationStatus,
@@ -195,15 +194,15 @@ export default function PetPage({ params }: { params: { id: string } }) {
             <div className="flex flex-col sm:flex-row gap-2 text-[12px]">
               <Link
                 href={`/booking?petId=${pet.id}`}
-                className="px-4 py-2 rounded-full bg-onlyvet-coral text-white font-medium shadow-[0_10px_26px_rgba(247,118,92,0.45)] hover:brightness-105 transition text-center"
+                className="px-4 py-2 rounded-full bg-onlyvet-coral text-white font-medium shadow-[0_10px_26px_rgба(247,118,92,0.45)] hover:brightness-105 transition text-center"
               >
                 Записаться с этим питомцем
               </Link>
               <Link
-                href="/account/requests"
+                href="/account"
                 className="px-4 py-2 rounded-full border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition text-center"
               >
-                История консультаций
+                В кабинет
               </Link>
             </div>
           </section>
@@ -275,7 +274,6 @@ export default function PetPage({ params }: { params: { id: string } }) {
                           petName={pet.name}
                           serviceName="Онлайн-консультация"
                           doctorName={v.doctor}
-                          // в демо нет отдельного времени, используем только дату
                           dateTime={v.date}
                           status={status}
                           showPetLink={false}
@@ -346,7 +344,7 @@ function DocCategory({
           {docs.map((d) => (
             <li
               key={d.id}
-              className="flex justify-between items-start gap-3 text-[12px]"
+              className="flex justify_between items-start gap-3 text-[12px]"
             >
               <div className="flex-1">
                 <div className="font-medium text-slate-800">{d.title}</div>
