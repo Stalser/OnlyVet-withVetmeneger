@@ -7,7 +7,7 @@ import Link from "next/link";
 
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { supabase } from "@/lib/supabaseClient";
+import { getSupabaseClient } from "@/lib/supabaseClient";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -75,6 +75,8 @@ export default function RegisterPage() {
     try {
       setLoading(true);
 
+      const supabase = getSupabaseClient();
+
       // Собираем ФИО
       const fullName = [lastName, firstName, !noMiddleName && middleName]
         .filter(Boolean)
@@ -106,10 +108,6 @@ export default function RegisterPage() {
         return;
       }
 
-      // В Supabase по настройкам может быть:
-      //  - либо сразу активная сессия,
-      //  - либо отправка письма подтверждения.
-      // Для простоты показываем сообщение и ведём на логин.
       setServerSuccess(
         "Аккаунт создан. Теперь вы можете войти в личный кабинет."
       );
@@ -186,9 +184,7 @@ export default function RegisterPage() {
                       <input
                         type="text"
                         value={firstName}
-                        onChange={(e) =>
-                          setFirstName(e.target.value)
-                        }
+                        onChange={(e) => setFirstName(e.target.value)}
                         className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
                           firstNameError
                             ? "border-rose-400 focus:ring-rose-300"
@@ -227,9 +223,7 @@ export default function RegisterPage() {
                           type="checkbox"
                           id="no-middle-name"
                           checked={noMiddleName}
-                          onChange={(e) =>
-                            setNoMiddleName(e.target.checked)
-                          }
+                          onChange={(e) => setNoMiddleName(e.target.checked)}
                           className="rounded border-slate-300"
                         />
                         <label
