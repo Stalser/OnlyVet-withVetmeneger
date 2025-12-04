@@ -808,6 +808,106 @@ function ProfileSection({
   currentUserName: string;
   currentUserEmail: string;
 }) {
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarLoading, setAvatarLoading] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+
+  const [name, setName] = useState(currentUserName);
+  const [email, setEmail] = useState(currentUserEmail || "");
+  const [phone, setPhone] = useState("+7 900 000-00-00");
+  const [telegram, setTelegram] = useState("@onlyvet_user");
+
+  // подгружаем avatar_url из Supabase
+  useEffect(() => {
+    const supabase = getSupabaseClient();
+    let cancelled = false;
+
+    const load = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (cancelled) return;
+      const meta = (data.user?.user_metadata || {}) as any;
+      if (meta.avatar_url) {
+        setAvatarUrl(meta.avatar_url);
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleAvatarChange = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const supabase = getSupabaseClient();
+    setAvatarError(null);
+
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setAvatarLoading(true);
+
+    try {
+      // получаем текущего пользователя
+      const { data: userData, error: userError } =
+        await supabase.auth.getUser();
+
+      if (userError || !userData.user) {
+        setAvatarError("Не удалось определить пользователя.");
+        setAvatarLoading(false);
+        return;
+      }
+
+      const user = userData.user;
+      const ext = file.name.split(".").pop() || "jpg";
+      const filePath = `${user.id}/${Date.now()}.${ext}`;
+
+      // загружаем файл
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: true,
+        });
+
+      if (uploadError) {
+        setAvatarError(uploadError.message || "Не удалось загрузить файл.");
+        setAvatarLoading(false);
+        return;
+      }
+
+      // получаем публичный URL
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("avatars").getPublicUrl(filePath);
+
+      // обновляем метаданные пользователя
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: {
+          avatar_url: publicUrl,
+        },
+      });
+
+      if (updateError) {
+        setAvatarError(
+          updateError.message || "Не удалось сохранить ссылку на аватар."
+        );
+        setAvatarLoading(false);
+        return;
+      }
+
+      setAvatarUrl(publicUrl);
+    } catch (err: any) {
+      console.error(err);
+      setAvatarError("Техническая ошибка при загрузке аватара.");
+    } finally {
+      setAvatarLoading(false);
+    }
+  };
+
+  const initialLetter = name.trim().charAt(0).toUpperCase() || "U";
+
   return (
     <section className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4 md:p-5 space-y-4">
       <div>
@@ -815,19 +915,64 @@ function ProfileSection({
           Профиль
         </h2>
         <p className="text-[12px] text-slate-600 max-w-2xl">
-          Здесь будут редактироваться ваши контактные данные, пароль и базовые
-          настройки аккаунта. Сейчас данные частично берутся из Supabase, остальное — демонстрационные поля.
+          Здесь будут редактироваться ваши контактные данные, пароль и
+          базовые настройки аккаунта. Аватар используется в шапке и в
+          карточках консультаций.
         </p>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-3 text-[13px]">
+      {/* Аватар */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 rounded-full border border-slate-200 bg-slate-100 overflow-hidden flex items-center justify-center text-[20px] font-semibold text-slate-700">
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={avatarUrl}
+                alt={name}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              initialLetter
+            )}
+          </div>
+          <div className="space-y-1 text-[12px] text-slate-600">
+            <div className="font-medium text-slate-800">
+              Фото профиля
+            </div>
+            <p>
+              Это фото будет отображаться в шапке и в карточках
+              консультаций. Рекомендуемый размер: 400×400px.
+            </p>
+            {avatarError && (
+              <p className="text-[11px] text-rose-600">{avatarError}</p>
+            )}
+          </div>
+        </div>
+        <div className="flex sm:flex-col gap-2 text-[12px]">
+          <label className="inline-flex items-center justify-center px-3 py-1.5 rounded-full border border-slate-300 bg-white text-slate-700 cursor-pointer hover:bg-slate-50 transition">
+            {avatarLoading ? "Загружаем..." : "Загрузить новое фото"}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarChange}
+              disabled={avatarLoading}
+            />
+          </label>
+        </div>
+      </div>
+
+      {/* Контактные данные */}
+      <div className="grid md:grid-cols-2 gap-3 text-[13px] pt-2 border-t border-slate-100 mt-2">
         <div>
           <label className="block text-[12px] text-slate-600 mb-1">
             ФИО
           </label>
           <input
             type="text"
-            defaultValue={currentUserName}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
             className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
           />
         </div>
@@ -837,7 +982,8 @@ function ProfileSection({
           </label>
           <input
             type="tel"
-            defaultValue="+7 900 000-00-00"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
             className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
           />
         </div>
@@ -847,7 +993,8 @@ function ProfileSection({
           </label>
           <input
             type="email"
-            defaultValue={currentUserEmail || "user@example.com"}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
           />
         </div>
@@ -857,7 +1004,8 @@ function ProfileSection({
           </label>
           <input
             type="text"
-            defaultValue="@onlyvet_user"
+            value={telegram}
+            onChange={(e) => setTelegram(e.target.value)}
             className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
           />
         </div>
