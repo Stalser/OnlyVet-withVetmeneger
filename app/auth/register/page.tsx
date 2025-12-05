@@ -8,7 +8,7 @@ import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { getSupabaseClient } from "@/lib/supabaseClient";
-import { PhoneInput } from "@/components/PhoneInput";
+import PhoneInput from "@/components/PhoneInput";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -21,7 +21,7 @@ export default function RegisterPage() {
   const [noMiddleName, setNoMiddleName] = useState(false);
 
   // контакты
-  const [phone, setPhone] = useState(""); // полный номер, например "+79829138405"
+  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [telegram, setTelegram] = useState("");
 
@@ -40,15 +40,12 @@ export default function RegisterPage() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [serverSuccess, setServerSuccess] = useState<string | null>(null);
 
-  // вспомогательная функция для валидации телефона
-  const phoneDigits = phone.replace(/\D/g, "");
-
   // валидация
   const lastNameError = hasSubmitted && !lastName.trim();
   const firstNameError = hasSubmitted && !firstName.trim();
   const middleNameError =
     hasSubmitted && !noMiddleName && !middleName.trim();
-  const phoneError = hasSubmitted && phoneDigits.length < 7; // хотя бы 7 цифр
+  const phoneError = hasSubmitted && !phone.trim();
   const emailError = hasSubmitted && !email.trim();
   const passwordError = hasSubmitted && password.trim().length < 8;
   const password2Error =
@@ -62,7 +59,7 @@ export default function RegisterPage() {
     lastName.trim().length > 0 &&
     firstName.trim().length > 0 &&
     (noMiddleName || middleName.trim().length > 0) &&
-    phoneDigits.length >= 7 &&
+    phone.trim().length > 0 &&
     email.trim().length > 0 &&
     password.trim().length >= 8 &&
     password2 === password &&
@@ -107,26 +104,22 @@ export default function RegisterPage() {
       }
 
       // 2. Мягкая инициализация связки Supabase ⇄ Vetmanager
-      const user = data.user;
-      if (user) {
+      if (data.user) {
         try {
           await fetch("/api/vetmanager/profile/init", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              supabaseUserId: user.id,
+              supabaseUserId: data.user.id,
               phone: phone.trim(),
               firstName,
-              middleName: noMiddleName ? undefined : middleName || undefined,
               lastName,
               email: email.trim(),
-              noMiddleName,
-              telegram: telegram.trim() || undefined,
             }),
           });
         } catch (vmErr) {
           console.warn("[Vetmanager init] error", vmErr);
-          // Для пользователя это не блокирующая ошибка
+          // Пользователю об этом ничего не говорим.
         }
       }
 
@@ -240,7 +233,7 @@ export default function RegisterPage() {
                             ? "border-slate-200 bg-slate-50 text-slate-400"
                             : middleNameError
                             ? "border-rose-400 focus:ring-rose-300"
-                            : "border-slate-300 focus:ring-onlyvet-teал/40"
+                            : "border-slate-300 focus:ring-onlyvet-teal/40"
                         }`}
                         placeholder={noMiddleName ? "Не указано" : "Иванович"}
                       />
@@ -273,45 +266,45 @@ export default function RegisterPage() {
                   <h2 className="text-[14px] font-semibold">
                     Контактные данные
                   </h2>
-                  <div className="grid md:grid-cols-2 gap-3">
-                    <div>
-                      <PhoneInput
-                        label="Телефон"
-                        value={phone}
-                        onChange={setPhone}
-                        required
-                        error={phoneError}
-                        helperText={
-                          phoneError
-                            ? "Укажите корректный номер телефона."
-                            : "Номер телефона нужен для связи с вами."
-                        }
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[12px] text-slate-600 mb-1">
-                        Email<span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
-                          emailError
-                            ? "border-rose-400 focus:ring-rose-300"
-                            : "border-slate-300 focus:ring-onlyvet-teal/40"
-                        }`}
-                        placeholder="example@mail.ru"
-                      />
-                      {emailError && (
-                        <p className="mt-1 text-[11px] text-rose-600">
-                          Email нужен для отправки материалов консультации и
-                          уведомлений.
-                        </p>
-                      )}
-                    </div>
+
+                  {/* Телефон с кодом страны */}
+                  <PhoneInput
+                    label="Телефон"
+                    value={phone}
+                    onChange={setPhone}
+                    required
+                    error={
+                      phoneError
+                        ? "Укажите корректный номер телефона."
+                        : null
+                    }
+                  />
+
+                  {/* Email */}
+                  <div className="mt-3">
+                    <label className="block text-[12px] text-slate-600 mb-1">
+                      Email<span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
+                        emailError
+                          ? "border-rose-400 focus:ring-rose-300"
+                          : "border-slate-300 focus:ring-onlyvet-teal/40"
+                      }`}
+                      placeholder="example@mail.ru"
+                    />
+                    {emailError && (
+                      <p className="mt-1 text-[11px] text-rose-600">
+                        Email нужен для отправки материалов консультации и
+                        уведомлений.
+                      </p>
+                    )}
                   </div>
 
+                  {/* Telegram */}
                   <div>
                     <label className="block text-[12px] text-slate-600 mb-1">
                       Telegram (необязательно)
@@ -362,7 +355,7 @@ export default function RegisterPage() {
                         className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
                           password2Error
                             ? "border-rose-400 focus:ring-rose-300"
-                            : "border-slate-300 focus:ring-onlyvet-teал/40"
+                            : "border-slate-300 focus:ring-onlyvet-teal/40"
                         }`}
                         placeholder="Ещё раз пароль"
                       />
