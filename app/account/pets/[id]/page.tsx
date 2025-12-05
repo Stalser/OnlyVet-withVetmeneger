@@ -1,13 +1,9 @@
 // app/account/pets/[id]/page.tsx
-"use client";
-
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { notFound, useRouter } from "next/navigation";
+import { notFound } from "next/navigation";
 
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { getSupabaseClient } from "@/lib/supabaseClient";
 import {
   ConsultationCard,
   type ConsultationStatus,
@@ -16,30 +12,13 @@ import {
 // =============================
 // 🔹 Типы данных
 // =============================
-type SupabaseUser = {
-  id: string;
-  email?: string;
-  user_metadata?: Record<string, any>;
-};
-
-type PetRow = {
-  id: string;
-  owner_id: string;
-  name: string;
-  species: string | null;
-  age_text: string | null;
-  weight_kg: number | null;
-  notes: string | null;
-};
-
-type PetViewModel = {
+type PetRecord = {
   id: string;
   name: string;
   kind: string;
   age: string;
   sex?: string;
   color?: string;
-  weightLabel?: string;
   notes?: string;
 };
 
@@ -60,23 +39,59 @@ type PetDocument = {
 };
 
 // =============================
-// 🔹 Демоданные (визиты + документы)
+// 🔹 Демоданные (заглушки)
 // =============================
+const demoPets: PetRecord[] = [
+  {
+    id: "pet1",
+    name: "Локи",
+    kind: "Кошка, шотландская",
+    age: "2 года",
+    sex: "самка",
+    color: "голубой",
+    notes: "Хронический гастрит, периодические эпизоды рвоты. Наблюдается.",
+  },
+  {
+    id: "pet2",
+    name: "Рекс",
+    kind: "Собака, метис",
+    age: "6 лет",
+    sex: "самец",
+    color: "чёрно-рыжий",
+    notes: "Перенесён острый панкреатит, требуется контроль диеты и анализов.",
+  },
+];
+
 const demoVisits: Record<string, PetVisit[]> = {
-  // Для реальных id это будет просто демо, не зависящее от базы
-  demo: [
+  pet1: [
     {
       id: "v1",
-      date: "2025-01-10 18:30",
+      date: "2025-01-10",
       doctor: "Эльвин Мазагирович",
-      summary: "Демо-визит: обострение гастрита, коррекция диеты, назначена терапия.",
+      summary: "Обострение гастрита, коррекция диеты, назначена терапия.",
+      status: "done",
+    },
+    {
+      id: "v2",
+      date: "2025-02-05",
+      doctor: "Диана Чемерилова",
+      summary: "Плановый контроль. Динамика положительная.",
+      status: "done",
+    },
+  ],
+  pet2: [
+    {
+      id: "v3",
+      date: "2024-12-20",
+      doctor: "Диана Чемерилова",
+      summary: "Постпанкреатитное наблюдение, корректировка схемы.",
       status: "done",
     },
   ],
 };
 
 const demoDocs: Record<string, PetDocument[]> = {
-  demo: [
+  pet1: [
     {
       id: "d1",
       category: "analyzes",
@@ -84,167 +99,54 @@ const demoDocs: Record<string, PetDocument[]> = {
       date: "2025-01-09",
       description: "ALT/AST слегка повышены. Лёгкая гипопротеинемия.",
     },
+    {
+      id: "d2",
+      category: "imaging",
+      title: "УЗИ брюшной полости (демо)",
+      date: "2025-01-09",
+      description: "Признаки гастрита. Остальные органы без выраженных изменений.",
+    },
+    {
+      id: "d3",
+      category: "discharge",
+      title: "Выписка после консультации (демо)",
+      date: "2025-01-10",
+    },
+  ],
+  pet2: [
+    {
+      id: "d4",
+      category: "analyzes",
+      title: "Биохимия крови (демо)",
+      date: "2024-12-19",
+      description: "Амилаза/липаза в верхней границе нормы.",
+    },
+    {
+      id: "d5",
+      category: "discharge",
+      title: "Выписка после панкреатита (демо)",
+      date: "2024-12-20",
+    },
   ],
 };
 
 // =============================
-// 🔹 Компонент страницы
+// 🔹 Вспомогательная логика
 // =============================
+function getPetById(id: string): PetRecord | undefined {
+  return demoPets.find((p) => p.id === id);
+}
 
+// =============================
+// 🔹 Страница карточки питомца
+// =============================
 export default function PetPage({ params }: { params: { id: string } }) {
-  const router = useRouter();
-  const supabase = getSupabaseClient();
+  const pet = getPetById(params.id);
 
-  const [user, setUser] = useState<SupabaseUser | null>(null);
-  const [pet, setPet] = useState<PetViewModel | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  if (!pet) return notFound();
 
-  useEffect(() => {
-    let cancelled = false;
-
-    const load = async () => {
-      try {
-        setLoading(true);
-        setLoadError(null);
-
-        // 1. Проверяем авторизацию
-        const {
-          data: { user },
-          error: authError,
-        } = await supabase.auth.getUser();
-
-        if (authError || !user) {
-          if (!cancelled) router.replace("/auth/login");
-          return;
-        }
-
-        if (cancelled) return;
-
-        setUser({
-          id: user.id,
-          email: user.email || undefined,
-          user_metadata: user.user_metadata || {},
-        });
-
-        // 2. Грузим питомца из таблицы pets
-        const { data, error } = await supabase
-          .from("pets")
-          .select("id, owner_id, name, species, age_text, weight_kg, notes")
-          .eq("id", params.id)
-          .single<PetRow>();
-
-        if (cancelled) return;
-
-        if (error) {
-          console.error("[PetPage] pet load error:", error);
-          setLoadError("Не удалось загрузить данные питомца.");
-          return;
-        }
-
-        // Если питомец не принадлежит текущему пользователю — 404
-        if (data.owner_id !== user.id) {
-          notFound();
-          return;
-        }
-
-        const weightLabel =
-          data.weight_kg !== null && data.weight_kg !== undefined
-            ? `${String(data.weight_kg).replace(/\.0+$/, "")} кг`
-            : undefined;
-
-        const vm: PetViewModel = {
-          id: data.id,
-          name: data.name,
-          kind: data.species || "Вид не указан",
-          age: data.age_text || "Возраст не указан",
-          // sex / color пока оставляем пустыми (если понадобятся — можно добавить в таблицу)
-          sex: undefined,
-          color: undefined,
-          weightLabel,
-          notes: data.notes || undefined,
-        };
-
-        setPet(vm);
-      } catch (err) {
-        console.error("[PetPage] unexpected error:", err);
-        if (!cancelled) {
-          setLoadError("Техническая ошибка при загрузке данных.");
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [params.id, router, supabase]);
-
-  // Простейший спиннер
-  if (loading) {
-    return (
-      <>
-        <Header />
-        <main className="flex-1 bg-slate-50/70 py-8">
-          <div className="container mx-auto max-w-5xl px-4">
-            <p className="text-[13px] text-slate-600">Загружаем карточку питомца…</p>
-          </div>
-        </main>
-        <Footer />
-      </>
-    );
-  }
-
-  if (loadError || !pet || !user) {
-    // Если ошибка или питомец не найден — можно показать понятный экран
-    return (
-      <>
-        <Header />
-        <main className="flex-1 bg-slate-50/70 py-8">
-          <div className="container mx-auto max-w-5xl px-4 space-y-3">
-            <nav className="text-[12px] text-slate-500">
-              <Link href="/" className="hover:text-onlyvet-coral">
-                Главная
-              </Link>{" "}
-              /{" "}
-              <Link href="/account" className="hover:text-onlyvet-coral">
-                Личный кабинет
-              </Link>{" "}
-              /{" "}
-              <Link href="/account/pets" className="hover:text-onlyvet-coral">
-                Питомцы
-              </Link>{" "}
-              / <span className="text-slate-700">Питомец</span>
-            </nav>
-            <div className="bg-white rounded-3xl border border-rose-200 shadow-soft p-5 md:p-6">
-              <h1 className="text-lg md:text-xl font-semibold mb-2">
-                Карточка питомца недоступна
-              </h1>
-              <p className="text-[13px] text-slate-600">
-                {loadError ||
-                  "Питомец не найден или вы не имеете доступа к его карточке."}
-              </p>
-              <div className="mt-3 flex gap-2 text-[12px]">
-                <Link
-                  href="/account/pets"
-                  className="px-4 py-2 rounded-full border border-slate-300 text-slate-700 bg-white hover:bg-slate-50 transition"
-                >
-                  К списку питомцев
-                </Link>
-              </div>
-            </div>
-          </div>
-        </main>
-        <Footer />
-      </>
-    );
-  }
-
-  // демо-визиты и документы — пока общие для всех
-  const visits = demoVisits.demo || [];
-  const docs = demoDocs.demo || [];
+  const visits = demoVisits[pet.id] || [];
+  const docs = demoDocs[pet.id] || [];
 
   const analyzes = docs.filter((d) => d.category === "analyzes");
   const imaging = docs.filter((d) => d.category === "imaging");
@@ -267,7 +169,8 @@ export default function PetPage({ params }: { params: { id: string } }) {
               Личный кабинет
             </Link>{" "}
             /{" "}
-            <Link href="/account/pets" className="hover:text-onlyvet-coral">
+            {/* 🔹 Ведём в новый кабинет на вкладку «Питомцы» */}
+            <Link href="/account?tab=pets" className="hover:text-onlyvet-coral">
               Питомцы
             </Link>{" "}
             / <span className="text-slate-700">{pet.name}</span>
@@ -286,7 +189,8 @@ export default function PetPage({ params }: { params: { id: string } }) {
                 </h1>
                 <div className="text-[13px] text-slate-600">
                   {pet.kind} • {pet.age}
-                  {pet.weightLabel && ` • вес: ${pet.weightLabel}`}
+                  {pet.sex && ` • ${pet.sex}`}
+                  {pet.color && ` • окрас: ${pet.color}`}
                 </div>
               </div>
             </div>
@@ -298,8 +202,9 @@ export default function PetPage({ params }: { params: { id: string } }) {
               >
                 Записаться с этим питомцем
               </Link>
+              {/* 🔹 Тоже ведём в /account?tab=pets */}
               <Link
-                href="/account/pets"
+                href="/account?tab=pets"
                 className="px-4 py-2 rounded-full border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition text-center"
               >
                 К списку питомцев
@@ -309,7 +214,7 @@ export default function PetPage({ params }: { params: { id: string } }) {
 
           {/* Две колонки */}
           <section className="grid gap-5 md:grid-cols-[1.4fr,1fr] items-start">
-            {/* Левая колонка */}
+            {/* Левая колонка: краткая инфа + медкарта */}
             <div className="space-y-5">
               {/* Краткая информация */}
               <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-6">
@@ -326,17 +231,23 @@ export default function PetPage({ params }: { params: { id: string } }) {
                     <span className="text-slate-500">Возраст: </span>
                     {pet.age}
                   </p>
-                  {pet.weightLabel && (
+                  {pet.sex && (
                     <p>
-                      <span className="text-slate-500">Вес: </span>
-                      {pet.weightLabel}
+                      <span className="text-slate-500">Пол: </span>
+                      {pet.sex}
+                    </p>
+                  )}
+                  {pet.color && (
+                    <p>
+                      <span className="text-slate-500">Окрас: </span>
+                      {pet.color}
                     </p>
                   )}
                   {pet.notes && (
                     <p className="pt-1">
                       <span className="text-slate-500">
-                        Особенности здоровья:
-                      </span>{" "}
+                        Особенности здоровья:{" "}
+                      </span>
                       {pet.notes}
                     </p>
                   )}
@@ -358,7 +269,7 @@ export default function PetPage({ params }: { params: { id: string } }) {
                   <div className="space-y-3">
                     {visits.map((v) => {
                       const status: ConsultationStatus =
-                        v.status === "done" ? "done" : "scheduled";
+                        v.status === "done" ? "done" : "in_progress";
 
                       return (
                         <ConsultationCard
@@ -379,7 +290,7 @@ export default function PetPage({ params }: { params: { id: string } }) {
 
                 <p className="mt-1 text-[11px] text-slate-500">
                   В будущем данные будут синхронизироваться с Vetmanager и
-                  реальными заключениями врачей.
+                  реальными заключениями врача.
                 </p>
               </div>
             </div>
@@ -418,7 +329,7 @@ export default function PetPage({ params }: { params: { id: string } }) {
 }
 
 // =============================
-// 🔹 Компонент категории документов (демо)
+// 🔹 Категория документов (демо)
 // =============================
 function DocCategory({
   title,
@@ -427,43 +338,41 @@ function DocCategory({
   title: string;
   docs: PetDocument[];
 }) {
-  if (docs.length === 0) {
-    return (
-      <div className="border border-slate-200 rounded-2xl bg-onlyvet-bg px-4 py-3 text-[12px] text-slate-500">
-        {title}: документов пока нет.
-      </div>
-    );
-  }
-
   return (
     <div className="border border-slate-200 rounded-2xl bg-onlyvet-bg px-4 py-3">
       <div className="text-[13px] font-semibold text-slate-800 mb-2">
         {title}
       </div>
-      <ul className="space-y-2">
-        {docs.map((d) => (
-          <li
-            key={d.id}
-            className="flex justify-between items-start gap-3 text-[12px]"
-          >
-            <div className="flex-1">
-              <div className="font-medium text-slate-800">{d.title}</div>
-              {d.description && (
-                <div className="text-[11px] text-slate-600 leading-tight mt-[2px]">
-                  {d.description}
-                </div>
-              )}
-            </div>
-            <div className="text-[11px] text-slate-500 whitespace-nowrap">
-              {new Date(d.date).toLocaleDateString("ru-RU", {
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-              })}
-            </div>
-          </li>
-        ))}
-      </ul>
+
+      {docs.length === 0 ? (
+        <div className="text-[12px] text-slate-500">Документов пока нет.</div>
+      ) : (
+        <ul className="space-y-2">
+          {docs.map((d) => (
+            <li
+              key={d.id}
+              className="flex justify-between items-start gap-3 text-[12px]"
+            >
+              <div className="flex-1">
+                <div className="font-medium text-slate-800">{d.title}</div>
+                {d.description && (
+                  <div className="text-[11px] text-slate-600 leading-tight mt-[2px]">
+                    {d.description}
+                  </div>
+                )}
+              </div>
+
+              <div className="text-[11px] text-slate-500 whitespace-nowrap">
+                {new Date(d.readableDate ?? d.date).toLocaleDateString("ru-RU", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
