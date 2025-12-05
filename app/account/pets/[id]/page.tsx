@@ -1,14 +1,15 @@
 // app/account/pets/[id]/page.tsx
+"use client";
 
+export const dynamic = "force-dynamic";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import {
-  ConsultationCard,
-  type ConsultationStatus,
-} from "@/components/ConsultationCard";
+import { ConsultationCard, type ConsultationStatus } from "@/components/ConsultationCard";
+import { getSupabaseClient } from "@/lib/supabaseClient";
 
 // =============================
 // 🔹 Типы данных
@@ -21,6 +22,15 @@ type PetRecord = {
   sex?: string;
   color?: string;
   notes?: string;
+};
+
+type SupabasePetRow = {
+  id: string;
+  name: string;
+  species: string | null;
+  age_text: string | null;
+  weight_kg: number | null;
+  notes: string | null;
 };
 
 type PetVisit = {
@@ -37,17 +47,6 @@ type PetDocument = {
   title: string;
   date: string;
   description?: string;
-};
-
-// доступ к конкретному питомцу
-type PetAccess = {
-  ownerName: string;
-  ownerDescription: string;
-  trusted: {
-    name: string;
-    description: string;
-    access: string;
-  }[];
 };
 
 // =============================
@@ -142,46 +141,67 @@ const demoDocs: Record<string, PetDocument[]> = {
   ],
 };
 
-// демо-доступ для каждого питомца
-const demoAccess: Record<string, PetAccess> = {
-  pet1: {
-    ownerName: "Иванов Иван Иванович",
-    ownerDescription: "Основной владелец аккаунта и питомца.",
-    trusted: [
-      {
-        name: "Ольга Петрова",
-        description: "Помогает с лечением и общением с врачами.",
-        access: "Просмотр и участие в консультациях по Локи.",
-      },
-    ],
-  },
-  pet2: {
-    ownerName: "Иванов Иван Иванович",
-    ownerDescription: "Основной владелец аккаунта и питомца.",
-    trusted: [
-      {
-        name: "Фонд «Хвосты и лапы»",
-        description: "Куратор, который участвует в лечении и наблюдении.",
-        access: "Просмотр документов и участие в консультациях по Рексу.",
-      },
-    ],
-  },
-};
-
 // =============================
 // 🔹 Основная логика
 // =============================
-function getPetById(id: string): PetRecord | undefined {
-  return demoPets.find((p) => p.id === id);
-}
 
 export default function PetPage({ params }: { params: { id: string } }) {
-  const pet = getPetById(params.id);
-  if (!pet) return notFound();
+  const [pet, setPet] = useState<PetRecord | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const visits = demoVisits[pet.id] || [];
-  const docs = demoDocs[pet.id] || [];
-  const access = demoAccess[pet.id];
+  const petId = params.id;
+
+  useEffect(() => {
+    let cancelled = false;
+    const supabase = getSupabaseClient();
+
+    const loadPet = async () => {
+      try {
+        setLoading(true);
+
+        // 1) Пытаемся получить питомца из Supabase
+        const { data, error } = await supabase
+          .from("pets")
+          .select("id, name, species, age_text, weight_kg, notes")
+          .eq("id", petId)
+          .maybeSingle<SupabasePetRow>();
+
+        if (cancelled) return;
+
+        if (!error && data) {
+          const normalized: PetRecord = {
+            id: data.id,
+            name: data.name,
+            kind: data.species || "",
+            age: data.age_text || "",
+            // sex и color в таблице pets пока не храним — оставляем пустыми
+            notes: data.notes || undefined,
+          };
+          setPet(normalized);
+          setLoading(false);
+          return;
+        }
+
+        // 2) Если в Supabase не нашли — пробуем старые демо-питомцы
+        const demo = demoPets.find((p) => p.id === petId) || null;
+        setPet(demo);
+      } catch (err) {
+        console.error("[PetPage] error loading pet:", err);
+        const demo = demoPets.find((p) => p.id === petId) || null;
+        setPet(demo);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    loadPet();
+    return () => {
+      cancelled = true;
+    };
+  }, [petId]);
+
+  const visits = demoVisits[petId] || [];
+  const docs = demoDocs[petId] || [];
 
   const analyzes = docs.filter((d) => d.category === "analyzes");
   const imaging = docs.filter((d) => d.category === "imaging");
@@ -204,208 +224,190 @@ export default function PetPage({ params }: { params: { id: string } }) {
               Личный кабинет
             </Link>{" "}
             /{" "}
-            <Link href="/account" className="hover:text-onlyvet-coral">
+            <Link href="/account/pets" className="hover:text-onlyvet-coral">
               Питомцы
             </Link>{" "}
-            / <span className="text-slate-700">{pet.name}</span>
+            /{" "}
+            <span className="text-slate-700">
+              {pet ? pet.name : loading ? "Загрузка..." : "Не найден"}
+            </span>
           </nav>
 
-          {/* Шапка: имя, вид, кнопки */}
-          <section className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-3xl bg-onlyvet-teal/10 border border-slate-200 flex items-center justify-center text-onlyvet-navy text-xl font-semibold">
-                {pet.name[0]}
-              </div>
+          {/* Состояние загрузки / не найден */}
+          {loading && (
+            <p className="text-[13px] text-slate-600">Загружаем данные о питомце…</p>
+          )}
 
-              <div>
-                <h1 className="text-xl md:text-2xl font-semibold mb-1">
-                  {pet.name}
-                </h1>
-                <div className="text-[13px] text-slate-600">
-                  {pet.kind} • {pet.age}
-                  {pet.sex && ` • ${pet.sex}`}
-                  {pet.color && ` • окрас: ${pet.color}`}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-2 text-[12px]">
+          {!loading && !pet && (
+            <section className="bg-white rounded-3xl border border-slate-200 shadow-soft p-6">
+              <h1 className="text-lg md:text-xl font-semibold mb-2">
+                Питомец не найден
+              </h1>
+              <p className="text-[13px] text-slate-600 mb-3">
+                Возможно, этот питомец был удалён или вы перешли по некорректной ссылке.
+              </p>
               <Link
-                href={`/booking?petId=${pet.id}`}
-                className="px-4 py-2 rounded-full bg-onlyvet-coral text-white font-medium shadow-[0_10px_26px_rgba(247,118,92,0.45)] hover:brightness-105 transition text-center"
+                href="/account/pets"
+                className="inline-flex px-4 py-2.5 rounded-full bg-onlyvet-coral text-white text-[13px] font-medium shadow-[0_10px_24px_rgba(247,118,92,0.5)] hover:brightness-105 transition"
               >
-                Записаться с этим питомцем
+                Вернуться к списку питомцев
               </Link>
-              <Link
-                href="/account"
-                className="px-4 py-2 rounded-full border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition text-center"
-              >
-                В кабинет
-              </Link>
-            </div>
-          </section>
+            </section>
+          )}
 
-          {/* Две колонки */}
-          <section className="grid gap-5 md:grid-cols-[1.4fr,1fr] items-start">
-            {/* Левая колонка */}
-            <div className="space-y-5">
-              {/* Краткая информация */}
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-6">
-                <h2 className="text-[15px] font-semibold mb-3">
-                  Краткая информация
-                </h2>
-
-                <div className="space-y-1 text-[13px] leading-relaxed text-slate-700">
-                  <p>
-                    <span className="text-slate-500">Вид и порода: </span>
-                    {pet.kind}
-                  </p>
-                  <p>
-                    <span className="text-slate-500">Возраст: </span>
-                    {pet.age}
-                  </p>
-                  {pet.sex && (
-                    <p>
-                      <span className="text-slate-500">Пол: </span>
-                      {pet.sex}
-                    </p>
-                  )}
-                  {pet.color && (
-                    <p>
-                      <span className="text-slate-500">Окрас: </span>
-                      {pet.color}
-                    </p>
-                  )}
-                  {pet.notes && (
-                    <p className="pt-1">
-                      <span className="text-slate-500">
-                        Особенности здоровья:{" "}
-                      </span>
-                      {pet.notes}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Медкарта */}
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-6 space-y-3">
-                <h2 className="text-[15px] font-semibold">
-                  Медицинская карта (демо)
-                </h2>
-
-                {visits.length === 0 ? (
-                  <p className="text-[13px] text-slate-600">
-                    Записей пока нет. После консультаций здесь появятся краткие
-                    резюме приёмов.
-                  </p>
-                ) : (
-                  <div className="space-y-3">
-                    {visits.map((v) => {
-                      const status: ConsultationStatus =
-                        v.status === "done" ? "done" : "scheduled";
-
-                      return (
-                        <ConsultationCard
-                          key={v.id}
-                          id={v.id}
-                          createdAt={v.date}
-                          petName={pet.name}
-                          serviceName="Онлайн-консультация"
-                          doctorName={v.doctor}
-                          dateTime={v.date}
-                          status={status}
-                          showPetLink={false}
-                        />
-                      );
-                    })}
+          {pet && (
+            <>
+              {/* Шапка: имя, вид, кнопки */}
+              <section className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-3xl bg-onlyvet-teal/10 border border-slate-200 flex items-center justify-center text-onlyvet-navy text-xl font-semibold">
+                    {pet.name[0]}
                   </div>
-                )}
 
-                <p className="mt-1 text-[11px] text-slate-500">
-                  В будущем данные будут синхронизироваться с Vetmanager.
-                </p>
-              </div>
-            </div>
-
-            {/* Правая колонка: документы */}
-            <div className="space-y-5">
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-6">
-                <h3 className="text-[15px] font-semibold mb-3">
-                  Документы питомца
-                </h3>
-                <p className="text-[12px] text-slate-600 mb-3 leading-relaxed">
-                  Документы распределены по категориям: анализы, исследования,
-                  выписки и другие материалы.
-                </p>
-
-                <div className="space-y-3">
-                  <DocCategory title="Анализы" docs={analyzes} />
-                  <DocCategory title="Исследования" docs={imaging} />
-                  <DocCategory title="Выписки" docs={discharge} />
-                  <DocCategory title="Прочее" docs={other} />
+                  <div>
+                    <h1 className="text-xl md:text-2xl font-semibold mb-1">
+                      {pet.name}
+                    </h1>
+                    <div className="text-[13px] text-slate-600">
+                      {pet.kind}
+                      {pet.age && ` • ${pet.age}`}
+                      {pet.sex && ` • ${pet.sex}`}
+                      {pet.color && ` • окрас: ${pet.color}`}
+                    </div>
+                  </div>
                 </div>
 
-                <p className="mt-3 text-[11px] text-slate-500">
-                  Позже можно будет загружать документы прямо здесь.
-                </p>
-              </div>
-            </div>
-          </section>
-
-          {/* Блок доступа к питомцу */}
-          <section className="bg-onlyvet-bg rounded-3xl border border-dashed border-slate-300 p-5 space-y-2 text-[12px] text-slate-700">
-            <h3 className="text-[13px] font-semibold mb-1.5">
-              Кто имеет доступ к этому питомцу
-            </h3>
-
-            {access ? (
-              <>
-                <p className="text-[12px] text-slate-700">
-                  Вы видите эту карточку как{" "}
-                  <span className="font-medium">основной владелец</span>{" "}
-                  питомца <span className="font-medium">{pet.name}</span>.
-                </p>
-
-                <ul className="space-y-1.5">
-                  <li>
-                    • <span className="font-medium">{access.ownerName}</span> —{" "}
-                    {access.ownerDescription}
-                  </li>
-                  {access.trusted.map((t) => (
-                    <li key={t.name}>
-                      • <span className="font-medium">{t.name}</span> —{" "}
-                      {t.description}{" "}
-                      <span className="text-slate-600">
-                        (доступ: {t.access})
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-
-                <p className="text-[11px] text-slate-500 mt-2">
-                  Управлять доверенными лицами вы можете во вкладке{" "}
+                <div className="flex flex-col sm:flex-row gap-2 text-[12px]">
+                  <Link
+                    href={`/booking?petId=${pet.id}`}
+                    className="px-4 py-2 rounded-full bg-onlyvet-coral text-white font-medium shadow-[0_10px_26px_rgba(247,118,92,0.45)] hover:brightness-105 transition text-center"
+                  >
+                    Записаться с этим питомцем
+                  </Link>
                   <Link
                     href="/account"
-                    className="text-onlyvet-navy hover:text-onlyvet-coral underline underline-offset-2"
+                    className="px-4 py-2 rounded-full border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition text-center"
                   >
-                    «Доверенные лица»
-                  </Link>{" "}
-                  в личном кабинете.
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="text-[12px] text-slate-700">
-                  Сейчас доступ к этому питомцу есть только у вас как у{" "}
-                  <span className="font-medium">основного владельца</span>.
-                </p>
-                <p className="text-[11px] text-slate-500 mt-2">
-                  При необходимости вы можете выдать доступ доверенному лицу
-                  во вкладке «Доверенные лица» в личном кабинете.
-                </p>
-              </>
-            )}
-          </section>
+                    В личный кабинет
+                  </Link>
+                </div>
+              </section>
+
+              {/* Две колонки */}
+              <section className="grid gap-5 md:grid-cols-[1.4fr,1fr] items-start">
+                {/* Левая колонка */}
+                <div className="space-y-5">
+                  {/* Краткая информация */}
+                  <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-6">
+                    <h2 className="text-[15px] font-semibold mb-3">
+                      Краткая информация
+                    </h2>
+
+                    <div className="space-y-1 text-[13px] leading-relaxed text-slate-700">
+                      {pet.kind && (
+                        <p>
+                          <span className="text-slate-500">Вид и порода: </span>
+                          {pet.kind}
+                        </p>
+                      )}
+                      {pet.age && (
+                        <p>
+                          <span className="text-slate-500">Возраст: </span>
+                          {pet.age}
+                        </p>
+                      )}
+                      {pet.sex && (
+                        <p>
+                          <span className="text-slate-500">Пол: </span>
+                          {pet.sex}
+                        </p>
+                      )}
+                      {pet.color && (
+                        <p>
+                          <span className="text-slate-500">Окрас: </span>
+                          {pet.color}
+                        </p>
+                      )}
+                      {pet.notes && (
+                        <p className="pt-1">
+                          <span className="text-slate-500">
+                            Особенности здоровья:{" "}
+                          </span>
+                          {pet.notes}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Медкарта (демо на основе demoVisits) */}
+                  <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-6 space-y-3">
+                    <h2 className="text-[15px] font-semibold">
+                      Медицинская карта (демо)
+                    </h2>
+
+                    {visits.length === 0 ? (
+                      <p className="text-[13px] text-slate-600">
+                        Записей пока нет. После консультаций здесь появятся краткие
+                        резюме приёмов.
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        {visits.map((v) => {
+                          const status: ConsultationStatus =
+                            v.status === "done" ? "done" : "in_progress";
+
+                          return (
+                            <ConsultationCard
+                              key={v.id}
+                              id={v.id}
+                              createdAt={v.date}
+                              petName={pet.name}
+                              serviceName="Онлайн-консультация"
+                              doctorName={v.doctor}
+                              dateTime={v.date}
+                              status={status}
+                              showPetLink={false}
+                            />
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    <p className="mt-1 text-[11px] text-slate-500">
+                      В будущем данные будут синхронизироваться с Vetmanager и
+                      таблицей consultations.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Правая колонка: документы */}
+                <div className="space-y-5">
+                  <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-6">
+                    <h3 className="text-[15px] font-semibold mb-3">
+                      Документы питомца (демо)
+                    </h3>
+                    <p className="text-[12px] text-slate-600 mb-3 leading-relaxed">
+                      Документы распределены по категориям: анализы, исследования,
+                      выписки и другие материалы. В дальнейшем сюда будут попадать
+                      файлы из загрузок и Vetmanager.
+                    </p>
+
+                    <div className="space-y-3">
+                      <DocCategory title="Анализы" docs={analyzes} />
+                      <DocCategory title="Исследования" docs={imaging} />
+                      <DocCategory title="Выписки" docs={discharge} />
+                      <DocCategory title="Прочее" docs={other} />
+                    </div>
+
+                    <p className="mt-3 text-[11px] text-slate-500">
+                      Позже можно будет загружать документы прямо здесь, а также
+                      подтягивать их автоматически из Vetmanager.
+                    </p>
+                  </div>
+                </div>
+              </section>
+            </>
+          )}
         </div>
       </main>
 
@@ -461,11 +463,4 @@ function DocCategory({
       )}
     </div>
   );
-}
-
-// =============================
-// 🔹 Генерация статических маршрутов (демо)
-// =============================
-export function generateStaticParams() {
-  return demoPets.map((p) => ({ id: p.id }));
 }
