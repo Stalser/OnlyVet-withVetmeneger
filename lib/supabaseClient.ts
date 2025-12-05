@@ -1,32 +1,15 @@
-// lib/supabaseClient.ts
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
+// lib/supabaseServer.ts
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-let browserClient: SupabaseClient | null = null;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 /**
- * Ленивая инициализация Supabase-клиента.
- * Вызывается только там, где реально нужен (в браузерных обработчиках/эффектах),
- * а не во время сборки.
+ * Серверный Supabase-клиент.
+ * Может быть null, если env-переменные не заданы (например, на этапе настройки).
+ * В таком случае код, который пишет в Supabase, просто пропускается.
  */
-export function getSupabaseClient(): SupabaseClient {
-  if (!browserClient) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    if (!supabaseUrl || !supabaseAnonKey) {
-      // Это будет вызываться уже в рантайме браузера, а не на билде
-      throw new Error(
-        "Supabase env vars are not set. Please define NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY."
-      );
-    }
-
-    browserClient = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        persistSession: true,
-        detectSessionInUrl: true,
-      },
-    });
-  }
-
-  return browserClient;
-}
+export const supabaseServer: SupabaseClient | null =
+  supabaseUrl && serviceRoleKey
+    ? createClient(supabaseUrl, serviceRoleKey)
+    : null;
