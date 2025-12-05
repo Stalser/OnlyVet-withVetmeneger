@@ -1,10 +1,5 @@
+// app/account/components/NotificationsSection.tsx
 "use client";
-
-type SupabaseUser = {
-  id: string;
-  email?: string;
-  user_metadata?: Record<string, any>;
-};
 
 type NotificationSettings = {
   email: {
@@ -24,31 +19,12 @@ type NotificationSettings = {
   };
 };
 
-// Пока держим демо-настройки здесь. Позже заменим на реальные данные из Supabase.
-const mockNotificationSettings: NotificationSettings = {
-  email: {
-    address: "user@example.com",
-    serviceEvents: true,
-    medicalEvents: true,
-    billingEvents: true,
-    reminderEvents: false,
-  },
-  telegram: {
-    connected: false,
-    username: "",
-    serviceEvents: true,
-    medicalEvents: true,
-    billingEvents: false,
-    reminderEvents: false,
-  },
-};
-
-export default function NotificationsSection({ user }: { user: SupabaseUser }) {
-  const settings = mockNotificationSettings;
+export default function NotificationsSection({
+  settings,
+}: {
+  settings: NotificationSettings;
+}) {
   const { email, telegram } = settings;
-
-  const emailAddress =
-    user.email && user.email.length > 0 ? user.email : email.address;
 
   return (
     <section className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4 md:p-5 space-y-4">
@@ -69,7 +45,7 @@ export default function NotificationsSection({ user }: { user: SupabaseUser }) {
           <div>
             <div className="font-semibold text-slate-900">Email</div>
             <div className="text-[12px] text-slate-600">
-              {emailAddress || "email не указан"}
+              {email.address || "email не указан"}
             </div>
           </div>
           <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700">
@@ -123,19 +99,35 @@ export default function NotificationsSection({ user }: { user: SupabaseUser }) {
 
         <div className="grid md:grid-cols-2 gap-2 text-[12px] text-slate-700 opacity-70">
           <label className="flex items-center gap-2">
-            <input type="checkbox" checked={telegram.serviceEvents} readOnly />
+            <input
+              type="checkbox"
+              checked={telegram.serviceEvents}
+              readOnly
+            />
             <span>Сервисные уведомления</span>
           </label>
           <label className="flex items-center gap-2">
-            <input type="checkbox" checked={telegram.medicalEvents} readOnly />
+            <input
+              type="checkbox"
+              checked={telegram.medicalEvents}
+              readOnly
+            />
             <span>Медицинские события</span>
           </label>
           <label className="flex items-center gap-2">
-            <input type="checkbox" checked={telegram.billingEvents} readOnly />
+            <input
+              type="checkbox"
+              checked={telegram.billingEvents}
+              readOnly
+            />
             <span>Финансовые уведомления</span>
           </label>
           <label className="flex items-center gap-2">
-            <input type="checkbox" checked={telegram.reminderEvents} readOnly />
+            <input
+              type="checkbox"
+              checked={telegram.reminderEvents}
+              readOnly
+            />
             <span>Напоминания</span>
           </label>
         </div>
