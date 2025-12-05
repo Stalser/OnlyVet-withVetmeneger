@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
 
     const booking: BookingRequest = {
       id,
-      userId: undefined, // когда появится внутренняя auth — сюда положим id
+      userId: undefined,
       createdAt: now,
 
       fullName,
@@ -83,82 +83,87 @@ export async function POST(req: NextRequest) {
       status,
     };
 
-    // 🧱 1) старое поведение — сохраняем в in-memory store
+    // 🧱 1) сохраняем в in-memory store (как раньше)
     mockBookings.push(booking);
 
     // 🧱 2) НОВОЕ: создаём питомца (если нужно) и консультацию в Supabase
-    try {
-      const ownerId: string | null =
-        typeof supabaseUserId === "string" && supabaseUserId.trim()
-          ? supabaseUserId
-          : null;
+    // Если серверный клиент не настроен (нет env), просто пропускаем этот шаг
+    if (supabaseServer) {
+      try {
+        const ownerId: string | null =
+          typeof supabaseUserId === "string" && supabaseUserId.trim()
+            ? supabaseUserId
+            : null;
 
-      let resolvedPetId: string | null = petId || null;
+        let resolvedPetId: string | null = petId || null;
 
-      // Если пользователь известен, и это новый питомец (petMode !== "existing"), и есть имя — создаём pet
-      if (
-        ownerId &&
-        petMode !== "existing" &&
-        (petName && String(petName).trim().length > 0)
-      ) {
-        const insertPetPayload: Record<string, any> = {
+        // Новый питомец → создаём запись в pets
+        if (
+          ownerId &&
+          petMode !== "existing" &&
+          (petName && String(petName).trim().length > 0)
+        ) {
+          const insertPetPayload: Record<string, any> = {
+            owner_id: ownerId,
+            name: String(petName).trim(),
+            species: petSpecies || null,
+            age_text: null,
+            weight_kg: null,
+            notes: petNotes || null,
+          };
+
+          const { data: petInsertData, error: petInsertError } =
+            await supabaseServer
+              .from("pets")
+              .insert(insertPetPayload)
+              .select("id")
+              .single();
+
+          if (petInsertError) {
+            console.error(
+              "[API] Failed to insert pet into Supabase:",
+              petInsertError
+            );
+          } else if (petInsertData?.id) {
+            resolvedPetId = petInsertData.id as string;
+          }
+        }
+
+        const plannedAt =
+          timeMode === "choose"
+            ? buildPlannedAt(preferredDate, preferredTime)
+            : null;
+
+        const insertConsultationPayload: Record<string, any> = {
           owner_id: ownerId,
-          name: String(petName).trim(),
-          species: petSpecies || null,
-          age_text: null,
-          weight_kg: null,
-          notes: petNotes || null,
+          pet_id: resolvedPetId,
+          status: "new",
+          service_id: serviceId || null,
+          planned_at: plannedAt,
+          vm_request_id: vmSlotId || null,
+          complaint: complaint || null,
         };
 
-        const { data: petInsertData, error: petInsertError } =
-          await supabaseServer
-            .from("pets")
-            .insert(insertPetPayload)
-            .select("id")
-            .single();
+        const { error: insertConsultationError } = await supabaseServer
+          .from("consultations")
+          .insert(insertConsultationPayload);
 
-        if (petInsertError) {
+        if (insertConsultationError) {
           console.error(
-            "[API] Failed to insert pet into Supabase:",
-            petInsertError
+            "[API] Failed to insert consultation into Supabase:",
+            insertConsultationError
           );
-        } else if (petInsertData?.id) {
-          resolvedPetId = petInsertData.id as string;
         }
+      } catch (e) {
+        console.error("[API] Unexpected error inserting into Supabase:", e);
+        // не роняем основной ответ клиенту — просто логируем
       }
-
-      const plannedAt =
-        timeMode === "choose"
-          ? buildPlannedAt(preferredDate, preferredTime)
-          : null;
-
-      const insertConsultationPayload: Record<string, any> = {
-        owner_id: ownerId,
-        pet_id: resolvedPetId,
-        status: "new",
-        service_id: serviceId || null,
-        planned_at: plannedAt,
-        vm_request_id: vmSlotId || null,
-        complaint: complaint || null,
-      };
-
-      const { error: insertConsultationError } = await supabaseServer
-        .from("consultations")
-        .insert(insertConsultationPayload);
-
-      if (insertConsultationError) {
-        console.error(
-          "[API] Failed to insert consultation into Supabase:",
-          insertConsultationError
-        );
-      }
-    } catch (e) {
-      console.error("[API] Unexpected error inserting into Supabase:", e);
-      // не роняем основной ответ клиенту — просто логируем
+    } else {
+      // нет supabaseServer → просто логируем и продолжаем
+      console.warn(
+        "[API] Supabase server client is not configured; skipping DB insert."
+      );
     }
-
-    // TODO (позже): отправить письма клиенту и регистратуре
-    // TODO (позже): создать / обновить клиента и питомца в Vetmanager, создать черновой приём
 
     return NextResponse.json({ booking }, { status: 201 });
   } catch (err: any) {
