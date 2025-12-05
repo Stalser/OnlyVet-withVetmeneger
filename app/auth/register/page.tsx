@@ -1,7 +1,6 @@
-// app/auth/register/page.tsx
 "use client";
 
-import { FormEvent, useState } from "react";
+import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -9,21 +8,12 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 
-/**
- * Нормализация телефона для хранения и поиска.
- * - убираем все нецифры
- * - для РФ: 8XXXXXXXXXX / 7XXXXXXXXXX -> последние 10 цифр
- * - для остальных стран пока просто возвращаем как есть
- */
-function normalizePhoneForSearch(raw: string): string {
+/** Нормализация телефона для БД */
+function normalizePhone(raw: string): string {
   const digits = raw.replace(/\D/g, "");
-
-  // РФ: 11 цифр и начинается с 7 или 8 → оставляем последние 10
-  if (digits.length === 11 && (digits.startsWith("7") || digits.startsWith("8"))) {
-    return digits.slice(1);
+  if (digits.length === 11 && ["7", "8"].includes(digits[0])) {
+    return digits.slice(1); // оставляем 10 цифр РФ
   }
-
-  // Всё остальное — как есть (дальше можем расширить под другие страны)
   return digits;
 }
 
@@ -37,48 +27,46 @@ export default function RegisterPage() {
   const [middleName, setMiddleName] = useState("");
   const [noMiddleName, setNoMiddleName] = useState(false);
 
-  // контакты
+  // Контакты
+  const [countryCode, setCountryCode] = useState("+7");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [telegram, setTelegram] = useState("");
 
-  // пароль
+  // Пароль
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
 
-  // согласия
+  // Согласия
   const [consentPersonalData, setConsentPersonalData] = useState(false);
   const [consentOffer, setConsentOffer] = useState(false);
   const [consentRules, setConsentRules] = useState(false);
 
-  // статус
-  const [hasSubmitted, setHasSubmitted] = useState(false);
+  // Статусы
   const [loading, setLoading] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [serverSuccess, setServerSuccess] = useState<string | null>(null);
 
-  // валидация
+  // Валидация
+  const fullPhone = `${countryCode}${phone}`;
+  const digits = fullPhone.replace(/\D/g, "");
+  const phoneError = hasSubmitted && digits.length < 10;
+  const emailError = hasSubmitted && !email.trim();
   const lastNameError = hasSubmitted && !lastName.trim();
   const firstNameError = hasSubmitted && !firstName.trim();
   const middleNameError = hasSubmitted && !noMiddleName && !middleName.trim();
-  const phoneError = hasSubmitted && !phone.trim();
-  const emailError = hasSubmitted && !email.trim();
-  const passwordError = hasSubmitted && password.trim().length < 8;
-  const password2Error =
-    hasSubmitted && password2.trim().length > 0 && password2 !== password;
-
-  const consentsError =
-    hasSubmitted &&
-    (!consentPersonalData || !consentOffer || !consentRules);
+  const passwordError = hasSubmitted && password.length < 8;
+  const password2Error = hasSubmitted && password2 !== password;
 
   const isValid =
-    lastName.trim().length > 0 &&
-    firstName.trim().length > 0 &&
-    (noMiddleName || middleName.trim().length > 0) &&
-    phone.trim().length > 0 &&
-    email.trim().length > 0 &&
-    password.trim().length >= 8 &&
-    password2 === password &&
+    !phoneError &&
+    !emailError &&
+    !lastNameError &&
+    !firstNameError &&
+    !middleNameError &&
+    !passwordError &&
+    !password2Error &&
     consentPersonalData &&
     consentOffer &&
     consentRules;
@@ -94,73 +82,61 @@ export default function RegisterPage() {
     try {
       setLoading(true);
 
+      const normalized = normalizePhone(fullPhone);
       const fullName = [lastName, firstName, !noMiddleName && middleName]
         .filter(Boolean)
         .join(" ");
 
-      const normalizedPhone = normalizePhoneForSearch(phone);
+      // Проверка на дубль телефона в Supabase
+      const { data: phoneDup } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("phone_normalized", normalized)
+        .maybeSingle();
 
-      // 1. Проверяем, нет ли уже профиля с таким телефоном
-      if (normalizedPhone) {
-        const { data: existingByPhone, error: phoneCheckError } =
-          await supabase
-            .from("profiles")
-            .select("id")
-            .eq("phone_normalized", normalizedPhone)
-            .maybeSingle();
-
-        if (phoneCheckError) {
-          console.error("[Register] phone check error:", phoneCheckError);
-        }
-
-        if (existingByPhone) {
-          setServerError(
-            "Аккаунт с таким номером телефона уже существует. " +
-              "Попробуйте войти или восстановить доступ."
-          );
-          setLoading(false);
-          return;
-        }
+      if (phoneDup) {
+        setServerError(
+          "Аккаунт с таким номером телефона уже существует. Войдите или восстановите доступ."
+        );
+        setLoading(false);
+        return;
       }
 
-      // 2. Регистрация пользователя в Supabase (email уникален на стороне Supabase)
+      // Регистрация в Supabase
       const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
-        password: password.trim(),
+        email,
+        password,
         options: {
           data: {
-            full_name: fullName || null,
-            last_name: lastName || null,
-            first_name: firstName || null,
-            middle_name: noMiddleName ? null : middleName || null,
-            phone_raw: phone.trim(),
-            phone_normalized: normalizedPhone || null,
-            telegram: telegram.trim() || null,
+            full_name: fullName,
+            last_name: lastName,
+            first_name: firstName,
+            middle_name: noMiddleName ? null : middleName,
+            phone_raw: fullPhone,
+            phone_normalized: normalized,
+            telegram,
           },
         },
       });
 
       if (error) {
-        // здесь ловим в т.ч. "email уже используется"
-        setServerError(error.message || "Не удалось создать аккаунт.");
+        setServerError(
+          error.message.includes("exists")
+            ? "Аккаунт с таким email уже существует."
+            : error.message
+        );
         setLoading(false);
         return;
       }
 
-      // 3. ВАЖНО: никакой инициализации Vetmanager здесь больше НЕ делаем.
-      //    Клиент в Vetmanager будет привязываться/создаваться отдельно,
-      //    уже после подтверждения почты и первого входа в ЛК.
-
       setServerSuccess(
-        "Аккаунт создан. Чтобы завершить регистрацию, подтвердите email через письмо и затем войдите в личный кабинет."
+        "Аккаунт создан! Подтвердите email через письмо и затем войдите."
       );
 
-      setTimeout(() => {
-        router.push("/auth/login");
-      }, 1500);
+      setTimeout(() => router.push("/auth/login"), 1500);
     } catch (err) {
       console.error(err);
-      setServerError("Произошла техническая ошибка. Попробуйте позже.");
+      setServerError("Произошла ошибка. Попробуйте позже.");
     } finally {
       setLoading(false);
     }
@@ -169,344 +145,203 @@ export default function RegisterPage() {
   return (
     <>
       <Header />
-      <main className="flex-1 py-8 bg-slate-50/70">
+      <main className="py-10 bg-slate-50/70">
         <div className="container mx-auto max-w-5xl px-4 flex justify-center">
-          <div className="w-full max-w-md space-y-4">
-            <nav className="text-[12px] text-slate-500">
-              <Link href="/" className="hover:text-onlyvet-coral">
-                Главная
-              </Link>{" "}
-              / <span className="text-slate-700">Регистрация</span>
+          <div className="w-full max-w-md space-y-6">
+
+            <nav className="text-xs text-slate-500">
+              <Link href="/">Главная</Link> / Регистрация
             </nav>
 
-            <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-5 md:p-6 space-y-4">
-              <div>
-                <h1 className="text-xl font-semibold mb-1">
-                  Регистрация в OnlyVet
-                </h1>
-                <p className="text-[13px] text-slate-600">
-                  Личный кабинет нужен для хранения данных о питомцах, заявок и
-                  доступа к заключениям. Ниже — минимальный набор данных для
-                  связи и безопасной работы с консультациями.
-                </p>
-              </div>
+            <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-soft">
 
-              <form onSubmit={handleSubmit} className="space-y-4 text-[13px]">
+              <h1 className="text-xl font-semibold mb-4">
+                Регистрация в OnlyVet
+              </h1>
+
+              <form onSubmit={handleSubmit} className="space-y-4 text-sm">
+
                 {/* ФИО */}
-                <section className="space-y-2">
-                  <h2 className="text-[14px] font-semibold">
-                    Контактное лицо
-                  </h2>
-                  <div className="grid md:grid-cols-3 gap-3">
-                    {/* Фамилия */}
+                <div className="space-y-2">
+                  <h2 className="font-semibold text-base">Контактное лицо</h2>
+                  <div className="grid grid-cols-3 gap-3">
+                    <input
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      placeholder="Фамилия"
+                      className="rounded-xl border px-3 py-2"
+                    />
+                    <input
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      placeholder="Имя"
+                      className="rounded-xl border px-3 py-2"
+                    />
                     <div>
-                      <label className="block text-[12px] text-slate-600 mb-1">
-                        Фамилия<span className="text-red-500">*</span>
-                      </label>
                       <input
-                        type="text"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
-                          lastNameError
-                            ? "border-rose-400 focus:ring-rose-300"
-                            : "border-slate-300 focus:ring-onlyvet-teal/40"
-                        }`}
-                        placeholder="Иванов"
-                      />
-                      {lastNameError && (
-                        <p className="mt-1 text-[11px] text-rose-600">
-                          Укажите фамилию.
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Имя */}
-                    <div>
-                      <label className="block text-[12px] text-slate-600 mb-1">
-                        Имя<span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
-                          firstNameError
-                            ? "border-rose-400 focus:ring-rose-300"
-                            : "border-slate-300 focus:ring-onlyvet-teal/40"
-                        }`}
-                        placeholder="Иван"
-                      />
-                      {firstNameError && (
-                        <p className="mt-1 text-[11px] text-rose-600">
-                          Укажите имя.
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Отчество */}
-                    <div>
-                      <label className="block text-[12px] text-slate-600 mb-1">
-                        Отчество{!noMiddleName && (
-                          <span className="text-red-500">*</span>
-                        )}
-                      </label>
-                      <input
-                        type="text"
                         value={middleName}
                         onChange={(e) => setMiddleName(e.target.value)}
                         disabled={noMiddleName}
-                        className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
-                          noMiddleName
-                            ? "border-slate-200 bg-slate-50 text-slate-400"
-                            : middleNameError
-                            ? "border-rose-400 focus:ring-rose-300"
-                            : "border-slate-300 focus:ring-onlyvet-teal/40"
-                        }`}
-                        placeholder={noMiddleName ? "Не указано" : "Иванович"}
+                        placeholder="Отчество"
+                        className="rounded-xl border px-3 py-2 w-full disabled:bg-slate-100"
                       />
-                      <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-600">
+                      <label className="flex items-center gap-1 mt-1 text-xs">
                         <input
                           type="checkbox"
-                          id="no-middle-name"
                           checked={noMiddleName}
                           onChange={(e) => setNoMiddleName(e.target.checked)}
-                          className="rounded border-slate-300"
                         />
-                        <label
-                          htmlFor="no-middle-name"
-                          className="select-none cursor-pointer"
-                        >
-                          Нет отчества
-                        </label>
-                      </div>
-                      {middleNameError && !noMiddleName && (
-                        <p className="mt-1 text-[11px] text-rose-600">
-                          Укажите отчество или отметьте «Нет отчества».
-                        </p>
-                      )}
+                        Нет отчества
+                      </label>
                     </div>
                   </div>
-                </section>
+                </div>
 
-                {/* Контакты */}
-                <section className="space-y-2">
-                  <h2 className="text-[14px] font-semibold">
-                    Контактные данные
-                  </h2>
-                  <div className="grid md:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[12px] text-slate-600 mb-1">
-                        Телефон<span className="text-red-500">*</span>
-                      </label>
+                {/* Телефон + Email */}
+                <div className="space-y-2">
+                  <h2 className="font-semibold text-base">Контактные данные</h2>
+
+                  {/* Телефон красивый */}
+                  <div>
+                    <label className="block text-xs mb-1">Телефон *</label>
+                    <div className="flex gap-2">
+                      <select
+                        value={countryCode}
+                        onChange={(e) => setCountryCode(e.target.value)}
+                        className="rounded-xl border px-3 py-2 w-24"
+                      >
+                        <option value="+7">+7 (Россия)</option>
+                        <option value="+1">+1 (США)</option>
+                        <option value="+44">+44 (UK)</option>
+                        <option value="+48">+48 (Польша)</option>
+                      </select>
+
                       <input
                         type="tel"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
-                        className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
-                          phoneError
-                            ? "border-rose-400 focus:ring-rose-300"
-                            : "border-slate-300 focus:ring-onlyvet-teal/40"
+                        placeholder="999 123-45-67"
+                        className={`flex-1 rounded-xl border px-3 py-2 ${
+                          phoneError ? "border-rose-400" : ""
                         }`}
-                        placeholder="+7 999 123-45-67"
                       />
-                      {phoneError && (
-                        <p className="mt-1 text-[11px] text-rose-600">
-                          Укажите телефон, чтобы мы могли связаться с вами.
-                        </p>
-                      )}
                     </div>
-                    <div>
-                      <label className="block text-[12px] text-slate-600 mb-1">
-                        Email<span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
-                          emailError
-                            ? "border-rose-400 focus:ring-rose-300"
-                            : "border-slate-300 focus:ring-onlyvet-teal/40"
-                        }`}
-                        placeholder="example@mail.ru"
-                      />
-                      {emailError && (
-                        <p className="mt-1 text-[11px] text-rose-600">
-                          Email нужен для отправки материалов консультации и
-                          уведомлений.
-                        </p>
-                      )}
-                    </div>
-                  </div>
 
-                  <div>
-                    <label className="block text-[12px] text-slate-600 mb-1">
-                      Telegram (необязательно)
-                    </label>
-                    <input
-                      type="text"
-                      value={telegram}
-                      onChange={(e) => setTelegram(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
-                      placeholder="@username"
-                    />
-                  </div>
-                </section>
-
-                {/* Пароль */}
-                <section className="space-y-2">
-                  <h2 className="text-[14px] font-semibold">Пароль</h2>
-                  <div className="space-y-2">
-                    <div>
-                      <label className="block text-[12px] text-slate-600 mb-1">
-                        Пароль<span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
-                          passwordError
-                            ? "border-rose-400 focus:ring-rose-300"
-                            : "border-slate-300 focus:ring-onlyvet-teal/40"
-                        }`}
-                        placeholder="Не менее 8 символов"
-                      />
-                      {passwordError && (
-                        <p className="mt-1 text-[11px] text-rose-600">
-                          Пароль должен быть не короче 8 символов.
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-[12px] text-slate-600 mb-1">
-                        Повторите пароль<span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="password"
-                        value={password2}
-                        onChange={(e) => setPassword2(e.target.value)}
-                        className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
-                          password2Error
-                            ? "border-rose-400 focus:ring-rose-300"
-                            : "border-slate-300 focus:ring-onlyvet-teal/40"
-                        }`}
-                        placeholder="Ещё раз пароль"
-                      />
-                      {password2Error && (
-                        <p className="mt-1 text-[11px] text-rose-600">
-                          Пароли не совпадают.
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </section>
-
-                {/* Согласия */}
-                <section className="space-y-2">
-                  <h2 className="text-[14px] font-semibold">Согласия</h2>
-                  <div className="space-y-2 text-[12px] text-slate-600">
-                    <label className="flex items-start gap-2">
-                      <input
-                        type="checkbox"
-                        checked={consentPersonalData}
-                        onChange={(e) =>
-                          setConsentPersonalData(e.target.checked)
-                        }
-                        className="mt-[2px]"
-                      />
-                      <span>
-                        Я даю{" "}
-                        <Link
-                          href="/docs/privacy"
-                          className="text-onlyvet-coral underline-offset-2 hover:underline"
-                        >
-                          согласие на обработку персональных данных
-                        </Link>{" "}
-                        в соответствии с Политикой обработки ПДн.
-                      </span>
-                    </label>
-                    <label className="flex items-start gap-2">
-                      <input
-                        type="checkbox"
-                        checked={consentOffer}
-                        onChange={(e) => setConsentOffer(e.target.checked)}
-                        className="mt-[2px]"
-                      />
-                      <span>
-                        Я принимаю условия{" "}
-                        <Link
-                          href="/docs/offer"
-                          className="text-onlyvet-coral underline-offset-2 hover:underline"
-                        >
-                          публичной оферты
-                        </Link>{" "}
-                        сервиса OnlyVet.
-                      </span>
-                    </label>
-                    <label className="flex items-start gap-2">
-                      <input
-                        type="checkbox"
-                        checked={consentRules}
-                        onChange={(e) => setConsentRules(e.target.checked)}
-                        className="mt-[2px]"
-                      />
-                      <span>
-                        Я ознакомлен(а) и согласен(на) с{" "}
-                        <Link
-                          href="/docs/rules"
-                          className="text-onlyvet-coral underline-offset-2 hover:underline"
-                        >
-                          правилами онлайн-клиники
-                        </Link>
-                        .
-                      </span>
-                    </label>
-                    {consentsError && (
-                      <p className="text-[11px] text-rose-600">
-                        Для регистрации необходимо отметить все согласия.
+                    {phoneError && (
+                      <p className="text-xs text-rose-600 mt-1">
+                        Укажите корректный номер (минимум 10 цифр).
                       </p>
                     )}
                   </div>
-                </section>
 
-                {/* Ошибка / успех */}
-                {serverError && (
-                  <div className="text-[12px] text-rose-600 bg-rose-50 border border-rose-100 rounded-xl px-3 py-2">
-                    {serverError}
+                  {/* Email */}
+                  <div>
+                    <label className="block text-xs mb-1">Email *</label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="example@mail.ru"
+                      className={`w-full rounded-xl border px-3 py-2 ${
+                        emailError ? "border-rose-400" : ""
+                      }`}
+                    />
                   </div>
+
+                  {/* Telegram */}
+                  <div>
+                    <label className="block text-xs mb-1">Telegram</label>
+                    <input
+                      value={telegram}
+                      onChange={(e) => setTelegram(e.target.value)}
+                      placeholder="@username"
+                      className="w-full rounded-xl border px-3 py-2"
+                    />
+                  </div>
+                </div>
+
+                {/* Пароль */}
+                <div className="space-y-2">
+                  <h2 className="font-semibold text-base">Пароль</h2>
+
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Не менее 8 символов"
+                    className={`w-full rounded-xl border px-3 py-2 ${
+                      passwordError ? "border-rose-400" : ""
+                    }`}
+                  />
+
+                  <input
+                    type="password"
+                    value={password2}
+                    onChange={(e) => setPassword2(e.target.value)}
+                    placeholder="Повторите пароль"
+                    className={`w-full rounded-xl border px-3 py-2 ${
+                      password2Error ? "border-rose-400" : ""
+                    }`}
+                  />
+                </div>
+
+                {/* Согласия */}
+                <div className="space-y-1 text-xs">
+                  <label className="flex gap-2">
+                    <input
+                      type="checkbox"
+                      checked={consentPersonalData}
+                      onChange={(e) => setConsentPersonalData(e.target.checked)}
+                    />
+                    Я даю согласие на обработку ПДн
+                  </label>
+
+                  <label className="flex gap-2">
+                    <input
+                      type="checkbox"
+                      checked={consentOffer}
+                      onChange={(e) => setConsentOffer(e.target.checked)}
+                    />
+                    Я принимаю условия оферты
+                  </label>
+
+                  <label className="flex gap-2">
+                    <input
+                      type="checkbox"
+                      checked={consentRules}
+                      onChange={(e) => setConsentRules(e.target.checked)}
+                    />
+                    Я согласен с правилами онлайн-клиники
+                  </label>
+                </div>
+
+                {/* Ошибки */}
+                {serverError && (
+                  <p className="text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-xl p-2">
+                    {serverError}
+                  </p>
                 )}
                 {serverSuccess && (
-                  <div className="text-[12px] text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2">
+                  <p className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl p-2">
                     {serverSuccess}
-                  </div>
+                  </p>
                 )}
 
                 {/* Кнопка */}
                 <button
                   type="submit"
-                  disabled={loading || !isValid}
-                  className="
-                    w-full mt-1 px-4 py-2.5 rounded-full 
-                    bg-onlyvet-coral text-white text-[13px] font-medium 
-                    shadow-[0_10px_26px_rgba(247,118,92,0.45)]
-                    hover:brightness-105 transition
-                    disabled:bg-slate-300 disabled:shadow-none disabled:cursor-not-allowed
-                  "
+                  disabled={loading}
+                  className="w-full rounded-full bg-onlyvet-coral text-white py-2 shadow-md hover:brightness-105"
                 >
-                  {loading ? "Регистрируем..." : "Зарегистрироваться"}
+                  {loading ? "Регистрация…" : "Зарегистрироваться"}
                 </button>
 
-                <div className="text-[12px] text-slate-600 mt-2">
+                <p className="text-xs text-slate-600 mt-2">
                   Уже есть аккаунт?{" "}
-                  <Link
-                    href="/auth/login"
-                    className="text-onlyvet-coral hover:underline"
-                  >
+                  <Link href="/auth/login" className="text-onlyvet-coral">
                     Войти
                   </Link>
-                </div>
+                </p>
               </form>
             </div>
           </div>
