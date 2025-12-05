@@ -60,8 +60,7 @@ export default function RegisterPage() {
   // валидация
   const lastNameError = hasSubmitted && !lastName.trim();
   const firstNameError = hasSubmitted && !firstName.trim();
-  const middleNameError =
-    hasSubmitted && !noMiddleName && !middleName.trim();
+  const middleNameError = hasSubmitted && !noMiddleName && !middleName.trim();
   const phoneError = hasSubmitted && !phone.trim();
   const emailError = hasSubmitted && !email.trim();
   const passwordError = hasSubmitted && password.trim().length < 8;
@@ -156,7 +155,6 @@ export default function RegisterPage() {
         "Аккаунт создан. Чтобы завершить регистрацию, подтвердите email через письмо и затем войдите в личный кабинет."
       );
 
-      // Можно не редиректить сразу, а дать человеку дочитать сообщение.
       setTimeout(() => {
         router.push("/auth/login");
       }, 1500);
