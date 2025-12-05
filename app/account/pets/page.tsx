@@ -1,8 +1,8 @@
 // app/account/pets/page.tsx
-
 import { redirect } from "next/navigation";
 
-export default function PetsPage() {
-  // всегда перенаправляем на вкладку "Питомцы" в личном кабинете
+export const dynamic = "force-static";
+
+export default function PetsPageRedirect() {
   redirect("/account?tab=pets");
 }
