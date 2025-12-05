@@ -3,107 +3,75 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getSupabaseClient } from "@/lib/supabaseClient";
 
-type UiPet = {
+type VetmPet = {
   id: number;
-  alias: string;
-  kind?: string;
-  age?: string;
-  notes?: string;
+  alias: string;       // кличка
+  owner_id: number;
+  birthday?: string;
+  sex?: string;
 };
 
-const supabase = getSupabaseClient();
+type PetsApiResponse =
+  | {
+      success: true;
+      vetm_client_id: number;
+      pets: VetmPet[];
+    }
+  | {
+      success?: false;
+      error: string;
+    };
 
-function PetsSection() {
+export default function PetsSection() {
   const [loading, setLoading] = useState(true);
-  const [pets, setPets] = useState<UiPet[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [phone, setPhone] = useState<string | null>(null);
-  const [hasProfilePhone, setHasProfilePhone] = useState<boolean>(false);
+  const [pets, setPets] = useState<VetmPet[]>([]);
+  const [vetmClientId, setVetmClientId] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
-    async function load() {
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+
       try {
-        setLoading(true);
-        setError(null);
-
-        const { data, error: authError } = await supabase.auth.getUser();
-        if (authError || !data.user) {
-          setError(
-            "Не удалось получить данные пользователя. Авторизуйтесь ещё раз."
-          );
-          setLoading(false);
-          return;
-        }
-
-        const user = data.user;
-        const meta = (user.user_metadata || {}) as any;
-
-        const phoneFromMeta: string | undefined =
-          meta.phone || meta.cell_phone || meta.phone_number;
-
-        const firstName: string | undefined = meta.first_name || meta.firstName;
-        const lastName: string | undefined = meta.last_name || meta.lastName;
-        const email: string | undefined = user.email || meta.email;
-
-        if (!phoneFromMeta) {
-          setHasProfilePhone(false);
-          setLoading(false);
-          return;
-        }
-
-        setHasProfilePhone(true);
-        setPhone(phoneFromMeta);
-
-        // Запрос к нашему API → Vetmanager
-        const resp = await fetch("/api/vetm/pets", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            phone: phoneFromMeta,
-            firstName,
-            lastName,
-            email,
-          }),
+        const res = await fetch("/api/vetmanager/pets", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
         });
 
-        if (!resp.ok) {
-          const data = await resp.json().catch(() => ({}));
-          throw new Error(
-            data.error || `Ошибка загрузки питомцев (HTTP ${resp.status})`
-          );
+        const data = (await res.json()) as PetsApiResponse;
+
+        if (!res.ok || "error" in data) {
+          if (!cancelled) {
+            setError(
+              data && "error" in data && data.error
+                ? data.error
+                : "Не удалось загрузить список питомцев."
+            );
+          }
+          return;
         }
 
-        const json = (await resp.json()) as {
-          client: any;
-          pets: any[];
-        };
-
-        if (cancelled) return;
-
-        const uiPets: UiPet[] = (json.pets || []).map((p) => ({
-          id: Number(p.id),
-          alias: p.alias,
-          kind: p.species_name || p.type || "",
-          age: p.birthday ? formatAgeFromBirthday(p.birthday) : "",
-          notes: p.note || "",
-        }));
-
-        setPets(uiPets);
-      } catch (e: any) {
-        console.error("[PetsSection] error:", e);
         if (!cancelled) {
-          setError(e?.message || "Ошибка загрузки данных из Vetmanager.");
+          setPets(data.pets || []);
+          setVetmClientId(data.vetm_client_id);
+        }
+      } catch (err) {
+        console.error("[PetsSection] load error", err);
+        if (!cancelled) {
+          setError("Произошла ошибка при загрузке питомцев.");
         }
       } finally {
         if (!cancelled) {
           setLoading(false);
         }
       }
-    }
+    };
 
     load();
 
@@ -112,125 +80,113 @@ function PetsSection() {
     };
   }, []);
 
-  if (!hasProfilePhone) {
-    return (
-      <section className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4 md:p-5">
-        <h2 className="text-[15px] md:text-[16px] font-semibold mb-2">
-          Питомцы
-        </h2>
-        <p className="text-[13px] text-slate-600 mb-3">
-          Чтобы загрузить список питомцев из Vetmanager, укажите номер телефона
-          в разделе{" "}
-          <Link
-            href="/account?tab=profile"
-            className="text-onlyvet-coral underline"
-          >
-            Профиль
-          </Link>
-          . Телефон используется для поиска или создания карточки владельца в
-          вашей CRM.
-        </p>
-      </section>
-    );
-  }
+  const hasPets = pets.length > 0;
 
   return (
     <section className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4 md:p-5 space-y-4">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+      {/* Заголовок секции */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
         <div>
           <h2 className="text-[15px] md:text-[16px] font-semibold">
             Ваши питомцы
           </h2>
           <p className="text-[12px] text-slate-600 max-w-xl">
-            Список питомцев берётся напрямую из Vetmanager по вашему номеру
-            телефона.
+            Здесь отображаются питомцы, закреплённые за вашим аккаунтом в
+            клинике. Список всегда соответствует данным в медицинской карте.
           </p>
-          {phone && (
-            <p className="text-[11px] text-slate-500 mt-1">
-              Телефон для поиска в CRM:{" "}
-              <span className="font-mono">{phone}</span>
+          {vetmClientId && (
+            <p className="mt-1 text-[11px] text-slate-400">
+              Идентификатор владельца в системе клиники: {vetmClientId}
             </p>
           )}
         </div>
-        <button
-          type="button"
-          className="inline-flex items-center justify-center px-3.5 py-1.5 rounded-full text-[12px] font-medium border border-slate-300 text-onlyvet-navy bg-white hover:bg-slate-50 transition"
-        >
-          Добавить питомца (через Vetmanager)
-        </button>
+
+        <div className="flex flex-wrap gap-2 text-[12px]">
+          <button
+            type="button"
+            className="px-3.5 py-1.5 rounded-full border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition"
+            onClick={() => {
+              // пока просто лёгкий reload, позже можно сделать отдельную кнопку "Синхронизировать"
+              window.location.reload();
+            }}
+          >
+            Обновить список
+          </button>
+        </div>
       </div>
 
-      {loading && (
-        <p className="text-[13px] text-slate-600">
-          Загружаем питомцев из Vetmanager…
-        </p>
-      )}
-
+      {/* Ошибка */}
       {error && (
         <div className="text-[12px] text-rose-700 bg-rose-50 border border-rose-100 rounded-2xl px-3 py-2">
           {error}
         </div>
       )}
 
-      {!loading && !error && pets && pets.length === 0 && (
-        <div className="text-[13px] text-slate-600">
-          Питомцы в Vetmanager для этого владельца ещё не заведены. Вы можете
-          добавить питомца в Vetmanager — после этого он появится здесь.
+      {/* Состояние загрузки */}
+      {loading && !error && (
+        <div className="text-[12px] text-slate-500">
+          Загружаем список питомцев...
         </div>
       )}
 
-      {!loading && !error && pets && pets.length > 0 && (
-        <div className="grid gap-3 md:grid-cols-2">
-          {pets.map((pet) => (
-            <article
-              key={pet.id}
-              className="rounded-2xl border border-slate-200 bg-onlyvet-bg p-3 space-y-1 text-[13px]"
-            >
-              <div className="flex items-center justify-between">
-                <div className="font-semibold text-slate-900">
-                  {pet.alias || "Питомец без имени"}
-                </div>
-                <span className="text-[11px] text-slate-500">
-                  ID: {pet.id}
-                </span>
-              </div>
-              {pet.kind && (
-                <div className="text-slate-700">
-                  {pet.kind} {pet.age ? `· ${pet.age}` : ""}
-                </div>
-              )}
-              {pet.notes && (
-                <div className="text-[12px] text-slate-600">{pet.notes}</div>
-              )}
-              <div className="mt-2 flex flex-wrap gap-2 text-[12px]">
-                <Link
-                  href={`/account/pets/${pet.id}`}
-                  className="inline-flex text-onlyvet-navy hover:text-onlyvet-coral underline underline-offset-2"
+      {/* Контент */}
+      {!loading && !error && (
+        <>
+          {hasPets ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              {pets.map((pet) => (
+                <article
+                  key={pet.id}
+                  className="rounded-3xl border border-slate-200 bg-onlyvet-bg p-4 flex flex-col gap-2 hover:-translate-y-[1px] hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] transition"
                 >
-                  Открыть карточку питомца
-                </Link>
-                <Link
-                  href={`/booking?petId=${pet.id}`}
-                  className="inline-flex px-3 py-1.5 rounded-full bg-onlyvet-coral text-white hover:brightness-105 shadow-[0_8px_20px_rgba(247,118,92,0.45)] transition"
-                >
-                  Записаться
-                </Link>
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-[14px] font-semibold text-slate-900">
+                        {pet.alias}
+                      </div>
+                      <div className="text-[12px] text-slate-500">
+                        ID в системе клиники: {pet.id}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Дополнительная строка — можно расширить, когда поймём, какие поля реально приходят */}
+                  <p className="text-[12px] text-slate-600">
+                    Карточка питомца ведётся в клинике. Подробная медкарта,
+                    анализы и исследования будут доступны после полной
+                    интеграции.
+                  </p>
+
+                  <div className="flex justify-between items-center text-[12px] pt-1">
+                    <Link
+                      href={`/account/pets/${pet.id}`}
+                      className="text-onlyvet-coral hover:underline transition"
+                    >
+                      Открыть карточку
+                    </Link>
+                    <Link
+                      href={`/booking?petId=${pet.id}`}
+                      className="px-3 py-1 rounded-full bg-onlyvet-coral text-white hover:brightness-105 shadow-[0_8px_20px_rgba(247,118,92,0.45)] transition"
+                    >
+                      Записаться с этим питомцем
+                    </Link>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-3xl border border-slate-200 bg-onlyvet-bg p-5 text-[13px] text-slate-700 space-y-2">
+              <div className="font-semibold text-slate-900">
+                Питомцы ещё не заведены
               </div>
-            </article>
-          ))}
-        </div>
+              <p className="text-[12px] text-slate-600">
+                В вашей карте пока нет ни одного питомца. Как только в клинике
+                заведут карточку, здесь появится список животных.
+              </p>
+            </div>
+          )}
+        </>
       )}
     </section>
   );
 }
-
-function formatAgeFromBirthday(birthday: string): string {
-  const d = new Date(birthday);
-  if (Number.isNaN(d.getTime())) return "";
-  const now = new Date();
-  const years = now.getFullYear() - d.getFullYear();
-  if (years <= 0) return "";
-  return `${years} ${years === 1 ? "год" : years < 5 ? "года" : "лет"}`;
-}
-
-export default PetsSection;
