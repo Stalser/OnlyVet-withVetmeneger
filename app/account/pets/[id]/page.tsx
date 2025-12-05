@@ -1,11 +1,8 @@
 // app/account/pets/[id]/page.tsx
 
 import Link from "next/link";
-import { notFound } from "next/navigation";
-
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { AccountNav } from "@/components/AccountNav";
 
 // =============================
 // 🔹 Типы данных
@@ -37,7 +34,7 @@ type PetDocument = {
 };
 
 // =============================
-// 🔹 Демоданные
+// 🔹 Демоданные (Локи / Рекс / Мурчик — как пример)
 // =============================
 const demoPets: PetRecord[] = [
   {
@@ -129,7 +126,7 @@ const demoDocs: Record<string, PetDocument[]> = {
 };
 
 // =============================
-// 🔹 Получение питомца
+// 🔹 Основная логика
 // =============================
 function getPetById(id: string): PetRecord | undefined {
   return demoPets.find((p) => p.id === id);
@@ -137,7 +134,60 @@ function getPetById(id: string): PetRecord | undefined {
 
 export default function PetPage({ params }: { params: { id: string } }) {
   const pet = getPetById(params.id);
-  if (!pet) return notFound();
+
+  // Если питомец с таким id не найден — больше НЕ отдаём 404,
+  // а показываем аккуратный экран "Питомец не найден".
+  if (!pet) {
+    return (
+      <>
+        <Header />
+        <main className="flex-1 bg-slate-50/70 py-8">
+          <div className="container mx-auto max-w-5xl px-4 space-y-6">
+            <nav className="text-[12px] text-slate-500">
+              <Link href="/" className="hover:text-onlyvet-coral">
+                Главная
+              </Link>{" "}
+              /{" "}
+              <Link href="/account" className="hover:text-onlyvet-coral">
+                Личный кабинет
+              </Link>{" "}
+              /{" "}
+              <Link href="/account/pets" className="hover:text-onlyvet-coral">
+                Питомцы
+              </Link>{" "}
+              / <span className="text-slate-700">Питомец не найден</span>
+            </nav>
+
+            <section className="bg-white rounded-3xl border border-slate-200 shadow-soft p-6 text-center space-y-3">
+              <h1 className="text-lg md:text-xl font-semibold text-slate-900">
+                Питомец не найден
+              </h1>
+              <p className="text-[13px] text-slate-600 max-w-md mx-auto">
+                Карточка питомца с таким идентификатором пока недоступна.
+                Возможно, это новый питомец, для которого ещё не создана
+                отдельная страница. Позже здесь будет полноценная медкарта.
+              </p>
+              <div className="flex justify-center gap-2 text-[13px]">
+                <Link
+                  href="/account/pets"
+                  className="px-4 py-2 rounded-full bg-onlyvet-coral text-white shadow-[0_10px_24px_rgba(247,118,92,0.45)] hover:brightness-105 transition"
+                >
+                  К списку питомцев
+                </Link>
+                <Link
+                  href="/booking"
+                  className="px-4 py-2 rounded-full border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition"
+                >
+                  Записаться на консультацию
+                </Link>
+              </div>
+            </section>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
 
   const visits = demoVisits[pet.id] || [];
   const docs = demoDocs[pet.id] || [];
@@ -163,13 +213,13 @@ export default function PetPage({ params }: { params: { id: string } }) {
               Личный кабинет
             </Link>{" "}
             /{" "}
-            <Link href="/account?tab=pets" className="hover:text-onlyvet-coral">
+            <Link href="/account/pets" className="hover:text-onlyvet-coral">
               Питомцы
             </Link>{" "}
             / <span className="text-slate-700">{pet.name}</span>
           </nav>
 
-          {/* Шапка: питомец + кнопки */}
+          {/* Шапка: имя, вид, кнопки */}
           <section className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-3xl bg-onlyvet-teal/10 border border-slate-200 flex items-center justify-center text-onlyvet-navy text-xl font-semibold">
@@ -196,7 +246,7 @@ export default function PetPage({ params }: { params: { id: string } }) {
                 Записаться с этим питомцем
               </Link>
               <Link
-                href="/account?tab=pets"
+                href="/account/pets"
                 className="px-4 py-2 rounded-full border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition text-center"
               >
                 К списку питомцев
@@ -262,35 +312,29 @@ export default function PetPage({ params }: { params: { id: string } }) {
                     {visits.map((v) => (
                       <div
                         key={v.id}
-                        className="border border-slate-200 rounded-2xl bg-onlyvet-bg px-4 py-3 text-[13px] text-slate-700"
+                        className="rounded-2xl border border-slate-200 bg-onlyvet-bg p-3 text-[13px] space-y-1"
                       >
-                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-1 mb-1.5">
-                          <div className="font-medium text-slate-900">
-                            Консультация #{v.id.toUpperCase()}
+                        <div className="flex items-center justify-between">
+                          <div className="font-semibold text-slate-900">
+                            Консультация #{v.id}
                           </div>
-                          <div className="text-[12px] text-slate-500">
-                            {new Date(v.date).toLocaleDateString("ru-RU", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                            })}
-                          </div>
+                          <span className="text-[12px] text-slate-500">
+                            {v.date}
+                          </span>
                         </div>
-                        <div className="text-[12px] text-slate-600 mb-1">
-                          Врач:{" "}
-                          <span className="font-medium">{v.doctor}</span>
+                        <div className="text-[12px] text-slate-600">
+                          Врач: <span className="font-medium">{v.doctor}</span>
                         </div>
-                        <div className="text-[12px] text-slate-700">
+                        <p className="text-[12px] text-slate-700">
                           {v.summary}
-                        </div>
+                        </p>
                       </div>
                     ))}
                   </div>
                 )}
 
                 <p className="mt-1 text-[11px] text-slate-500">
-                  В будущем данные будут синхронизироваться с Vetmanager и
-                  реальными заключениями.
+                  В будущем данные будут синхронизироваться с Vetmanager.
                 </p>
               </div>
             </div>
@@ -299,11 +343,11 @@ export default function PetPage({ params }: { params: { id: string } }) {
             <div className="space-y-5">
               <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-6">
                 <h3 className="text-[15px] font-semibold mb-3">
-                  Документы питомца (демо)
+                  Документы питомца
                 </h3>
                 <p className="text-[12px] text-slate-600 mb-3 leading-relaxed">
-                  Здесь будут храниться анализы, исследования, выписки и другие
-                  материалы. Сейчас показаны демонстрационные данные.
+                  Документы распределены по категориям: анализы, исследования,
+                  выписки и другие материалы.
                 </p>
 
                 <div className="space-y-3">
@@ -314,8 +358,7 @@ export default function PetPage({ params }: { params: { id: string } }) {
                 </div>
 
                 <p className="mt-3 text-[11px] text-slate-500">
-                  Позже можно будет загружать документы прямо здесь или через
-                  интеграцию с Vetmanager.
+                  Позже можно будет загружать документы прямо здесь.
                 </p>
               </div>
             </div>
@@ -378,7 +421,7 @@ function DocCategory({
 }
 
 // =============================
-// 🔹 Генерация статических маршрутов
+// 🔹 Генерация статических маршрутов (для демо-питомцев Локи/Рекс)
 // =============================
 export function generateStaticParams() {
   return demoPets.map((p) => ({ id: p.id }));
