@@ -1,93 +1,103 @@
+// components/PhoneInput.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type CountryOption = {
-  code: string;
-  name: string;
-  dialCode: string;
+  code: string;      // ISO-код (RU, KZ, US и т.д.)
+  dialCode: string;  // Префикс с плюсом, например "+7"
+  label: string;     // Название для пользователя
+  example?: string;  // Пример номера без префикса
 };
 
+// Минимальный набор стран — можно дополнять по мере надобности
 const COUNTRIES: CountryOption[] = [
-  { code: "RU", name: "Россия", dialCode: "+7" },
-  { code: "KZ", name: "Казахстан", dialCode: "+7" },
-  { code: "BY", name: "Беларусь", dialCode: "+375" },
-  { code: "AM", name: "Армения", dialCode: "+374" },
-  { code: "AZ", name: "Азербайджан", dialCode: "+994" },
-  { code: "GE", name: "Грузия", dialCode: "+995" },
-  { code: "UA", name: "Украина", dialCode: "+380" },
-  { code: "DE", name: "Германия", dialCode: "+49" },
-  { code: "GB", name: "Великобритания", dialCode: "+44" },
-  { code: "US", name: "США", dialCode: "+1" },
+  { code: "RU", dialCode: "+7", label: "Россия", example: "9829138405" },
+  { code: "KZ", dialCode: "+7", label: "Казахстан", example: "7012345678" },
+  { code: "BY", dialCode: "+375", label: "Беларусь", example: "291234567" },
+  { code: "UA", dialCode: "+380", label: "Украина", example: "671234567" },
+  { code: "US", dialCode: "+1", label: "США / Канада", example: "4155551234" },
 ];
 
 type PhoneInputProps = {
-  /** Полный телефон вида +79998887766 */
-  value: string;
-  /** Колбэк — всегда отдаём полный номер в международном формате */
-  onChange: (value: string) => void;
   label?: string;
+  value: string;                         // Полное значение, например "+79829138405"
+  onChange: (value: string) => void;     // Сюда отдаём полное значение
   required?: boolean;
-  /** Внешняя ошибка (например, из валидации формы) */
-  error?: string | null;
+  error?: boolean;
+  helperText?: string;
+  className?: string;
 };
 
-export function PhoneInput({
-  value,
-  onChange,
-  label,
-  required,
-  error,
-}: PhoneInputProps) {
-  const [country, setCountry] = useState<CountryOption>(COUNTRIES[0]);
-  const [localPart, setLocalPart] = useState("");
+function normalizeDigits(raw: string): string {
+  return raw.replace(/\D/g, "");
+}
 
-  // Парсим входящее value -> страна + локальный номер
+export function PhoneInput(props: PhoneInputProps) {
+  const {
+    label,
+    value,
+    onChange,
+    required,
+    error,
+    helperText,
+    className = "",
+  } = props;
+
+  // Выбранная страна
+  const [country, setCountry] = useState<CountryOption>(COUNTRIES[0]);
+  // Локальная часть номера (без кода страны)
+  const [localPart, setLocalPart] = useState<string>("");
+
+  // При первом рендере / смене value — распарсить существующее значение
   useEffect(() => {
     if (!value) {
+      setCountry(COUNTRIES[0]);
       setLocalPart("");
       return;
     }
 
     const trimmed = value.trim();
-    const found = COUNTRIES.find((c) => trimmed.startsWith(c.dialCode));
 
-    if (found) {
-      setCountry(found);
-      const withoutCode = trimmed
-        .replace(found.dialCode, "")
-        .replace(/\D/g, "");
-      setLocalPart(withoutCode);
-    } else {
-      const digits = trimmed.replace(/\D/g, "");
-      setLocalPart(digits);
-    }
+    // Найдём страну по префиксу
+    const found =
+      COUNTRIES.find((opt) => trimmed.startsWith(opt.dialCode)) || COUNTRIES[0];
+
+    const withoutCode = trimmed.replace(found.dialCode, "");
+    setCountry(found);
+    setLocalPart(normalizeDigits(withoutCode));
   }, [value]);
 
+  // Плейсхолдер для локальной части
+  const localPlaceholder = useMemo(() => {
+    if (!country.example) return "";
+    return country.example;
+  }, [country]);
+
+  // Изменение страны
   const handleCountryChange = (code: string) => {
-    const next = COUNTRIES.find((c) => c.code === code) || COUNTRIES[0];
+    const next =
+      COUNTRIES.find((opt) => opt.code === code) || COUNTRIES[0];
+
     setCountry(next);
 
-    if (localPart) {
-      onChange(`${next.dialCode}${localPart}`);
-    }
+    // Пересобираем полное значение и отдаём наружу
+    const digits = normalizeDigits(localPart);
+    const combined = digits ? `${next.dialCode}${digits}` : next.dialCode;
+    onChange(combined);
   };
 
+  // Изменение локальной части номера
   const handleLocalChange = (raw: string) => {
-    const digits = raw.replace(/\D/g, "");
+    const digits = normalizeDigits(raw);
     setLocalPart(digits);
 
-    if (digits) {
-      onChange(`${country.dialCode}${digits}`);
-    } else {
-      onChange("");
-    }
+    const combined = digits ? `${country.dialCode}${digits}` : country.dialCode;
+    onChange(combined);
   };
 
-  const fullPhone = localPart ? `${country.dialCode}${localPart}` : "";
-
   return (
-    <div className="w-full">
+    <div className={`w-full ${className}`}>
       {label && (
         <label className="block text-[12px] text-slate-600 mb-1">
           {label}
@@ -96,40 +106,49 @@ export function PhoneInput({
       )}
 
       <div className="flex gap-2">
-        <select
-          value={country.code}
-          onChange={(e) => handleCountryChange(e.target.value)}
-          className="w-[40%] md:w-[35%] rounded-xl border border-slate-300 px-2 py-2 text-[13px] bg-white focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
-        >
-          {COUNTRIES.map((c) => (
-            <option key={c.code} value={c.code}>
-              {c.name} {c.dialCode}
-            </option>
-          ))}
-        </select>
+        {/* Выбор страны */}
+        <div className="w-[40%] min-w-[120px]">
+          <select
+            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] bg-white focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+            value={country.code}
+            onChange={(e) => handleCountryChange(e.target.value)}
+          >
+            {COUNTRIES.map((opt) => (
+              <option key={opt.code} value={opt.code}>
+                {opt.label} {opt.dialCode}
+              </option>
+            ))}
+          </select>
+        </div>
 
-        <input
-          type="tel"
-          value={localPart}
-          onChange={(e) => handleLocalChange(e.target.value)}
-          className={`flex-1 rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
-            error
-              ? "border-rose-400 focus:ring-rose-300"
-              : "border-slate-300 focus:ring-onlyvet-teal/40"
-          }`}
-          placeholder="Номер телефона"
-        />
+        {/* Локальная часть номера */}
+        <div className="flex-1 relative">
+          <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-slate-500">
+            {country.dialCode}
+          </div>
+          <input
+            type="tel"
+            inputMode="tel"
+            value={localPart}
+            onChange={(e) => handleLocalChange(e.target.value)}
+            placeholder={localPlaceholder}
+            className={`w-full rounded-xl border px-3 py-2 pl-10 text-[13px] focus:outline-none focus:ring-2 ${
+              error
+                ? "border-rose-400 focus:ring-rose-300"
+                : "border-slate-300 focus:ring-onlyvet-teal/40"
+            }`}
+          />
+        </div>
       </div>
 
-      {error ? (
-        <p className="mt-1 text-[11px] text-rose-600">{error}</p>
-      ) : (
-        fullPhone && (
-          <p className="mt-1 text-[11px] text-slate-500">
-            Будет сохранён как:{" "}
-            <span className="font-medium">{fullPhone}</span>
-          </p>
-        )
+      {helperText && (
+        <p
+          className={`mt-1 text-[11px] ${
+            error ? "text-rose-600" : "text-slate-500"
+          }`}
+        >
+          {helperText}
+        </p>
       )}
     </div>
   );
