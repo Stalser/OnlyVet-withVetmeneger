@@ -1,16 +1,15 @@
 // app/auth/register/page.tsx
 "use client";
 
-export const dynamic = "force-dynamic";
-
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import PhoneInput from "@/components/PhoneInput";
 import { getSupabaseClient } from "@/lib/supabaseClient";
+
+const supabase = getSupabaseClient();
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -22,7 +21,7 @@ export default function RegisterPage() {
   const [noMiddleName, setNoMiddleName] = useState(false);
 
   // контакты
-  const [phone, setPhone] = useState(""); // полный номер, типа +79001234567
+  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [telegram, setTelegram] = useState("");
 
@@ -41,18 +40,16 @@ export default function RegisterPage() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [serverSuccess, setServerSuccess] = useState<string | null>(null);
 
-  // ошибки валидации
+  // валидация
   const lastNameError = hasSubmitted && !lastName.trim();
   const firstNameError = hasSubmitted && !firstName.trim();
   const middleNameError =
     hasSubmitted && !noMiddleName && !middleName.trim();
+  const phoneError = hasSubmitted && !phone.trim();
   const emailError = hasSubmitted && !email.trim();
   const passwordError = hasSubmitted && password.trim().length < 8;
   const password2Error =
     hasSubmitted && password2.trim().length > 0 && password2 !== password;
-
-  const phoneError =
-    hasSubmitted && (!phone.trim() || phone.replace(/\D/g, "").length < 5);
 
   const consentsError =
     hasSubmitted &&
@@ -62,8 +59,8 @@ export default function RegisterPage() {
     lastName.trim().length > 0 &&
     firstName.trim().length > 0 &&
     (noMiddleName || middleName.trim().length > 0) &&
-    email.trim().length > 0 &&
     phone.trim().length > 0 &&
+    email.trim().length > 0 &&
     password.trim().length >= 8 &&
     password2 === password &&
     consentPersonalData &&
@@ -80,8 +77,8 @@ export default function RegisterPage() {
 
     try {
       setLoading(true);
-      const supabase = getSupabaseClient();
 
+      // 1. Регистрация в Supabase
       const fullName = [lastName, firstName, !noMiddleName && middleName]
         .filter(Boolean)
         .join(" ");
@@ -95,37 +92,48 @@ export default function RegisterPage() {
             last_name: lastName || null,
             first_name: firstName || null,
             middle_name: noMiddleName ? null : middleName || null,
-            phone: phone.trim() || null,
+            phone: phone.trim(),
             telegram: telegram.trim() || null,
-            consentPersonalData,
-            consentOffer,
-            consentRules,
           },
         },
       });
 
       if (error) {
-        setServerError(
-          error.message || "Не удалось создать аккаунт. Попробуйте позже."
-        );
+        // показываем нормальный текст ошибки от Supabase
+        setServerError(error.message || "Не удалось создать аккаунт.");
         return;
       }
 
-      // в Supabase может быть подтверждение по email
-      if (data.user && !data.session) {
-        setServerSuccess(
-          "Аккаунт создан. Проверьте почту и подтвердите email, затем войдите."
-        );
-      } else {
-        setServerSuccess(
-          "Аккаунт создан. Теперь вы можете войти в личный кабинет."
-        );
+      // 2. Мягкая инициализация связки Supabase ⇄ Vetmanager
+      //    Если что-то пойдёт не так — просто логируем, но не ломаем регистрацию.
+      if (data.user) {
+        try {
+          await fetch("/api/vetmanager/profile/init", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              supabaseUserId: data.user.id,
+              phone: phone.trim(),
+              firstName,
+              lastName,
+              email: email.trim(),
+            }),
+          });
+        } catch (vmErr) {
+          console.warn("[Vetmanager init] error", vmErr);
+          // Ничего не показываем пользователю, просто лог.
+        }
       }
 
+      setServerSuccess(
+        "Аккаунт создан. Теперь вы можете войти в личный кабинет."
+      );
+
+      // небольшой редирект на страницу входа
       setTimeout(() => {
         router.push("/auth/login");
       }, 1200);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       setServerError("Произошла техническая ошибка. Попробуйте позже.");
     } finally {
@@ -152,10 +160,9 @@ export default function RegisterPage() {
                   Регистрация в OnlyVet
                 </h1>
                 <p className="text-[13px] text-slate-600">
-                  Личный кабинет понадобится для сохранения данных о питомцах,
-                  просмотра заявок и доступа к заключениям. Ниже — только
-                  необходимые данные для связи и безопасной работы с
-                  консультациями.
+                  Личный кабинет нужен для хранения данных о питомцах, заявок
+                  и доступа к заключениям. Ниже — минимальный набор данных для
+                  связи и безопасной работы с консультациями.
                 </p>
               </div>
 
@@ -166,6 +173,7 @@ export default function RegisterPage() {
                     Контактное лицо
                   </h2>
                   <div className="grid md:grid-cols-3 gap-3">
+                    {/* Фамилия */}
                     <div>
                       <label className="block text-[12px] text-slate-600 mb-1">
                         Фамилия<span className="text-red-500">*</span>
@@ -187,6 +195,8 @@ export default function RegisterPage() {
                         </p>
                       )}
                     </div>
+
+                    {/* Имя */}
                     <div>
                       <label className="block text-[12px] text-slate-600 mb-1">
                         Имя<span className="text-red-500">*</span>
@@ -208,10 +218,11 @@ export default function RegisterPage() {
                         </p>
                       )}
                     </div>
+
+                    {/* Отчество */}
                     <div>
                       <label className="block text-[12px] text-slate-600 mb-1">
-                        Отчество
-                        {!noMiddleName && (
+                        Отчество{!noMiddleName && (
                           <span className="text-red-500">*</span>
                         )}
                       </label>
@@ -258,22 +269,28 @@ export default function RegisterPage() {
                   <h2 className="text-[14px] font-semibold">
                     Контактные данные
                   </h2>
-
-                  <div className="space-y-2">
-                    <PhoneInput
-                      label="Телефон"
-                      required
-                      value={phone}
-                      onChange={setPhone}
-                      error={
-                        phoneError
-                          ? "Укажите корректный номер телефона."
-                          : null
-                      }
-                    />
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-3 mt-2">
+                  <div className="grid md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[12px] text-slate-600 mb-1">
+                        Телефон<span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
+                          phoneError
+                            ? "border-rose-400 focus:ring-rose-300"
+                            : "border-slate-300 focus:ring-onlyvet-teal/40"
+                        }`}
+                        placeholder="+7 ..."
+                      />
+                      {phoneError && (
+                        <p className="mt-1 text-[11px] text-rose-600">
+                          Укажите телефон, чтобы мы могли связаться с вами.
+                        </p>
+                      )}
+                    </div>
                     <div>
                       <label className="block text-[12px] text-slate-600 mb-1">
                         Email<span className="text-red-500">*</span>
@@ -296,18 +313,19 @@ export default function RegisterPage() {
                         </p>
                       )}
                     </div>
-                    <div>
-                      <label className="block text-[12px] text-slate-600 mb-1">
-                        Telegram (необязательно)
-                      </label>
-                      <input
-                        type="text"
-                        value={telegram}
-                        onChange={(e) => setTelegram(e.target.value)}
-                        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
-                        placeholder="@username"
-                      />
-                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[12px] text-slate-600 mb-1">
+                      Telegram (необязательно)
+                    </label>
+                    <input
+                      type="text"
+                      value={telegram}
+                      onChange={(e) => setTelegram(e.target.value)}
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                      placeholder="@username"
+                    />
                   </div>
                 </section>
 
@@ -465,13 +483,6 @@ export default function RegisterPage() {
                   </Link>
                 </div>
               </form>
-
-              <p className="text-[11px] text-slate-500">
-                Сейчас регистрация выполняется через Supabase Auth (email +
-                пароль). Телефон и остальные данные сохраняются в метаданных
-                пользователя и в дальнейшем могут быть связаны с Vetmanager или
-                собственной БД.
-              </p>
             </div>
           </div>
         </div>
