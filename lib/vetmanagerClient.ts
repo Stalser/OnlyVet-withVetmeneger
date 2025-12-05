@@ -1,8 +1,8 @@
 // lib/vetmanagerClient.ts
 // Клиент для Vetmanager REST API. Использовать ТОЛЬКО на сервере (API routes / server components).
 
-const VETM_DOMAIN = process.env.VETM_DOMAIN; // например: https://onlyvet.vetmanager.ru
-const VETM_API_KEY = process.env.VETM_API_KEY; // REST API key из настроек Vetmanager
+const VETM_DOMAIN = process.env.VETM_DOMAIN;        // например: https://onlyvet.vetmanager.ru
+const VETM_API_KEY = process.env.VETM_API_KEY;      // REST API key из настроек Vetmanager
 
 if (!VETM_DOMAIN || !VETM_API_KEY) {
   console.warn("[Vetmanager] VETM_DOMAIN или VETM_API_KEY не заданы в env.");
@@ -47,6 +47,7 @@ async function vetmFetch<T>(
   if (!json.success) {
     console.error("[Vetmanager] API response not success", json);
   }
+
   return json;
 }
 
@@ -78,10 +79,15 @@ export interface VetmPet {
    Вспомогательные функции
    =========== */
 
+/**
+ * Нормализация телефона:
+ *  - оставляем только цифры
+ *  - 8XXXXXXXXXX → 7XXXXXXXXXX для РФ
+ *  - результат: строка только из цифр (например "79829138405")
+ */
 function normalizePhone(raw: string): string {
   const digits = raw.replace(/\D/g, "");
 
-  // Простейшая нормализация для РФ: 8XXXXXXXXXX -> 7XXXXXXXXXX
   if (digits.length === 11 && digits.startsWith("8")) {
     return "7" + digits.slice(1);
   }
@@ -93,9 +99,10 @@ function normalizePhone(raw: string): string {
    Клиенты
    =========== */
 
-// Поиск клиента по телефону.
-// Важно: property может отличаться в зависимости от версии API;
-// при необходимости можно поправить по документации.
+/**
+ * Поиск клиента по телефону.
+ * Если Vetmanager настроен по-другому, property в фильтре можно будет поменять.
+ */
 export async function searchClientByPhone(
   phone: string
 ): Promise<VetmClient | null> {
@@ -104,7 +111,7 @@ export async function searchClientByPhone(
   const filter = encodeURIComponent(
     JSON.stringify([
       {
-        property: "cell_phone", // при необходимости поменяем по докам
+        property: "cell_phone", // при необходимости можем поменять на "phone" или другой field из доки
         value: digits,
         operator: "=",
       },
@@ -126,7 +133,10 @@ export async function searchClientByPhone(
   return list[0] as VetmClient;
 }
 
-// Создание клиента
+/**
+ * Создание клиента в Vetmanager.
+ * Вызывается при регистрации, если клиента с таким телефоном ещё нет.
+ */
 export async function createClient(opts: {
   firstName?: string;
   middleName?: string;
@@ -140,7 +150,7 @@ export async function createClient(opts: {
     last_name: opts.lastName || "",
     cell_phone: normalizePhone(opts.phone),
     email: opts.email || "",
-    status: "TEMPORARY", // временный клиент до появления реальных визитов
+    status: "TEMPORARY", // временный статус, пока нет визитов/счётов
   };
 
   const resp = await vetmFetch<{ client: VetmClient }>("client", {
@@ -156,7 +166,10 @@ export async function createClient(opts: {
   return client as VetmClient;
 }
 
-// Найти или создать клиента по телефону
+/**
+ * Найти или создать клиента по телефону.
+ * Логика анти-дубликатов: сначала ищем, если нет — создаём.
+ */
 export async function findOrCreateClientByPhone(opts: {
   phone: string;
   firstName?: string;
@@ -174,6 +187,9 @@ export async function findOrCreateClientByPhone(opts: {
    Питомцы
    =========== */
 
+/**
+ * Получить список питомцев по ID клиента Vetmanager.
+ */
 export async function getPetsByClientId(clientId: number): Promise<VetmPet[]> {
   const filter = encodeURIComponent(
     JSON.stringify([{ property: "owner_id", value: clientId, operator: "=" }])
@@ -186,7 +202,9 @@ export async function getPetsByClientId(clientId: number): Promise<VetmPet[]> {
   return Array.isArray(list) ? (list as VetmPet[]) : [];
 }
 
-// Получить питомца по ID
+/**
+ * Получить питомца по ID.
+ */
 export async function getPetById(id: number): Promise<VetmPet | null> {
   const resp = await vetmFetch<{ pet: VetmPet }>(`pet/${id}`);
   if (!resp.success || !resp.data) return null;
@@ -201,6 +219,10 @@ export async function getPetById(id: number): Promise<VetmPet | null> {
    VmLink — личный кабинет Vetmanager
    =========== */
 
+/**
+ * Получить персональную ссылку на личный кабинет Vetmanager по ID клиента.
+ * Пока мы её только получаем, но не показываем пользователю.
+ */
 export async function getPersonalAccountLinkByClientId(
   clientId: number
 ): Promise<string | null> {
