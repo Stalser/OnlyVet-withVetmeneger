@@ -9,10 +9,9 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 
-const supabase = getSupabaseClient();
-
 export default function RegisterPage() {
   const router = useRouter();
+  const supabase = getSupabaseClient();
 
   // ФИО
   const [lastName, setLastName] = useState("");
@@ -78,11 +77,11 @@ export default function RegisterPage() {
     try {
       setLoading(true);
 
-      // 1. Регистрация в Supabase
       const fullName = [lastName, firstName, !noMiddleName && middleName]
         .filter(Boolean)
         .join(" ");
 
+      // 1. Регистрация пользователя в Supabase
       const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
         password: password.trim(),
@@ -99,13 +98,11 @@ export default function RegisterPage() {
       });
 
       if (error) {
-        // показываем нормальный текст ошибки от Supabase
         setServerError(error.message || "Не удалось создать аккаунт.");
         return;
       }
 
       // 2. Мягкая инициализация связки Supabase ⇄ Vetmanager
-      //    Если что-то пойдёт не так — просто логируем, но не ломаем регистрацию.
       if (data.user) {
         try {
           await fetch("/api/vetmanager/profile/init", {
@@ -121,7 +118,7 @@ export default function RegisterPage() {
           });
         } catch (vmErr) {
           console.warn("[Vetmanager init] error", vmErr);
-          // Ничего не показываем пользователю, просто лог.
+          // Пользователю об этом ничего не говорим.
         }
       }
 
@@ -129,11 +126,10 @@ export default function RegisterPage() {
         "Аккаунт создан. Теперь вы можете войти в личный кабинет."
       );
 
-      // небольшой редирект на страницу входа
       setTimeout(() => {
         router.push("/auth/login");
       }, 1200);
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
       setServerError("Произошла техническая ошибка. Попробуйте позже.");
     } finally {
