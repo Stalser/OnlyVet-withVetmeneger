@@ -1,7 +1,9 @@
+// app/account/page.tsx
 "use client";
+
 export const dynamic = "force-dynamic";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -9,12 +11,19 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 
-// импортируем вынесенные вкладки
+// Вынесенные секции
 import ConsultationsSection from "./components/ConsultationsSection";
 import PetsSection from "./components/PetsSection";
 import TrustedSection from "./components/TrustedSection";
 import NotificationsSection from "./components/NotificationsSection";
 import ProfileSection from "./components/ProfileSection";
+
+// Моки, которые используют секции (доверенные лица и уведомления)
+import {
+  mockTrustedPeople,
+  mockTrustedForMe,
+  mockNotificationSettings,
+} from "./components/mocks";
 
 type AccountTab =
   | "consultations"
@@ -27,12 +36,15 @@ export default function AccountPage() {
   const router = useRouter();
   const [tab, setTab] = useState<AccountTab>("consultations");
 
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUserName, setCurrentUserName] =
+    useState<string>("Пользователь");
+  const [currentUserEmail, setCurrentUserEmail] = useState<string>("");
   const [checkingAuth, setCheckingAuth] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-    const load = async () => {
+
+    const checkAuth = async () => {
       const supabase = getSupabaseClient();
       const { data, error } = await supabase.auth.getUser();
 
@@ -43,23 +55,39 @@ export default function AccountPage() {
         return;
       }
 
-      setCurrentUser(data.user);
+      const user = data.user;
+      const meta = (user.user_metadata || {}) as any;
+
+      const fullNameFromMeta =
+        meta.full_name ||
+        [meta.last_name, meta.first_name].filter(Boolean).join(" ");
+
+      setCurrentUserName(
+        fullNameFromMeta && fullNameFromMeta.trim().length > 0
+          ? fullNameFromMeta
+          : user.email || "Пользователь"
+      );
+      setCurrentUserEmail(user.email || "");
       setCheckingAuth(false);
     };
 
-    load();
+    checkAuth();
+
     return () => {
       cancelled = true;
     };
   }, [router]);
 
+  // Пока идёт проверка сессии
   if (checkingAuth) {
     return (
       <>
         <Header />
         <main className="flex-1 bg-slate-50/70 py-8">
           <div className="container mx-auto max-w-5xl px-4">
-            <p className="text-[13px] text-slate-600">Загружаем профиль…</p>
+            <p className="text-[13px] text-slate-600">
+              Загружаем личный кабинет...
+            </p>
           </div>
         </main>
         <Footer />
@@ -67,18 +95,12 @@ export default function AccountPage() {
     );
   }
 
-  const fullName =
-    currentUser?.user_metadata?.full_name ??
-    `${currentUser?.user_metadata?.last_name ?? ""} ${
-      currentUser?.user_metadata?.first_name ?? ""
-    }`;
-
   return (
     <>
       <Header />
       <main className="flex-1 bg-slate-50/60">
         <div className="container mx-auto max-w-5xl px-4 py-6 md:py-8">
-          {/* Заголовок */}
+          {/* Заголовок страницы */}
           <div className="mb-5 md:mb-6">
             <nav className="text-[11px] text-slate-500 mb-1">
               <Link href="/" className="hover:text-onlyvet-coral">
@@ -86,71 +108,108 @@ export default function AccountPage() {
               </Link>{" "}
               / <span className="text-slate-700">Личный кабинет</span>
             </nav>
-
             <h1 className="text-xl md:text-2xl font-semibold mb-1">
               Личный кабинет
             </h1>
-
             <p className="text-[13px] text-slate-600 max-w-2xl">
               Аккаунт:{" "}
-              <span className="font-medium">
-                {fullName?.trim() || currentUser.email}
-              </span>{" "}
-              ·{" "}
-              <span className="text-slate-500">
-                {currentUser.email ?? "email отсутствует"}
-              </span>
+              <span className="font-medium">{currentUserName}</span>
+              {currentUserEmail && (
+                <>
+                  {" "}
+                  · <span className="text-slate-500">{currentUserEmail}</span>
+                </>
+              )}
             </p>
           </div>
 
-          {/* Навигация */}
+          {/* Навигация по вкладкам */}
           <div className="mb-5 border-b border-slate-200">
             <div className="flex flex-wrap gap-2 text-[12px] md:text-[13px]">
-              {(["consultations", "pets", "trusted", "notifications", "profile"] as AccountTab[]).map(
-                (t) => (
-                  <button
-                    key={t}
-                    onClick={() => setTab(t)}
-                    className={`px-3 py-1.5 rounded-full transition ${
-                      tab === t
-                        ? "bg-white text-onlyvet-navy border border-slate-200 shadow-sm"
-                        : "text-slate-600 hover:text-onlyvet-navy hover:bg-white/70"
-                    }`}
-                  >
-                    {{
-                      consultations: "Консультации",
-                      pets: "Питомцы",
-                      trusted: "Доверенные лица",
-                      notifications: "Уведомления",
-                      profile: "Профиль",
-                    }[t]}
-                  </button>
-                )
-              )}
+              <AccountTabButton
+                tab="consultations"
+                current={tab}
+                setTab={setTab}
+              >
+                Консультации
+              </AccountTabButton>
+              <AccountTabButton tab="pets" current={tab} setTab={setTab}>
+                Питомцы
+              </AccountTabButton>
+              <AccountTabButton tab="trusted" current={tab} setTab={setTab}>
+                Доверенные лица
+              </AccountTabButton>
+              <AccountTabButton
+                tab="notifications"
+                current={tab}
+                setTab={setTab}
+              >
+                Уведомления
+              </AccountTabButton>
+              <AccountTabButton tab="profile" current={tab} setTab={setTab}>
+                Профиль
+              </AccountTabButton>
             </div>
           </div>
 
-          {/* Контент вкладки */}
-{tab === "consultations" && <ConsultationsSection />}
-{tab === "pets" && <PetsSection />}
-{tab === "trusted" && (
-  <TrustedSection
-    currentUserName={currentUserName}
-    trustedPeople={mockTrustedPeople}
-    trustedForMe={mockTrustedForMe}
-  />
-)}
-{tab === "notifications" && (
-  <NotificationsSection settings={mockNotificationSettings} />
-)}
-{tab === "profile" && (
-  <ProfileSection
-    currentUserName={currentUserName}
-    currentUserEmail={currentUserEmail}
-  />
-)}
-
+          {/* Контент вкладок */}
+          <div className="space-y-4 md:space-y-5">
+            {tab === "consultations" && <ConsultationsSection />}
+            {tab === "pets" && <PetsSection />}
+            {tab === "trusted" && (
+              <TrustedSection
+                currentUserName={currentUserName}
+                trustedPeople={mockTrustedPeople}
+                trustedForMe={mockTrustedForMe}
+              />
+            )}
+            {tab === "notifications" && (
+              <NotificationsSection settings={mockNotificationSettings} />
+            )}
+            {tab === "profile" && (
+              <ProfileSection
+                currentUserName={currentUserName}
+                currentUserEmail={currentUserEmail}
+              />
+            )}
+          </div>
+        </div>
+      </main>
       <Footer />
     </>
+  );
+}
+
+// ============================
+// Вспомогательная кнопка вкладки
+// ============================
+function AccountTabButton({
+  tab,
+  current,
+  setTab,
+  children,
+}: {
+  tab: AccountTab;
+  current: AccountTab;
+  setTab: (tab: AccountTab) => void;
+  children: React.ReactNode;
+}) {
+  const isActive = tab === current;
+  return (
+    <button
+      type="button"
+      onClick={() => setTab(tab)}
+      className={`
+        relative px-3 py-1.5 rounded-full
+        transition text-xs md:text-[13px]
+        ${
+          isActive
+            ? "bg-white text-onlyvet-navy border border-slate-200 shadow-sm"
+            : "text-slate-600 hover:text-onlyvet-navy hover:bg-white/70"
+        }
+      `}
+    >
+      {children}
+    </button>
   );
 }
