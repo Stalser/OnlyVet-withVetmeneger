@@ -1,20 +1,23 @@
 // app/api/auth/check-duplicate/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Для этой ручки нужны серверные переменные окружения:
+// SUPABASE_URL
+// SUPABASE_SERVICE_ROLE_KEY
+const supabaseUrl = process.env.SUPABASE_URL;
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
-  console.error(
-    "[check-duplicate] SUPABASE_URL или SUPABASE_SERVICE_ROLE_KEY не заданы"
+if (!supabaseUrl || !serviceKey) {
+  console.warn(
+    "[check-duplicate] SUPABASE_URL или SUPABASE_SERVICE_ROLE_KEY не заданы."
   );
 }
 
-// admin-клиент, обходит RLS
 const supabaseAdmin =
-  SUPABASE_URL && SERVICE_ROLE_KEY
-    ? createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+  supabaseUrl && serviceKey
+    ? createClient(supabaseUrl, serviceKey, {
         auth: {
           autoRefreshToken: false,
           persistSession: false,
@@ -22,60 +25,80 @@ const supabaseAdmin =
       })
     : null;
 
+type CheckDuplicateBody = {
+  email?: string | null;
+  phoneNormalized?: string | null; // только цифры, как 79829138405 или 9829138405
+};
+
 export async function POST(req: NextRequest) {
   try {
     if (!supabaseAdmin) {
       return NextResponse.json(
-        { error: "Supabase admin client not configured" },
+        { error: "Supabase admin client is not configured" },
         { status: 500 }
       );
     }
 
-    const body = await req.json().catch(() => ({}));
-    const email: string | undefined = body.email?.trim();
-    const phoneNormalized: string | undefined =
-      body.phone_normalized?.toString().trim();
+    const body = (await req.json().catch(() => ({}))) as CheckDuplicateBody;
+
+    const email = body.email?.trim().toLowerCase() || "";
+    const phoneNormalized = (body.phoneNormalized || "").trim();
 
     if (!email && !phoneNormalized) {
       return NextResponse.json(
-        { error: "email или phone_normalized должны быть переданы" },
+        { error: "email или phoneNormalized должны быть указаны" },
         { status: 400 }
       );
     }
 
-    // Собираем OR-фильтр
-    const orParts: string[] = [];
-    if (email) orParts.push(`email.eq.${email}`);
-    if (phoneNormalized) orParts.push(`phone_normalized.eq.${phoneNormalized}`);
+    let emailExists = false;
+    let phoneExists = false;
 
-    const { data, error } = await supabaseAdmin
-      .from("profiles")
-      .select("id, email, phone_normalized")
-      .or(orParts.join(","))
-      .limit(1)
-      .maybeSingle();
+    // 1) Проверка email (по profiles)
+    if (email) {
+      const { data, error } = await supabaseAdmin
+        .from("profiles")
+        .select("id")
+        .ilike("email", email) // email в profiles хранится в нижнем регистре, но на всякий случай ilike
+        .maybeSingle();
 
-    if (error) {
-      console.error("[check-duplicate] DB error:", error);
-      return NextResponse.json(
-        { error: "db_error" },
-        { status: 500 }
-      );
+      if (error) {
+        console.error("[check-duplicate] email check error:", error);
+      } else if (data) {
+        emailExists = true;
+      }
     }
 
-    if (!data) {
-      // Ничего не найдено → дубликата нет
-      return NextResponse.json({ duplicate: false });
+    // 2) Проверка телефона (по нормализованному полю)
+    if (phoneNormalized) {
+      const { data, error } = await supabaseAdmin
+        .from("profiles")
+        .select("id")
+        .eq("phone_normalized", phoneNormalized)
+        .maybeSingle();
+
+      if (error) {
+        console.error("[check-duplicate] phone check error:", error);
+      } else if (data) {
+        phoneExists = true;
+      }
     }
 
-    const fields: string[] = [];
-    if (email && data.email === email) fields.push("email");
-    if (phoneNormalized && data.phone_normalized === phoneNormalized)
-      fields.push("phone");
+    const exists = emailExists || phoneExists;
 
-    return NextResponse.json({ duplicate: true, fields });
-  } catch (err) {
-    console.error("[check-duplicate] Internal error:", err);
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+    return NextResponse.json(
+      {
+        exists,
+        emailExists,
+        phoneExists,
+      },
+      { status: 200 }
+    );
+  } catch (err: any) {
+    console.error("[check-duplicate] unexpected error:", err);
+    return NextResponse.json(
+      { error: "Internal error in check-duplicate" },
+      { status: 500 }
+    );
   }
 }
