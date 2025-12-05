@@ -8,7 +8,10 @@ import Link from "next/link";
 
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { ConsultationCard, type ConsultationStatus } from "@/components/ConsultationCard";
+import {
+  ConsultationCard,
+  type ConsultationStatus,
+} from "@/components/ConsultationCard";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 
 // =============================
@@ -33,12 +36,29 @@ type SupabasePetRow = {
   notes: string | null;
 };
 
-type PetVisit = {
+type PetVisitDemo = {
   id: string;
   date: string;
   doctor: string;
   summary: string;
   status: "done" | "scheduled";
+};
+
+type SupabaseConsultationRow = {
+  id: string;
+  status: "new" | "in_progress" | "done" | "cancelled";
+  planned_at: string | null;
+  created_at: string;
+  complaint: string | null;
+  service_id: string | null;
+};
+
+type NormalizedConsult = {
+  id: string;
+  dateTime: string;
+  doctor: string;
+  summary: string;
+  status: ConsultationStatus;
 };
 
 type PetDocument = {
@@ -73,7 +93,7 @@ const demoPets: PetRecord[] = [
   },
 ];
 
-const demoVisits: Record<string, PetVisit[]> = {
+const demoVisits: Record<string, PetVisitDemo[]> = {
   pet1: [
     {
       id: "v1",
@@ -142,24 +162,80 @@ const demoDocs: Record<string, PetDocument[]> = {
 };
 
 // =============================
-// 🔹 Основная логика
+// 🔹 Нормализация консультаций
+// =============================
+
+function normalizeConsultFromSupabase(
+  row: SupabaseConsultationRow
+): NormalizedConsult {
+  const baseDate = row.planned_at || row.created_at;
+  const d = new Date(baseDate);
+
+  const dateTime = d.toISOString();
+
+  let status: ConsultationStatus;
+  switch (row.status) {
+    case "done":
+      status = "done";
+      break;
+    default:
+      // new / in_progress / cancelled → показываем как "scheduled"
+      status = "scheduled";
+      break;
+  }
+
+  return {
+    id: row.id,
+    dateTime,
+    doctor: "Врач онлайн-клиники", // пока нет связи с конкретным врачом
+    summary: row.complaint || "Онлайн-консультация",
+    status,
+  };
+}
+
+function normalizeDemoVisit(v: PetVisitDemo): NormalizedConsult {
+  const d = new Date(v.date);
+  const dateTime = d.toISOString();
+  const status: ConsultationStatus =
+    v.status === "done" ? "done" : "scheduled";
+
+  return {
+    id: v.id,
+    dateTime,
+    doctor: v.doctor,
+    summary: v.summary,
+    status,
+  };
+}
+
+// =============================
+// 🔹 Основной компонент
 // =============================
 
 export default function PetPage({ params }: { params: { id: string } }) {
-  const [pet, setPet] = useState<PetRecord | null>(null);
-  const [loading, setLoading] = useState(true);
-
   const petId = params.id;
 
+  const [pet, setPet] = useState<PetRecord | null>(null);
+  const [loadingPet, setLoadingPet] = useState(true);
+
+  const [consults, setConsults] = useState<NormalizedConsult[]>([]);
+  const [loadingConsults, setLoadingConsults] = useState(true);
+
+  const docs = demoDocs[petId] || [];
+  const analyzes = docs.filter((d) => d.category === "analyzes");
+  const imaging = docs.filter((d) => d.category === "imaging");
+  const discharge = docs.filter((d) => d.category === "discharge");
+  const other = docs.filter((d) => d.category === "other");
+
+  // Загружаем питомца: сначала Supabase, потом fallback на демо
   useEffect(() => {
     let cancelled = false;
     const supabase = getSupabaseClient();
 
     const loadPet = async () => {
       try {
-        setLoading(true);
+        setLoadingPet(true);
 
-        // 1) Пытаемся получить питомца из Supabase
         const { data, error } = await supabase
           .from("pets")
           .select("id, name, species, age_text, weight_kg, notes")
@@ -174,15 +250,14 @@ export default function PetPage({ params }: { params: { id: string } }) {
             name: data.name,
             kind: data.species || "",
             age: data.age_text || "",
-            // sex и color в таблице pets пока не храним — оставляем пустыми
             notes: data.notes || undefined,
           };
           setPet(normalized);
-          setLoading(false);
+          setLoadingPet(false);
           return;
         }
 
-        // 2) Если в Supabase не нашли — пробуем старые демо-питомцы
+        // fallback на демо
         const demo = demoPets.find((p) => p.id === petId) || null;
         setPet(demo);
       } catch (err) {
@@ -190,7 +265,7 @@ export default function PetPage({ params }: { params: { id: string } }) {
         const demo = demoPets.find((p) => p.id === petId) || null;
         setPet(demo);
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setLoadingPet(false);
       }
     };
 
@@ -200,13 +275,53 @@ export default function PetPage({ params }: { params: { id: string } }) {
     };
   }, [petId]);
 
-  const visits = demoVisits[petId] || [];
-  const docs = demoDocs[petId] || [];
+  // Загружаем консультации по этому pet_id из Supabase
+  useEffect(() => {
+    let cancelled = false;
+    const supabase = getSupabaseClient();
 
-  const analyzes = docs.filter((d) => d.category === "analyzes");
-  const imaging = docs.filter((d) => d.category === "imaging");
-  const discharge = docs.filter((d) => d.category === "discharge");
-  const other = docs.filter((d) => d.category === "other");
+    const loadConsults = async () => {
+      try {
+        setLoadingConsults(true);
+
+        const { data, error } = await supabase
+          .from("consultations")
+          .select(
+            "id, status, planned_at, created_at, complaint, service_id"
+          )
+          .eq("pet_id", petId)
+          .order("created_at", { ascending: false });
+
+        if (cancelled) return;
+
+        if (error) {
+          console.error("[PetPage] error loading consultations:", error);
+          setConsults([]);
+          return;
+        }
+
+        const rows = (data || []) as SupabaseConsultationRow[];
+        const mapped = rows.map(normalizeConsultFromSupabase);
+        setConsults(mapped);
+      } catch (err) {
+        console.error("[PetPage] unexpected error loading consultations:", err);
+        if (!cancelled) setConsults([]);
+      } finally {
+        if (!cancelled) setLoadingConsults(false);
+      }
+    };
+
+    loadConsults();
+    return () => {
+      cancelled = true;
+    };
+  }, [petId]);
+
+  // fallback: если нет реальных консультаций — используем демо для pet1/pet2
+  const effectiveConsults: NormalizedConsult[] =
+    consults.length > 0
+      ? consults
+      : (demoVisits[petId] || []).map(normalizeDemoVisit);
 
   return (
     <>
@@ -229,22 +344,25 @@ export default function PetPage({ params }: { params: { id: string } }) {
             </Link>{" "}
             /{" "}
             <span className="text-slate-700">
-              {pet ? pet.name : loading ? "Загрузка..." : "Не найден"}
+              {pet ? pet.name : loadingPet ? "Загрузка..." : "Не найден"}
             </span>
           </nav>
 
           {/* Состояние загрузки / не найден */}
-          {loading && (
-            <p className="text-[13px] text-slate-600">Загружаем данные о питомце…</p>
+          {loadingPet && (
+            <p className="text-[13px] text-slate-600">
+              Загружаем данные о питомце…
+            </p>
           )}
 
-          {!loading && !pet && (
+          {!loadingPet && !pet && (
             <section className="bg-white rounded-3xl border border-slate-200 shadow-soft p-6">
               <h1 className="text-lg md:text-xl font-semibold mb-2">
                 Питомец не найден
               </h1>
               <p className="text-[13px] text-slate-600 mb-3">
-                Возможно, этот питомец был удалён или вы перешли по некорректной ссылке.
+                Возможно, этот питомец был удалён или вы перешли по некорректной
+                ссылке.
               </p>
               <Link
                 href="/account/pets"
@@ -339,43 +457,42 @@ export default function PetPage({ params }: { params: { id: string } }) {
                     </div>
                   </div>
 
-                  {/* Медкарта (демо на основе demoVisits) */}
+                  {/* Медкарта */}
                   <div className="bg-white rounded-3xl border border-slate-200 shadow-soft p-6 space-y-3">
                     <h2 className="text-[15px] font-semibold">
-                      Медицинская карта (демо)
+                      Медицинская карта
                     </h2>
 
-                    {visits.length === 0 ? (
+                    {loadingConsults ? (
                       <p className="text-[13px] text-slate-600">
-                        Записей пока нет. После консультаций здесь появятся краткие
-                        резюме приёмов.
+                        Загружаем консультации…
+                      </p>
+                    ) : effectiveConsults.length === 0 ? (
+                      <p className="text-[13px] text-slate-600">
+                        Записей пока нет. После консультаций здесь появятся
+                        краткие резюме приёмов.
                       </p>
                     ) : (
                       <div className="space-y-3">
-                        {visits.map((v) => {
-                          const status: ConsultationStatus =
-                            v.status === "done" ? "done" : "in_progress";
-
-                          return (
-                            <ConsultationCard
-                              key={v.id}
-                              id={v.id}
-                              createdAt={v.date}
-                              petName={pet.name}
-                              serviceName="Онлайн-консультация"
-                              doctorName={v.doctor}
-                              dateTime={v.date}
-                              status={status}
-                              showPetLink={false}
-                            />
-                          );
-                        })}
+                        {effectiveConsults.map((c) => (
+                          <ConsultationCard
+                            key={c.id}
+                            id={c.id}
+                            createdAt={c.dateTime}
+                            petName={pet.name}
+                            serviceName="Онлайн-консультация"
+                            doctorName={c.doctor}
+                            dateTime={c.dateTime}
+                            status={c.status}
+                            showPetLink={false}
+                          />
+                        ))}
                       </div>
                     )}
 
                     <p className="mt-1 text-[11px] text-slate-500">
-                      В будущем данные будут синхронизироваться с Vetmanager и
-                      таблицей consultations.
+                      Реальные данные берутся из Supabase (таблица
+                      consultations). Для демо-питомцев показаны примерные визиты.
                     </p>
                   </div>
                 </div>
@@ -387,9 +504,9 @@ export default function PetPage({ params }: { params: { id: string } }) {
                       Документы питомца (демо)
                     </h3>
                     <p className="text-[12px] text-slate-600 mb-3 leading-relaxed">
-                      Документы распределены по категориям: анализы, исследования,
-                      выписки и другие материалы. В дальнейшем сюда будут попадать
-                      файлы из загрузок и Vetmanager.
+                      Документы распределены по категориям: анализы,
+                      исследования, выписки и другие материалы. В дальнейшем сюда
+                      будут попадать файлы из загрузок и Vetmanager.
                     </p>
 
                     <div className="space-y-3">
@@ -439,7 +556,7 @@ function DocCategory({
           {docs.map((d) => (
             <li
               key={d.id}
-              className="flex justify-between items-start gap-3 text-[12px]"
+              className="flex justify_between items-start gap-3 text-[12px]"
             >
               <div className="flex-1">
                 <div className="font-medium text-slate-800">{d.title}</div>
