@@ -1,68 +1,66 @@
+// app/account/components/ProfileSection.tsx
 "use client";
 
 import { useEffect, useState, type ChangeEvent } from "react";
 import { getSupabaseClient } from "@/lib/supabaseClient";
-import PhoneInput from "@/components/PhoneInput";
-
-type SupabaseUser = {
-  id: string;
-  email?: string;
-  user_metadata?: Record<string, any>;
-};
 
 type Props = {
-  user: SupabaseUser;
+  currentUserName: string;
+  currentUserEmail: string;
 };
 
-export default function ProfileSection({ user }: Props) {
+export default function ProfileSection({
+  currentUserName,
+  currentUserEmail,
+}: Props) {
   const supabase = getSupabaseClient();
 
-  const meta = (user.user_metadata || {}) as any;
-
-  // Аватар
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(
-    meta.avatar_url || null
-  );
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
 
   // ФИО раздельно
-  const [lastName, setLastName] = useState(meta.last_name || "");
-  const [firstName, setFirstName] = useState(meta.first_name || "");
-  const [middleName, setMiddleName] = useState(meta.middle_name || "");
-  const [noMiddleName, setNoMiddleName] = useState<boolean>(
-    !meta.middle_name && !meta.full_name
-  );
+  const [lastName, setLastName] = useState<string>("");
+  const [firstName, setFirstName] = useState<string>("");
+  const [middleName, setMiddleName] = useState<string>("");
+  const [noMiddleName, setNoMiddleName] = useState<boolean>(false);
 
   // Контакты
-  const [phone, setPhone] = useState<string>(meta.phone || "");
-  const [email, setEmail] = useState<string>(user.email || "");
-  const [telegram, setTelegram] = useState<string>(meta.telegram || "");
+  const [phone, setPhone] = useState<string>("");
+  const [email, setEmail] = useState<string>(currentUserEmail || "");
+  const [telegram, setTelegram] = useState<string>("");
 
-  // Статусы
+  // Статус сохранения
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
 
-  // Подтягиваем свежие данные пользователя из Supabase на всякий случай
+  // Подгружаем свежие данные пользователя из Supabase
   useEffect(() => {
     let cancelled = false;
 
-    const refreshUser = async () => {
+    const load = async () => {
       const { data } = await supabase.auth.getUser();
       if (cancelled || !data.user) return;
 
-      const m = (data.user.user_metadata || {}) as any;
+      const meta = (data.user.user_metadata || {}) as any;
 
-      if (m.avatar_url) setAvatarUrl(m.avatar_url);
-      if (m.last_name) setLastName(m.last_name);
-      if (m.first_name) setFirstName(m.first_name);
-      if (m.middle_name) setMiddleName(m.middle_name);
-      if (m.phone) setPhone(m.phone);
-      if (m.telegram) setTelegram(m.telegram);
+      // ФИО
+      if (meta.last_name) setLastName(meta.last_name);
+      if (meta.first_name) setFirstName(meta.first_name);
+      if (meta.middle_name) setMiddleName(meta.middle_name);
+      if (!meta.middle_name) setNoMiddleName(true);
+
+      // Аватар
+      if (meta.avatar_url) setAvatarUrl(meta.avatar_url);
+
+      // Контакты
+      if (meta.phone) setPhone(meta.phone);
+      if (meta.telegram) setTelegram(meta.telegram);
+      if (data.user.email) setEmail(data.user.email);
     };
 
-    refreshUser();
+    load();
     return () => {
       cancelled = true;
     };
@@ -71,7 +69,7 @@ export default function ProfileSection({ user }: Props) {
   const displayName =
     [lastName, firstName, !noMiddleName && middleName]
       .filter(Boolean)
-      .join(" ") || user.email || "Пользователь";
+      .join(" ") || currentUserName || currentUserEmail || "Пользователь";
 
   const initialLetter =
     displayName.trim().charAt(0).toUpperCase() || "U";
@@ -133,7 +131,7 @@ export default function ProfileSection({ user }: Props) {
 
       setAvatarUrl(publicUrl);
     } catch (err) {
-      console.error(err);
+      console.error("[Profile] avatar upload error:", err);
       setAvatarError("Техническая ошибка при загрузке аватара.");
     } finally {
       setAvatarLoading(false);
@@ -152,7 +150,7 @@ export default function ProfileSection({ user }: Props) {
 
       const { error } = await supabase.auth.updateUser({
         // email сознательно не меняем здесь,
-        // во избежание сложностей с повторным подтверждением
+        // чтобы не ломать подтверждённый доступ к аккаунту
         data: {
           full_name: fullName || null,
           last_name: lastName || null,
@@ -172,7 +170,7 @@ export default function ProfileSection({ user }: Props) {
 
       setSaveSuccess("Изменения сохранены.");
     } catch (err) {
-      console.error(err);
+      console.error("[Profile] save error:", err);
       setSaveError("Техническая ошибка при сохранении профиля.");
     } finally {
       setSaving(false);
@@ -188,7 +186,7 @@ export default function ProfileSection({ user }: Props) {
         </h2>
         <p className="text-[12px] text-slate-600 max-w-2xl">
           Здесь можно изменить контактные данные, фото профиля и базовые
-          настройки аккаунта. ФИО хранится раздельно, телефон — в международном
+          настройки аккаунта. ФИО хранится раздельно, телефон — в удобном
           формате, чтобы потом связать это с Vetmanager.
         </p>
       </div>
@@ -233,8 +231,9 @@ export default function ProfileSection({ user }: Props) {
         </div>
       </div>
 
-      {/* ФИО раздельно */}
+      {/* Раздельное ФИО + контакты */}
       <div className="pt-3 border-t border-slate-100 mt-2 space-y-3 text-[13px]">
+        {/* ФИО */}
         <div className="grid md:grid-cols-3 gap-3">
           <div>
             <label className="block text-[12px] text-slate-600 mb-1">
@@ -294,18 +293,21 @@ export default function ProfileSection({ user }: Props) {
           </div>
         </div>
 
-        {/* Телефон */}
+        {/* Контакты */}
         <div className="grid md:grid-cols-2 gap-3">
           <div>
-            <PhoneInput
-              label="Телефон (международный формат)"
+            <label className="block text-[12px] text-slate-600 mb-1">
+              Телефон
+            </label>
+            <input
+              type="tel"
               value={phone}
-              onChange={setPhone}
-              required
+              onChange={(e) => setPhone(e.target.value)}
+              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+              placeholder="+7 ..."
             />
           </div>
 
-          {/* Email — пока только отображение, без изменения в Supabase */}
           <div>
             <label className="block text-[12px] text-slate-600 mb-1">
               Email
@@ -313,13 +315,12 @@ export default function ProfileSection({ user }: Props) {
             <input
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
               disabled
               className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] bg-slate-50 text-slate-500"
             />
             <p className="mt-1 text-[11px] text-slate-500">
               Изменение email пока выполняется через поддержку, чтобы не
-              ломать доступ к аккаунту и подтверждение входа.
+              ломать подтверждённый доступ к аккаунту.
             </p>
           </div>
         </div>
