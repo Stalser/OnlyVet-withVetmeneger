@@ -5,10 +5,7 @@ import { notFound } from "next/navigation";
 
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import {
-  ConsultationCard,
-  type ConsultationStatus,
-} from "@/components/ConsultationCard";
+import { AccountNav } from "@/components/AccountNav";
 
 // =============================
 // 🔹 Типы данных
@@ -42,7 +39,6 @@ type PetDocument = {
 // =============================
 // 🔹 Демоданные
 // =============================
-
 const demoPets: PetRecord[] = [
   {
     id: "pet1",
@@ -61,15 +57,6 @@ const demoPets: PetRecord[] = [
     sex: "самец",
     color: "чёрно-рыжий",
     notes: "Перенесён острый панкреатит, требуется контроль диеты и анализов.",
-  },
-  {
-    id: "murzik",
-    name: "Мурчик",
-    kind: "Кот",
-    age: "2 года",
-    sex: "самец",
-    color: "серый",
-    notes: "Астма.",
   },
 ];
 
@@ -95,17 +82,7 @@ const demoVisits: Record<string, PetVisit[]> = {
       id: "v3",
       date: "2024-12-20",
       doctor: "Диана Чемерилова",
-      summary: "Постпанкреатитное наблюдение, корректировка схемы.",
-      status: "done",
-    },
-  ],
-  murzik: [
-    {
-      id: "v4",
-      date: "2025-01-10",
-      doctor: "Эльвин Мазагирович",
-      summary:
-        "Онлайн-консультация по контролю астмы. Назначена ингаляционная терапия.",
+      summary: "Постпанкреатитное наблюдение, корректировки схемы.",
       status: "done",
     },
   ],
@@ -138,7 +115,7 @@ const demoDocs: Record<string, PetDocument[]> = {
     {
       id: "d4",
       category: "analyzes",
-      title: "Биохимия крови",
+      title: "Анализ крови (биохимия)",
       date: "2024-12-19",
       description: "Амилаза/липаза в верхней границе нормы.",
     },
@@ -149,21 +126,11 @@ const demoDocs: Record<string, PetDocument[]> = {
       date: "2024-12-20",
     },
   ],
-  murzik: [
-    {
-      id: "d6",
-      category: "analyzes",
-      title: "Биохимия крови (демо)",
-      date: "2025-01-09",
-      description: "ALT/AST слегка повышены. Лёгкая гипопротеинемия.",
-    },
-  ],
 };
 
 // =============================
-// 🔹 Основная логика
+// 🔹 Получение питомца
 // =============================
-
 function getPetById(id: string): PetRecord | undefined {
   return demoPets.find((p) => p.id === id);
 }
@@ -202,7 +169,7 @@ export default function PetPage({ params }: { params: { id: string } }) {
             / <span className="text-slate-700">{pet.name}</span>
           </nav>
 
-          {/* Шапка: имя, вид, кнопки */}
+          {/* Шапка: питомец + кнопки */}
           <section className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-3xl bg-onlyvet-teal/10 border border-slate-200 flex items-center justify-center text-onlyvet-navy text-xl font-semibold">
@@ -292,29 +259,38 @@ export default function PetPage({ params }: { params: { id: string } }) {
                   </p>
                 ) : (
                   <div className="space-y-3">
-                    {visits.map((v) => {
-                      const status: ConsultationStatus =
-                        v.status === "done" ? "done" : "scheduled";
-
-                      return (
-                        <ConsultationCard
-                          key={v.id}
-                          id={v.id}
-                          createdAt={v.date}
-                          petName={pet.name}
-                          serviceName="Онлайн-консультация"
-                          doctorName={v.doctor}
-                          dateTime={v.date}
-                          status={status}
-                          showPetLink={false}
-                        />
-                      );
-                    })}
+                    {visits.map((v) => (
+                      <div
+                        key={v.id}
+                        className="border border-slate-200 rounded-2xl bg-onlyvet-bg px-4 py-3 text-[13px] text-slate-700"
+                      >
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-1 mb-1.5">
+                          <div className="font-medium text-slate-900">
+                            Консультация #{v.id.toUpperCase()}
+                          </div>
+                          <div className="text-[12px] text-slate-500">
+                            {new Date(v.date).toLocaleDateString("ru-RU", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })}
+                          </div>
+                        </div>
+                        <div className="text-[12px] text-slate-600 mb-1">
+                          Врач:{" "}
+                          <span className="font-medium">{v.doctor}</span>
+                        </div>
+                        <div className="text-[12px] text-slate-700">
+                          {v.summary}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
 
                 <p className="mt-1 text-[11px] text-slate-500">
-                  В будущем данные будут синхронизироваться с Vetmanager.
+                  В будущем данные будут синхронизироваться с Vetmanager и
+                  реальными заключениями.
                 </p>
               </div>
             </div>
@@ -326,8 +302,8 @@ export default function PetPage({ params }: { params: { id: string } }) {
                   Документы питомца (демо)
                 </h3>
                 <p className="text-[12px] text-slate-600 mb-3 leading-relaxed">
-                  Здесь будут храниться анализы, исследования, выписки и
-                  другие материалы. Сейчас показаны демонстрационные данные.
+                  Здесь будут храниться анализы, исследования, выписки и другие
+                  материалы. Сейчас показаны демонстрационные данные.
                 </p>
 
                 <div className="space-y-3">
@@ -355,7 +331,6 @@ export default function PetPage({ params }: { params: { id: string } }) {
 // =============================
 // 🔹 Компонент категории документов
 // =============================
-
 function DocCategory({
   title,
   docs,
@@ -365,7 +340,7 @@ function DocCategory({
 }) {
   return (
     <div className="border border-slate-200 rounded-2xl bg-onlyvet-bg px-4 py-3">
-      <div className="text-[13px] font-semibold text-slate-800 mb  -2">
+      <div className="text-[13px] font-semibold text-slate-800 mb-2">
         {title}
       </div>
 
@@ -387,7 +362,7 @@ function DocCategory({
                 )}
               </div>
 
-              <div className "text-[11px] text-slate-500 whitespace-nowrap">
+              <div className="text-[11px] text-slate-500 whitespace-nowrap">
                 {new Date(d.date).toLocaleDateString("ru-RU", {
                   day: "2-digit",
                   month: "short",
@@ -400,4 +375,11 @@ function DocCategory({
       )}
     </div>
   );
+}
+
+// =============================
+// 🔹 Генерация статических маршрутов
+// =============================
+export function generateStaticParams() {
+  return demoPets.map((p) => ({ id: p.id }));
 }
