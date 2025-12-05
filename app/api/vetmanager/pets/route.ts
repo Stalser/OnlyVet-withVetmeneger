@@ -1,12 +1,27 @@
 // app/api/vetmanager/pets/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import {
   getPetsByClientId,
   findOrCreateClientByPhone,
   type VetmPet,
 } from "@/lib/vetmanagerClient";
+
+// Админ-клиент Supabase (service role)
+const supabaseUrl =
+  process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+function getSupabaseAdmin(): SupabaseClient {
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error(
+      "Supabase admin env vars are not set. Please define SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY."
+    );
+  }
+
+  return createClient(supabaseUrl, serviceRoleKey);
+}
 
 type ProfileRow = {
   id: string;
@@ -19,29 +34,27 @@ type ProfileRow = {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => null);
+    const body = await req.json().catch(() => ({}));
+    const { supabaseUserId } = body as { supabaseUserId?: string };
 
-    if (!body || !body.supabaseUserId) {
+    if (!supabaseUserId) {
       return NextResponse.json(
-        { error: "supabaseUserId is required" },
+        { error: "supabaseUserId обязателен" },
         { status: 400 }
       );
     }
 
-    const supabaseUserId: string = body.supabaseUserId;
     const admin = getSupabaseAdmin();
 
-    // 1. Получаем профиль
+    // 1. Получаем профиль пользователя
     const { data: profile, error: profileError } = await admin
       .from("profiles")
-      .select(
-        "id, email, phone, first_name, last_name, vetm_client_id"
-      )
+      .select("id, email, phone, first_name, last_name, vetm_client_id")
       .eq("id", supabaseUserId)
       .maybeSingle<ProfileRow>();
 
     if (profileError) {
-      console.error("[Pets] profile select error:", profileError);
+      console.error("[VetmPets] profile select error:", profileError);
       return NextResponse.json(
         { error: "Не удалось получить профиль" },
         { status: 500 }
@@ -56,15 +69,16 @@ export async function POST(req: NextRequest) {
     }
 
     let vetmClientId = profile.vetm_client_id ?? null;
-    let phoneDigits = (profile.phone || "").replace(/\D/g, "");
 
-    // 2. Если ещё нет клиента в Vetmanager — создаём/ищем
+    // 2. Если ещё нет связки с Vetmanager — создаём / находим клиента по телефону
     if (!vetmClientId) {
-      if (!phoneDigits) {
+      const phone = (profile.phone || "").trim();
+
+      if (!phone) {
         return NextResponse.json(
           {
             error:
-              "Для связки с клиникой нужен номер телефона. Обратитесь в поддержку.",
+              "Для работы с питомцами нужен номер телефона в профиле. Обратитесь в поддержку.",
           },
           { status: 400 }
         );
@@ -72,7 +86,7 @@ export async function POST(req: NextRequest) {
 
       try {
         const client = await findOrCreateClientByPhone({
-          phone: phoneDigits,
+          phone,
           firstName: profile.first_name || undefined,
           lastName: profile.last_name || undefined,
           email: profile.email || undefined,
@@ -80,24 +94,24 @@ export async function POST(req: NextRequest) {
 
         vetmClientId = client.id;
 
-        // записываем обратно в профиль
+        // Сохраняем vetm_client_id в профиле
         const { error: updateError } = await admin
           .from("profiles")
-          .update({
-            vetm_client_id: vetmClientId,
-            phone: phoneDigits,
-          })
+          .update({ vetm_client_id: vetmClientId })
           .eq("id", profile.id);
 
         if (updateError) {
-          console.error("[Pets] update profile vetm_client_id error:", updateError);
+          console.error(
+            "[VetmPets] update profile vetm_client_id error:",
+            updateError
+          );
         }
-      } catch (vmErr) {
-        console.error("[Pets] Vetmanager error:", vmErr);
+      } catch (err) {
+        console.error("[VetmPets] Vetmanager client error:", err);
         return NextResponse.json(
           {
             error:
-              "Не удалось получить данные из клиники. Попробуйте позже или обратитесь в поддержку.",
+              "Не удалось связать профиль с системой клиники. Попробуйте позже или обратитесь в поддержку.",
           },
           { status: 502 }
         );
@@ -105,26 +119,26 @@ export async function POST(req: NextRequest) {
     }
 
     if (!vetmClientId) {
-      // на всякий случай
+      // защита от совсем странных случаев
       return NextResponse.json(
         {
           error:
-            "Связка с клиникой не настроена. Обратитесь в поддержку.",
+            "Связка с клиентом в системе клиники отсутствует. Обратитесь в поддержку.",
         },
         { status: 500 }
       );
     }
 
-    // 3. Получаем питомцев
+    // 3. Получаем список питомцев из Vetmanager
     let pets: VetmPet[] = [];
     try {
       pets = await getPetsByClientId(vetmClientId);
-    } catch (vmErr) {
-      console.error("[Pets] getPetsByClientId error:", vmErr);
+    } catch (err) {
+      console.error("[VetmPets] getPetsByClientId error:", err);
       return NextResponse.json(
         {
           error:
-            "Не удалось загрузить список питомцев из клиники. Попробуйте позже.",
+            "Не удалось загрузить список питомцев из системы клиники. Попробуйте позже.",
         },
         { status: 502 }
       );
@@ -138,8 +152,8 @@ export async function POST(req: NextRequest) {
       },
       { status: 200 }
     );
-  } catch (err: any) {
-    console.error("[Pets] unexpected error:", err);
+  } catch (err) {
+    console.error("[VetmPets] unexpected error:", err);
     return NextResponse.json(
       { error: "Internal error" },
       { status: 500 }
