@@ -1,117 +1,127 @@
 // app/api/vetmanager/profile/init/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { findOrCreateClientByPhone } from "@/lib/vetmanagerClient";
 
-// Админ-клиент Supabase (через service role key)
-const supabaseUrl =
-  process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-function getSupabaseAdmin(): SupabaseClient {
-  if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error(
-      "Supabase admin env vars are not set. Please define SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY."
-    );
-  }
-
-  return createClient(supabaseUrl, serviceRoleKey);
-}
-
+/**
+ * Инициализация связки профиля пользователя с клиентом Vetmanager.
+ *
+ * Вход: JSON:
+ *  {
+ *    userId: string;         // uuid из auth.users / profiles.uuid
+ *    phone: string;
+ *    firstName?: string;
+ *    middleName?: string;
+ *    lastName?: string;
+ *    email?: string;
+ *  }
+ *
+ * Делает:
+ *  1) upsert профиля в public.profiles
+ *  2) findOrCreate клиента в Vetmanager по телефону
+ *  3) пишет vetm_client_id в profiles
+ */
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => ({}));
+    const body = await req.json().catch(() => null as any);
 
     const {
-      supabaseUserId,
+      userId,
       phone,
       firstName,
       middleName,
       lastName,
       email,
-    } = body as {
-      supabaseUserId?: string;
+    }: {
+      userId?: string;
       phone?: string;
       firstName?: string;
       middleName?: string;
       lastName?: string;
       email?: string;
-    };
+    } = body || {};
 
-    if (!supabaseUserId || !phone) {
+    if (!userId || !phone) {
       return NextResponse.json(
-        { error: "supabaseUserId и phone обязательны" },
+        { error: "userId и phone обязательны" },
         { status: 400 }
       );
     }
 
     const admin = getSupabaseAdmin();
 
-    // 1. Находим или создаём клиента в Vetmanager
-    let vetmClientId: number | null = null;
+    // 1. Обновляем / создаём профиль в public.profiles
+    const fullName = [lastName, firstName, middleName]
+      .filter(Boolean)
+      .join(" ");
 
-    try {
-      const client = await findOrCreateClientByPhone({
-        phone,
-        firstName,
-        middleName,
-        lastName,
-        email,
-      });
+    const { data: profile, error: profileError } = await admin
+      .from("profiles")
+      .upsert(
+        {
+          uuid: userId,
+          email: email ?? null,
+          full_name: fullName || null,
+          last_name: lastName ?? null,
+          first_name: firstName ?? null,
+          middle_name: middleName ?? null,
+          phone: phone ?? null,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "uuid" }
+      )
+      .select()
+      .maybeSingle();
 
-      vetmClientId = client.id;
-    } catch (err) {
-      console.error("[Vetmanager init] findOrCreateClientByPhone error:", err);
-      // Не роняем ручку — просто вернём 200 без vetm_client_id,
-      // чтобы регистрация на фронте не ломалась.
+    if (profileError) {
+      console.error("[Vetmanager init] profiles upsert error:", profileError);
+      return NextResponse.json(
+        { error: "Не удалось обновить профиль", details: profileError.message },
+        { status: 500 }
+      );
     }
 
-    // 2. Обновляем/создаём профиль в Supabase
-    try {
-      const fullNameParts = [lastName, firstName, middleName].filter(
-        (v) => v && `${v}`.trim().length > 0
+    // 2. Ищем или создаём клиента в Vetmanager
+    const vetmClient = await findOrCreateClientByPhone({
+      phone,
+      firstName,
+      middleName,
+      lastName,
+      email,
+    });
+
+    // 3. Записываем vetm_client_id в профиль
+    const { error: linkError } = await admin
+      .from("profiles")
+      .update({
+        vetm_client_id: vetmClient.id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("uuid", userId);
+
+    if (linkError) {
+      console.error("[Vetmanager init] update vetm_client_id error:", linkError);
+      return NextResponse.json(
+        {
+          error: "Не удалось сохранить связку с Vetmanager",
+          details: linkError.message,
+        },
+        { status: 500 }
       );
-      const fullName = fullNameParts.join(" ");
-
-      const upsertPayload: any = {
-        id: supabaseUserId,
-        email: email || null,
-        full_name: fullName || null,
-        last_name: lastName || null,
-        first_name: firstName || null,
-        middle_name: middleName || null,
-        phone: phone || null,
-      };
-
-      if (vetmClientId != null) {
-        upsertPayload.vetm_client_id = vetmClientId;
-      }
-
-      const { error: upsertError } = await admin
-        .from("profiles")
-        .upsert(upsertPayload, { onConflict: "id" });
-
-      if (upsertError) {
-        console.error("[Vetmanager init] profiles upsert error:", upsertError);
-      }
-    } catch (err) {
-      console.error("[Vetmanager init] profiles upsert exception:", err);
     }
 
     return NextResponse.json(
       {
         ok: true,
-        vetm_client_id: vetmClientId ?? null,
+        vetmClientId: vetmClient.id,
       },
       { status: 200 }
     );
-  } catch (err) {
-    console.error("[Vetmanager init] unexpected error:", err);
-    // Возвращаем 200, чтобы фронт не падал, но помечаем ok:false
+  } catch (e: any) {
+    console.error("[Vetmanager init] Unexpected error:", e);
     return NextResponse.json(
-      { ok: false, error: "internal_error" },
-      { status: 200 }
+      { error: "Internal error", details: e?.message ?? String(e) },
+      { status: 500 }
     );
   }
 }
