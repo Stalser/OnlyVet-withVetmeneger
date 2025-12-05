@@ -10,19 +10,20 @@ import { Footer } from "@/components/Footer";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 
 /**
- * Нормализация телефона для хранения / поиска.
- * - убираем всё кроме цифр
- * - для РФ (+7, 7, 8) берём последние 10 цифр
- * - для остальных стран пока возвращаем все цифры как есть
+ * Нормализация телефона для хранения и поиска.
+ * - убираем все нецифры
+ * - для РФ: 8XXXXXXXXXX / 7XXXXXXXXXX -> последние 10 цифр
+ * - для остальных стран пока просто возвращаем цифры как есть
  */
-function normalizePhoneForSearch(countryCode: string, local: string): string {
-  const digits = (countryCode + local).replace(/\D/g, "");
+function normalizePhoneForSearch(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
 
   // РФ: 11 цифр и начинается с 7 или 8 → оставляем последние 10
   if (digits.length === 11 && (digits.startsWith("7") || digits.startsWith("8"))) {
     return digits.slice(1);
   }
 
+  // Всё остальное — как есть (цифры)
   return digits;
 }
 
@@ -36,11 +37,8 @@ export default function RegisterPage() {
   const [middleName, setMiddleName] = useState("");
   const [noMiddleName, setNoMiddleName] = useState(false);
 
-  // телефон: код страны + локальный номер
-  const [countryCode, setCountryCode] = useState("+7");
-  const [phoneLocal, setPhoneLocal] = useState("");
-
   // контакты
+  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [telegram, setTelegram] = useState("");
 
@@ -59,26 +57,13 @@ export default function RegisterPage() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [serverSuccess, setServerSuccess] = useState<string | null>(null);
 
-  // ===== Валидация =====
-
+  // валидация
   const lastNameError = hasSubmitted && !lastName.trim();
   const firstNameError = hasSubmitted && !firstName.trim();
   const middleNameError =
     hasSubmitted && !noMiddleName && !middleName.trim();
-
+  const phoneError = hasSubmitted && !phone.trim();
   const emailError = hasSubmitted && !email.trim();
-
-  // проверка телефона: для РФ минимум 10 цифр, для других стран >= 6 цифр
-  const phoneDigits = (countryCode + phoneLocal).replace(/\D/g, "");
-  const isRussia =
-    countryCode.replace(/\D/g, "") === "7" || countryCode === "+7";
-
-  const phoneInvalid =
-    !phoneDigits ||
-    (isRussia ? phoneDigits.length !== 11 : phoneDigits.length < 6);
-
-  const phoneError = hasSubmitted && phoneInvalid;
-
   const passwordError = hasSubmitted && password.trim().length < 8;
   const password2Error =
     hasSubmitted && password2.trim().length > 0 && password2 !== password;
@@ -91,7 +76,7 @@ export default function RegisterPage() {
     lastName.trim().length > 0 &&
     firstName.trim().length > 0 &&
     (noMiddleName || middleName.trim().length > 0) &&
-    !phoneInvalid &&
+    phone.trim().length > 0 &&
     email.trim().length > 0 &&
     password.trim().length >= 8 &&
     password2 === password &&
@@ -99,132 +84,132 @@ export default function RegisterPage() {
     consentOffer &&
     consentRules;
 
-  // ==============================
-  // Сабмит формы
-  // ==============================
   const handleSubmit = async (e: FormEvent) => {
-  e.preventDefault();
-  setHasSubmitted(true);
-  setServerError(null);
-  setServerSuccess(null);
+    e.preventDefault();
+    setHasSubmitted(true);
+    setServerError(null);
+    setServerSuccess(null);
 
-  if (!isValid || loading) return;
+    if (!isValid || loading) return;
 
-  try {
-    setLoading(true);
+    try {
+      setLoading(true);
 
-    const fullName = [lastName, firstName, !noMiddleName && middleName]
-      .filter(Boolean)
-      .join(" ");
+      const fullName = [lastName, firstName, !noMiddleName && middleName]
+        .filter(Boolean)
+        .join(" ");
 
-    const normalized = normalizePhoneForSearch(
-      country.dialCode,
-      localPhone
-    );
-    const fullPhoneDisplay = `${country.dialCode} ${localPhone.trim()}`.trim();
+      const fullPhoneDisplay = phone.trim();
+      const normalizedPhone = normalizePhoneForSearch(phone);
 
-    // 🔹 ШАГ 1. Проверка дубликатов на сервере
-    const checkRes = await fetch("/api/auth/check-duplicate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: email.trim(),
-        phone_normalized: normalized || null,
-      }),
-    });
+      // 1. Проверка дубликатов на сервере (по email и по нормализованному телефону)
+      try {
+        const checkRes = await fetch("/api/auth/check-duplicate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: email.trim(),
+            phone_normalized: normalizedPhone || null,
+          }),
+        });
 
-    if (!checkRes.ok) {
-      // если API лег, не блокируем регистрацию, но логируем
-      console.warn("[Register] check-duplicate failed:", await checkRes.text());
-    } else {
-      const check = await checkRes.json();
+        if (checkRes.ok) {
+          const check = await checkRes.json();
 
-      if (check.duplicate) {
-        const fields: string[] = check.fields || [];
+          if (check.duplicate) {
+            const fields: string[] = check.fields || [];
 
-        if (fields.includes("email") && fields.includes("phone")) {
-          setServerError(
-            "Аккаунт с таким email и номером телефона уже существует. Попробуйте войти или восстановить доступ."
+            if (fields.includes("email") && fields.includes("phone")) {
+              setServerError(
+                "Аккаунт с таким email и номером телефона уже существует. Попробуйте войти или восстановить доступ."
+              );
+            } else if (fields.includes("email")) {
+              setServerError(
+                "Аккаунт с таким email уже существует. Попробуйте войти или восстановить доступ."
+              );
+            } else if (fields.includes("phone")) {
+              setServerError(
+                "Аккаунт с таким номером телефона уже существует. Попробуйте войти или восстановить доступ."
+              );
+            } else {
+              setServerError(
+                "Аккаунт с такими данными уже существует. Попробуйте войти или восстановить доступ."
+              );
+            }
+
+            setLoading(false);
+            return; // ⛔ НЕ вызываем Supabase, НЕ создаём дубликат
+          }
+        } else {
+          // Если API проверки лег — не блокируем регистрацию, но логируем
+          console.warn(
+            "[Register] /api/auth/check-duplicate failed:",
+            await checkRes.text()
           );
-        } else if (fields.includes("email")) {
+        }
+      } catch (checkErr) {
+        console.warn("[Register] check-duplicate error:", checkErr);
+      }
+
+      // 2. Регистрация пользователя в Supabase (email уникален на стороне Supabase)
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password: password.trim(),
+        options: {
+          data: {
+            full_name: fullName || null,
+            last_name: lastName || null,
+            first_name: firstName || null,
+            middle_name: noMiddleName ? null : middleName || null,
+            phone_raw: fullPhoneDisplay || null,
+            phone_normalized: normalizedPhone || null,
+            telegram: telegram.trim() || null,
+          },
+        },
+      });
+
+      if (error) {
+        const msg = (error.message || "").toLowerCase();
+
+        if (msg.includes("already registered")) {
           setServerError(
             "Аккаунт с таким email уже существует. Попробуйте войти или восстановить доступ."
           );
-        } else if (fields.includes("phone")) {
+        } else if (
+          msg.includes("phone_normalized") ||
+          msg.includes("profiles_phone_normalized")
+        ) {
           setServerError(
             "Аккаунт с таким номером телефона уже существует. Попробуйте войти или восстановить доступ."
           );
         } else {
           setServerError(
-            "Аккаунт с такими данными уже существует. Попробуйте войти или восстановить доступ."
+            error.message || "Не удалось создать аккаунт. Попробуйте позже."
           );
         }
 
         setLoading(false);
-        return; // ⛔ НЕ зовём Supabase, НЕ создаём дубликат
-      }
-    }
-
-    // 🔹 ШАГ 2. Регистрация в Supabase
-    const { data, error } = await supabase.auth.signUp({
-      email: email.trim(),
-      password: password.trim(),
-      options: {
-        data: {
-          full_name: fullName || null,
-          last_name: lastName || null,
-          first_name: firstName || null,
-          middle_name: noMiddleName ? null : middleName || null,
-          phone_raw: fullPhoneDisplay || null,
-          phone_normalized: normalized || null,
-          telegram: telegram.trim() || null,
-        },
-      },
-    });
-
-    if (error) {
-      const msg = (error.message || "").toLowerCase();
-
-      if (msg.includes("already registered")) {
-        setServerError(
-          "Аккаунт с таким email уже существует. Попробуйте войти или восстановить доступ."
-        );
-      } else if (
-        msg.includes("phone_normalized") ||
-        msg.includes("profiles_phone_normalized")
-      ) {
-        setServerError(
-          "Аккаунт с таким номером телефона уже существует. Попробуйте войти или восстановить доступ."
-        );
-      } else {
-        setServerError(
-          error.message || "Не удалось создать аккаунт. Попробуйте позже."
-        );
+        return;
       }
 
+      // 3. Vetmanager здесь НЕ трогаем.
+      // Клиент в Vetmanager заводится / связывается уже после подтверждения email и первого входа в ЛК.
+
+      setServerSuccess(
+        "Аккаунт создан. Подтвердите email через письмо и затем войдите в личный кабинет."
+      );
+
+      setTimeout(() => {
+        router.push("/auth/login");
+      }, 1500);
+    } catch (err) {
+      console.error(err);
+      setServerError("Произошла техническая ошибка. Попробуйте позже.");
+    } finally {
       setLoading(false);
-      return;
     }
+  };
 
-    // Никакого Vetmanager здесь
-    setServerSuccess(
-      "Аккаунт создан. Подтвердите email через письмо и затем войдите в личный кабинет."
-    );
-
-    setTimeout(() => {
-      router.push("/auth/login");
-    }, 1500);
-  } catch (err) {
-    console.error(err);
-    setServerError("Произошла техническая ошибка. Попробуйте позже.");
-  } finally {
-    setLoading(false);
-  }
-};
-
-  // ==============================
-  // UI
-  // ==============================
   return (
     <>
       <Header />
@@ -324,7 +309,7 @@ export default function RegisterPage() {
                         }`}
                         placeholder={noMiddleName ? "Не указано" : "Иванович"}
                       />
-                      <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-600">
+                      <div className="mt-1 flex items-center gap-2 text-[11px] text-сlate-600">
                         <input
                           type="checkbox"
                           id="no-middle-name"
@@ -348,87 +333,57 @@ export default function RegisterPage() {
                   </div>
                 </section>
 
-                {/* Контактные данные */}
+                {/* Контакты */}
                 <section className="space-y-2">
                   <h2 className="text-[14px] font-semibold">
                     Контактные данные
                   </h2>
-
-                  {/* Телефон: код страны + номер */}
-                  <div className="grid md:grid-cols-[1fr,2fr] gap-3">
+                  <div className="grid md:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-[12px] text-slate-600 mb-1">
-                        Код страны<span className="text-red-500">*</span>
-                      </label>
-                      <select
-                        value={countryCode}
-                        onChange={(e) => setCountryCode(e.target.value)}
-                        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40 bg-white"
-                      >
-                        <option value="+7">Россия (+7)</option>
-                        <option value="+375">Беларусь (+375)</option>
-                        <option value="+380">Украина (+380)</option>
-                        <option value="+44">Великобритания (+44)</option>
-                        <option value="+1">США/Канада (+1)</option>
-                        <option value="+49">Германия (+49)</option>
-                        <option value="+972">Израиль (+972)</option>
-                        <option value="+420">Чехия (+420)</option>
-                        <option value="+996">Киргизия (+996)</option>
-                        {/* при необходимости потом расширим список */}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-[12px] text-slate-600 mb-1">
-                        Номер телефона<span className="text-red-500">*</span>
+                        Телефон<span className="text-red-500">*</span>
                       </label>
                       <input
                         type="tel"
-                        value={phoneLocal}
-                        onChange={(e) => setPhoneLocal(e.target.value)}
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
                         className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
                           phoneError
                             ? "border-rose-400 focus:ring-rose-300"
                             : "border-slate-300 focus:ring-onlyvet-teal/40"
                         }`}
-                        placeholder={isRussia ? "999 123-45-67" : "номер телефона"}
+                        placeholder="+7 999 123-45-67"
                       />
                       {phoneError && (
                         <p className="mt-1 text-[11px] text-rose-600">
-                          Укажите корректный номер телефона.
+                          Укажите телефон, чтобы мы могли связаться с вами.
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-[12px] text-slate-600 mb-1">
+                        Email<span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
+                          emailError
+                            ? "border-rose-400 focus:ring-rose-300"
+                            : "border-slate-300 focus:ring-onlyvet-teal/40"
+                        }`}
+                        placeholder="example@mail.ru"
+                      />
+                      {emailError && (
+                        <p className="mt-1 text-[11px] text-rose-600">
+                          Email нужен для отправки материалов консультации и
+                          уведомлений.
                         </p>
                       )}
                     </div>
                   </div>
 
-                  <p className="text-[11px] text-slate-500">
-                    Номер нужен для связи с вами и поиска карты в клинике.
-                  </p>
-
-                  {/* Email */}
-                  <div>
-                    <label className="block text-[12px] text-slate-600 mb-1">
-                      Email<span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
-                        emailError
-                          ? "border-rose-400 focus:ring-rose-300"
-                          : "border-slate-300 focus:ring-onlyvet-teal/40"
-                      }`}
-                      placeholder="example@mail.ru"
-                    />
-                    {emailError && (
-                      <p className="mt-1 text-[11px] text-rose-600">
-                        Email нужен для отправки материалов консультации и
-                        уведомлений.
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Telegram */}
                   <div>
                     <label className="block text-[12px] text-slate-600 mb-1">
                       Telegram (необязательно)
@@ -462,6 +417,11 @@ export default function RegisterPage() {
                         }`}
                         placeholder="Не менее 8 символов"
                       />
+                      {passwordError && (
+                        <p className="mt-1 text-[11px] text-rose-600">
+                          Пароль должен быть не короче 8 символов.
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-[12px] text-slate-600 mb-1">
@@ -478,14 +438,13 @@ export default function RegisterPage() {
                         }`}
                         placeholder="Ещё раз пароль"
                       />
+                      {password2Error && (
+                        <p className="mt-1 text-[11px] text-rose-600">
+                          Пароли не совпадают.
+                        </p>
+                      )}
                     </div>
                   </div>
-                  {(passwordError || password2Error) && (
-                    <p className="mt-1 text-[11px] text-rose-600">
-                      Пароль должен быть не короче 8 символов, и оба поля должны
-                      совпадать.
-                    </p>
-                  )}
                 </section>
 
                 {/* Согласия */}
