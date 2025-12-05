@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import type { BookingRequest, BookingStatus } from "@/lib/types";
 import { mockBookings } from "./mockStore";
-import { supabaseServer } from "@/lib/supabaseServer";
+import { getSupabaseServerClient } from "@/lib/supabaseServer";
 
 function buildPlannedAt(
   date: string | undefined,
@@ -83,11 +83,12 @@ export async function POST(req: NextRequest) {
       status,
     };
 
-    // 🧱 1) сохраняем в in-memory store (как раньше)
+    // 1) сохраняем в in-memory store (как раньше)
     mockBookings.push(booking);
 
-    // 🧱 2) НОВОЕ: создаём питомца (если нужно) и консультацию в Supabase
-    // Если серверный клиент не настроен (нет env), просто пропускаем этот шаг
+    // 2) Пытаемся записать в Supabase, если серверный клиент настроен
+    const supabaseServer = getSupabaseServerClient();
+
     if (supabaseServer) {
       try {
         const ownerId: string | null =
@@ -159,7 +160,6 @@ export async function POST(req: NextRequest) {
         // не роняем основной ответ клиенту — просто логируем
       }
     } else {
-      // нет supabaseServer → просто логируем и продолжаем
       console.warn(
         "[API] Supabase server client is not configured; skipping DB insert."
       );
