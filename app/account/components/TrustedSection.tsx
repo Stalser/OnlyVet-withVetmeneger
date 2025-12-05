@@ -1,62 +1,15 @@
+// app/account/components/TrustedSection.tsx
 "use client";
 
-type SupabaseUser = {
-  id: string;
-  email?: string;
-  user_metadata?: Record<string, any>;
-};
+import type { TrustedPerson, TrustedForMe } from "./mocks";
 
-type AccountTab = "consultations" | "pets" | "trusted" | "notifications" | "profile";
+type Props = {
+  currentUserName: string;
+  trustedPeople: TrustedPerson[];
+  trustedForMe: TrustedForMe[];
+};
 
 type AccessLevel = "view" | "manage" | "finance";
-
-type TrustedPerson = {
-  id: string;
-  name: string;
-  contact: string;
-  accessLevel: AccessLevel[];
-  scope: "all_pets" | "selected_pets";
-  petNames?: string[];
-};
-
-type TrustedForMe = {
-  id: string;
-  ownerName: string;
-  ownerContact: string;
-  accessLevel: AccessLevel[];
-  scope: "all_pets" | "selected_pets";
-  petNames?: string[];
-};
-
-// Демонстрационные данные — позже заменим на Supabase/Vetmanager
-const mockTrustedPeople: TrustedPerson[] = [
-  {
-    id: "t1",
-    name: "Ольга Петрова",
-    contact: "Телефон: +7 900 000-00-01",
-    accessLevel: ["view", "manage"],
-    scope: "all_pets",
-  },
-  {
-    id: "t2",
-    name: "Фонд «Хвосты и лапы»",
-    contact: "Email: curator@tails.ru",
-    accessLevel: ["view"],
-    scope: "selected_pets",
-    petNames: ["Рекс"],
-  },
-];
-
-const mockTrustedForMe: TrustedForMe[] = [
-  {
-    id: "tm1",
-    ownerName: "Анна Смирнова",
-    ownerContact: "Телефон: +7 900 123-45-67",
-    accessLevel: ["view", "manage"],
-    scope: "selected_pets",
-    petNames: ["Марта"],
-  },
-];
 
 function accessLevelLabel(level: AccessLevel): string {
   switch (level) {
@@ -71,21 +24,12 @@ function accessLevelLabel(level: AccessLevel): string {
   }
 }
 
-export default function TrustedSection({ user }: { user: SupabaseUser }) {
-  const meta = (user.user_metadata || {}) as any;
-  const fullNameFromMeta =
-    meta.full_name ||
-    [meta.last_name, meta.first_name].filter(Boolean).join(" ");
-
-  const currentUserName =
-    (fullNameFromMeta && fullNameFromMeta.trim().length > 0
-      ? fullNameFromMeta
-      : user.email) || "Пользователь";
-
-  const trustedPeople = mockTrustedPeople;
-  const trustedForMe = mockTrustedForMe;
-
-  const isOwner = true; // позже можно будет вычислять по ролям
+export default function TrustedSection({
+  currentUserName,
+  trustedPeople,
+  trustedForMe,
+}: Props) {
+  const isOwner = true; // в будущем можно будет брать из ролей
   const isAlsoTrusted = trustedForMe.length > 0;
 
   return (
@@ -113,7 +57,8 @@ export default function TrustedSection({ user }: { user: SupabaseUser }) {
             Ваш статус в системе
           </h3>
           <p className="text-slate-700 mb-2">
-            Вы вошли как <span className="font-medium">{currentUserName}</span>.
+            Вы вошли как{" "}
+            <span className="font-medium">{currentUserName}</span>.
           </p>
           <ul className="text-[12px] text-slate-600 space-y-1.5">
             {isOwner && (
