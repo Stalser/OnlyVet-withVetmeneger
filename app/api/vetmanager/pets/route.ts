@@ -1,92 +1,147 @@
 // app/api/vetmanager/pets/route.ts
-import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 
+import { NextRequest, NextResponse } from "next/server";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import {
-  findOrCreateClientByPhone,
   getPetsByClientId,
+  findOrCreateClientByPhone,
+  type VetmPet,
 } from "@/lib/vetmanagerClient";
 
-/**
- * GET /api/vetmanager/pets
- *
- * 1. Берём текущего пользователя из Supabase auth.
- * 2. Загружаем его профиль из таблицы profiles.
- * 3. Если нет vetm_client_id — ищем/создаём клиента в Vetmanager по телефону и обновляем профиль.
- * 4. По vetm_client_id забираем список питомцев из Vetmanager.
- */
-export async function GET() {
+type ProfileRow = {
+  id: string;
+  email?: string | null;
+  phone?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  vetm_client_id?: number | null;
+};
+
+export async function POST(req: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient({ cookies });
+    const body = await req.json().catch(() => null);
 
-    // 1. Текущий пользователь
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
-
-    // 2. Профиль
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", user.id)
-      .single();
-
-    if (profileError || !profile) {
-      console.error("[VetmPets] profile error:", profileError);
+    if (!body || !body.supabaseUserId) {
       return NextResponse.json(
-        { error: "Profile not found" },
-        { status: 404 }
-      );
-    }
-
-    const phone: string | null = profile.phone;
-    let vetmClientId: number | null = profile.vetm_client_id ?? null;
-
-    if (!phone) {
-      return NextResponse.json(
-        { error: "Для загрузки питомцев нужен телефон в профиле" },
+        { error: "supabaseUserId is required" },
         { status: 400 }
       );
     }
 
-    // 3. Если нет связки с Vetmanager — создаём/ищем клиента
-    if (!vetmClientId) {
-      const client = await findOrCreateClientByPhone({
-        phone,
-        firstName: profile.first_name || undefined,
-        lastName: profile.last_name || undefined,
-        email: profile.email || undefined,
-      });
+    const supabaseUserId: string = body.supabaseUserId;
+    const admin = getSupabaseAdmin();
 
-      vetmClientId = client.id;
+    // 1. Получаем профиль
+    const { data: profile, error: profileError } = await admin
+      .from("profiles")
+      .select(
+        "id, email, phone, first_name, last_name, vetm_client_id"
+      )
+      .eq("id", supabaseUserId)
+      .maybeSingle<ProfileRow>();
 
-      // обновляем связку в Supabase
-      await supabase
-        .from("profiles")
-        .update({ vetm_client_id: vetmClientId })
-        .eq("id", user.id);
+    if (profileError) {
+      console.error("[Pets] profile select error:", profileError);
+      return NextResponse.json(
+        { error: "Не удалось получить профиль" },
+        { status: 500 }
+      );
     }
 
-    // 4. Загружаем питомцев из Vetmanager
-    const pets = await getPetsByClientId(vetmClientId);
+    if (!profile) {
+      return NextResponse.json(
+        { error: "Профиль не найден" },
+        { status: 404 }
+      );
+    }
+
+    let vetmClientId = profile.vetm_client_id ?? null;
+    let phoneDigits = (profile.phone || "").replace(/\D/g, "");
+
+    // 2. Если ещё нет клиента в Vetmanager — создаём/ищем
+    if (!vetmClientId) {
+      if (!phoneDigits) {
+        return NextResponse.json(
+          {
+            error:
+              "Для связки с клиникой нужен номер телефона. Обратитесь в поддержку.",
+          },
+          { status: 400 }
+        );
+      }
+
+      try {
+        const client = await findOrCreateClientByPhone({
+          phone: phoneDigits,
+          firstName: profile.first_name || undefined,
+          lastName: profile.last_name || undefined,
+          email: profile.email || undefined,
+        });
+
+        vetmClientId = client.id;
+
+        // записываем обратно в профиль
+        const { error: updateError } = await admin
+          .from("profiles")
+          .update({
+            vetm_client_id: vetmClientId,
+            phone: phoneDigits,
+          })
+          .eq("id", profile.id);
+
+        if (updateError) {
+          console.error("[Pets] update profile vetm_client_id error:", updateError);
+        }
+      } catch (vmErr) {
+        console.error("[Pets] Vetmanager error:", vmErr);
+        return NextResponse.json(
+          {
+            error:
+              "Не удалось получить данные из клиники. Попробуйте позже или обратитесь в поддержку.",
+          },
+          { status: 502 }
+        );
+      }
+    }
+
+    if (!vetmClientId) {
+      // на всякий случай
+      return NextResponse.json(
+        {
+          error:
+            "Связка с клиникой не настроена. Обратитесь в поддержку.",
+        },
+        { status: 500 }
+      );
+    }
+
+    // 3. Получаем питомцев
+    let pets: VetmPet[] = [];
+    try {
+      pets = await getPetsByClientId(vetmClientId);
+    } catch (vmErr) {
+      console.error("[Pets] getPetsByClientId error:", vmErr);
+      return NextResponse.json(
+        {
+          error:
+            "Не удалось загрузить список питомцев из клиники. Попробуйте позже.",
+        },
+        { status: 502 }
+      );
+    }
 
     return NextResponse.json(
       {
-        success: true,
-        vetm_client_id: vetmClientId,
+        ok: true,
+        vetmClientId,
         pets,
       },
       { status: 200 }
     );
   } catch (err: any) {
-    console.error("[VetmPets] ERROR", err);
+    console.error("[Pets] unexpected error:", err);
     return NextResponse.json(
-      { error: err.message || "Internal error" },
+      { error: "Internal error" },
       { status: 500 }
     );
   }
