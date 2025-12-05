@@ -1,33 +1,18 @@
-// lib/supabaseClient.ts
-"use client";
-
+// lib/supabaseServer.ts
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-let browserClient: SupabaseClient | null = null;
-
 /**
- * Клиент Supabase для браузера (auth, запросы с фронта).
- *
- * Использует публичный anon-ключ, поэтому безопасен для использования
- * на клиентах. Реальный доступ к БД ограничен RLS-политиками.
+ * Серверный клиент Supabase.
+ * Может вернуть null, если нет нужных env-переменных.
+ * Никаких throw на верхнем уровне — чтобы не ронять билд на Vercel.
  */
-export function getSupabaseClient(): SupabaseClient {
-  if (!browserClient) {
-    if (!supabaseUrl || !anonKey) {
-      throw new Error(
-        "Supabase env vars are not set. Please define NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY."
-      );
-    }
+export function getSupabaseServerClient(): SupabaseClient | null {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    browserClient = createClient(supabaseUrl, anonKey);
+  if (!supabaseUrl || !serviceRoleKey) {
+    return null;
   }
 
-  return browserClient;
+  return createClient(supabaseUrl, serviceRoleKey);
 }
-
-// Для обратной совместимости со старым кодом:
-// можно импортировать либо { supabase }, либо { getSupabaseClient }
-export const supabase: SupabaseClient = getSupabaseClient();
