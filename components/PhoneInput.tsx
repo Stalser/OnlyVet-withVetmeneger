@@ -3,151 +3,205 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+type CountryCode =
+  | "RU"
+  | "KZ"
+  | "BY"
+  | "UA"
+  | "AM"
+  | "GE"
+  | "KG";
+
 type CountryOption = {
-  code: string;      // ISO-код (RU, KZ, US и т.д.)
-  dialCode: string;  // Префикс с плюсом, например "+7"
-  label: string;     // Название для пользователя
-  example?: string;  // Пример номера без префикса
+  code: CountryCode;
+  name: string;
+  dialCode: string; // без знака "+"
+  flag: string;
 };
 
-// Минимальный набор стран — можно дополнять по мере надобности
 const COUNTRIES: CountryOption[] = [
-  { code: "RU", dialCode: "+7", label: "Россия", example: "9829138405" },
-  { code: "KZ", dialCode: "+7", label: "Казахстан", example: "7012345678" },
-  { code: "BY", dialCode: "+375", label: "Беларусь", example: "291234567" },
-  { code: "UA", dialCode: "+380", label: "Украина", example: "671234567" },
-  { code: "US", dialCode: "+1", label: "США / Канада", example: "4155551234" },
+  { code: "RU", name: "Россия", dialCode: "7", flag: "🇷🇺" },
+  { code: "KZ", name: "Казахстан", dialCode: "7", flag: "🇰🇿" },
+  { code: "BY", name: "Беларусь", dialCode: "375", flag: "🇧🇾" },
+  { code: "UA", name: "Украина", dialCode: "380", flag: "🇺🇦" },
+  { code: "AM", name: "Армения", dialCode: "374", flag: "🇦🇲" },
+  { code: "GE", name: "Грузия", dialCode: "995", flag: "🇬🇪" },
+  { code: "KG", name: "Киргизия", dialCode: "996", flag: "🇰🇬" },
 ];
 
-type PhoneInputProps = {
-  label?: string;
-  value: string;                         // Полное значение, например "+79829138405"
-  onChange: (value: string) => void;     // Сюда отдаём полное значение
-  required?: boolean;
-  error?: boolean;
-  helperText?: string;
-  className?: string;
-};
-
-function normalizeDigits(raw: string): string {
-  return raw.replace(/\D/g, "");
+function findCountryByCode(code: CountryCode): CountryOption {
+  return COUNTRIES.find((c) => c.code === code) ?? COUNTRIES[0];
 }
 
-export function PhoneInput(props: PhoneInputProps) {
-  const {
-    label,
-    value,
-    onChange,
-    required,
-    error,
-    helperText,
-    className = "",
-  } = props;
+function findCountryByPhone(value: string): {
+  country: CountryOption;
+  localDigits: string;
+} {
+  const digits = value.replace(/\D/g, "");
 
-  // Выбранная страна
+  // Ищем страну по коду: от самых длинных к коротким
+  const byDialCode =
+    COUNTRIES.slice()
+      .sort((a, b) => b.dialCode.length - a.dialCode.length)
+      .find((c) => digits.startsWith(c.dialCode)) ?? COUNTRIES[0];
+
+  const localDigits = digits.startsWith(byDialCode.dialCode)
+    ? digits.slice(byDialCode.dialCode.length)
+    : digits;
+
+  return { country: byDialCode, localDigits };
+}
+
+function formatLocalDigits(digits: string, country: CountryOption): string {
+  // Очень лёгкое форматирование — без фанатизма
+  // Для РФ/КЗ — 3-3-2-2, для остальных просто группируем по 3–4
+  if (country.dialCode === "7") {
+    // ожидаем до 10 цифр
+    const d = digits.slice(0, 10);
+    const p1 = d.slice(0, 3);
+    const p2 = d.slice(3, 6);
+    const p3 = d.slice(6, 8);
+    const p4 = d.slice(8, 10);
+
+    return [p1, p2, p3, p4].filter(Boolean).join("-");
+  }
+
+  // общий случай
+  if (digits.length <= 4) return digits;
+  if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
+}
+
+export interface PhoneInputProps {
+  value: string;
+  onChange: (value: string) => void;
+  label?: string;
+  required?: boolean;
+  error?: string | null;
+}
+
+/**
+ * Красивый ввод телефона:
+ * - слева выбор страны (+ код)
+ * - справа только номер без дублирования кода
+ * - наружу отдаёт строку вида "+7 9829138405"
+ */
+export function PhoneInput({
+  value,
+  onChange,
+  label = "Телефон",
+  required,
+  error,
+}: PhoneInputProps) {
   const [country, setCountry] = useState<CountryOption>(COUNTRIES[0]);
-  // Локальная часть номера (без кода страны)
-  const [localPart, setLocalPart] = useState<string>("");
+  const [localDigits, setLocalDigits] = useState<string>("");
 
-  // При первом рендере / смене value — распарсить существующее значение
+  // Инициализация по входящему значению
   useEffect(() => {
-    if (!value) {
-      setCountry(COUNTRIES[0]);
-      setLocalPart("");
-      return;
-    }
-
-    const trimmed = value.trim();
-
-    // Найдём страну по префиксу
-    const found =
-      COUNTRIES.find((opt) => trimmed.startsWith(opt.dialCode)) || COUNTRIES[0];
-
-    const withoutCode = trimmed.replace(found.dialCode, "");
-    setCountry(found);
-    setLocalPart(normalizeDigits(withoutCode));
+    if (!value) return;
+    const { country: c, localDigits: ld } = findCountryByPhone(value);
+    setCountry(c);
+    setLocalDigits(ld);
   }, [value]);
 
-  // Плейсхолдер для локальной части
-  const localPlaceholder = useMemo(() => {
-    if (!country.example) return "";
-    return country.example;
-  }, [country]);
+  // Форматированное значение для отображения
+  const formattedLocal = useMemo(
+    () => formatLocalDigits(localDigits, country),
+    [localDigits, country]
+  );
 
-  // Изменение страны
-  const handleCountryChange = (code: string) => {
-    const next =
-      COUNTRIES.find((opt) => opt.code === code) || COUNTRIES[0];
-
-    setCountry(next);
-
-    // Пересобираем полное значение и отдаём наружу
-    const digits = normalizeDigits(localPart);
-    const combined = digits ? `${next.dialCode}${digits}` : next.dialCode;
-    onChange(combined);
+  // Обновление вверх
+  const pushChange = (nextCountry: CountryOption, nextLocalDigits: string) => {
+    const trimmedDigits = nextLocalDigits.replace(/\D/g, "");
+    if (!trimmedDigits) {
+      onChange("");
+      return;
+    }
+    const full = `+${nextCountry.dialCode} ${trimmedDigits}`;
+    onChange(full);
   };
 
-  // Изменение локальной части номера
-  const handleLocalChange = (raw: string) => {
-    const digits = normalizeDigits(raw);
-    setLocalPart(digits);
+  const handleCountryChange = (code: string) => {
+    const next = findCountryByCode(code as CountryCode);
+    setCountry(next);
+    // оставляем локальные цифры, просто меняем код
+    pushChange(next, localDigits);
+  };
 
-    const combined = digits ? `${country.dialCode}${digits}` : country.dialCode;
-    onChange(combined);
+  const handleLocalChange = (raw: string) => {
+    const digitsOnly = raw.replace(/\D/g, "").slice(0, 15); // защита от перебора
+    setLocalDigits(digitsOnly);
+    pushChange(country, digitsOnly);
   };
 
   return (
-    <div className={`w-full ${className}`}>
-      {label && (
-        <label className="block text-[12px] text-slate-600 mb-1">
-          {label}
-          {required && <span className="text-red-500">*</span>}
-        </label>
-      )}
+    <div className="w-full space-y-1">
+      {/* Основный лейбл */}
+      <label className="block text-[12px] text-slate-600 mb-1">
+        {label}
+        {required && <span className="text-red-500 ml-0.5">*</span>}
+      </label>
 
-      <div className="flex gap-2">
-        {/* Выбор страны */}
-        <div className="w-[40%] min-w-[120px]">
-          <select
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] bg-white focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
-            value={country.code}
-            onChange={(e) => handleCountryChange(e.target.value)}
-          >
-            {COUNTRIES.map((opt) => (
-              <option key={opt.code} value={opt.code}>
-                {opt.label} {opt.dialCode}
-              </option>
-            ))}
-          </select>
+      {/* Подписи для двух полей */}
+      <div className="grid grid-cols-1 md:grid-cols-[160px,1fr] gap-2 text-[11px] text-slate-500">
+        <div>Код страны</div>
+        <div>Номер телефона</div>
+      </div>
+
+      {/* Страна + номер */}
+      <div className="grid grid-cols-1 md:grid-cols-[160px,1fr] gap-2">
+        {/* Страна */}
+        <div>
+          <div className="relative">
+            <select
+              value={country.code}
+              onChange={(e) => handleCountryChange(e.target.value)}
+              className="
+                w-full appearance-none rounded-xl border border-slate-300 bg-white
+                px-3 py-2 text-[13px] pr-8
+                focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40
+              "
+            >
+              {COUNTRIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.flag} {c.name} (+{c.dialCode})
+                </option>
+              ))}
+            </select>
+            <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-slate-400 text-xs">
+              ▾
+            </span>
+          </div>
         </div>
 
-        {/* Локальная часть номера */}
-        <div className="flex-1 relative">
-          <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-slate-500">
-            {country.dialCode}
+        {/* Номер */}
+        <div>
+          <div className="flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 focus-within:ring-2 focus-within:ring-onlyvet-teal/40">
+            <span className="text-[13px] text-slate-500 whitespace-nowrap">
+              +{country.dialCode}
+            </span>
+            <input
+              type="tel"
+              inputMode="numeric"
+              value={formattedLocal}
+              onChange={(e) => handleLocalChange(e.target.value)}
+              className="w-full border-none bg-transparent text-[13px] focus:outline-none"
+              placeholder={
+                country.dialCode === "7"
+                  ? "912 345-67-89"
+                  : "номер телефона"
+              }
+            />
           </div>
-          <input
-            type="tel"
-            inputMode="tel"
-            value={localPart}
-            onChange={(e) => handleLocalChange(e.target.value)}
-            placeholder={localPlaceholder}
-            className={`w-full rounded-xl border px-3 py-2 pl-10 text-[13px] focus:outline-none focus:ring-2 ${
-              error
-                ? "border-rose-400 focus:ring-rose-300"
-                : "border-slate-300 focus:ring-onlyvet-teal/40"
-            }`}
-          />
         </div>
       </div>
 
-      {helperText && (
-        <p
-          className={`mt-1 text-[11px] ${
-            error ? "text-rose-600" : "text-slate-500"
-          }`}
-        >
-          {helperText}
+      {/* Подсказка / ошибка */}
+      {error ? (
+        <p className="mt-1 text-[11px] text-rose-600">{error}</p>
+      ) : (
+        <p className="mt-1 text-[11px] text-slate-500">
+          Номер нужен для связи с вами и поиска карты в клинике.
         </p>
       )}
     </div>
