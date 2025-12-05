@@ -103,15 +103,19 @@ export default function RegisterPage() {
       }
 
       // 2. Мягкая инициализация связки Supabase ⇄ Vetmanager
-      if (data.user) {
+      const user = data.user;
+      if (user) {
         try {
           await fetch("/api/vetmanager/profile/init", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              supabaseUserId: data.user.id,
+              userId: user.id,                     // <-- ключевое отличие
               phone: phone.trim(),
               firstName,
+              middleName: noMiddleName
+                ? undefined
+                : middleName || undefined,
               lastName,
               email: email.trim(),
             }),
@@ -181,7 +185,7 @@ export default function RegisterPage() {
                         className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
                           lastNameError
                             ? "border-rose-400 focus:ring-rose-300"
-                            : "border-slate-300 focus:ring-onlyvet-teal/40"
+                            : "border-slate-300 focus:ring-onlyvet-teал/40"
                         }`}
                         placeholder="Иванов"
                       />
@@ -204,7 +208,7 @@ export default function RegisterPage() {
                         className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
                           firstNameError
                             ? "border-rose-400 focus:ring-rose-300"
-                            : "border-slate-300 focus:ring-onlyvet-teal/40"
+                            : "border-slate-300 focus:ring-onlyvet-teал/40"
                         }`}
                         placeholder="Иван"
                       />
@@ -232,7 +236,7 @@ export default function RegisterPage() {
                             ? "border-slate-200 bg-slate-50 text-slate-400"
                             : middleNameError
                             ? "border-rose-400 focus:ring-rose-300"
-                            : "border-slate-300 focus:ring-onlyvet-teal/40"
+                            : "border-slate-300 focus:ring-onlyvet-teал/40"
                         }`}
                         placeholder={noMiddleName ? "Не указано" : "Иванович"}
                       />
@@ -277,7 +281,7 @@ export default function RegisterPage() {
                         className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
                           phoneError
                             ? "border-rose-400 focus:ring-rose-300"
-                            : "border-slate-300 focus:ring-onlyvet-teal/40"
+                            : "border-slate-300 focus:ring-onlyvet-teал/40"
                         }`}
                         placeholder="+7 ..."
                       />
@@ -298,7 +302,7 @@ export default function RegisterPage() {
                         className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
                           emailError
                             ? "border-rose-400 focus:ring-rose-300"
-                            : "border-slate-300 focus:ring-onlyvet-teal/40"
+                            : "border-slate-300 focus:ring-onlyvet-teал/40"
                         }`}
                         placeholder="example@mail.ru"
                       />
@@ -319,7 +323,7 @@ export default function RegisterPage() {
                       type="text"
                       value={telegram}
                       onChange={(e) => setTelegram(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
                       placeholder="@username"
                     />
                   </div>
@@ -340,7 +344,7 @@ export default function RegisterPage() {
                         className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
                           passwordError
                             ? "border-rose-400 focus:ring-rose-300"
-                            : "border-slate-300 focus:ring-onlyvet-teal/40"
+                            : "border-slate-300 focus:ring-onlyvet-teал/40"
                         }`}
                         placeholder="Не менее 8 символов"
                       />
@@ -361,7 +365,7 @@ export default function RegisterPage() {
                         className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
                           password2Error
                             ? "border-rose-400 focus:ring-rose-300"
-                            : "border-slate-300 focus:ring-onlyvet-teal/40"
+                            : "border-slate-300 focus:ring-onlyvet-teал/40"
                         }`}
                         placeholder="Ещё раз пароль"
                       />
@@ -427,7 +431,7 @@ export default function RegisterPage() {
                         Я ознакомлен(а) и согласен(на) с{" "}
                         <Link
                           href="/docs/rules"
-                          className="text-onlyvet-coral underline-offset-2 hover:underline"
+                          className="text-onlyvet-cорал underline-offset-2 hover:underline"
                         >
                           правилами онлайн-клиники
                         </Link>
@@ -473,7 +477,7 @@ export default function RegisterPage() {
                   Уже есть аккаунт?{" "}
                   <Link
                     href="/auth/login"
-                    className="text-onlyvet-coral hover:underline"
+                    className="text-onlyvet-cорал hover:underline"
                   >
                     Войти
                   </Link>
