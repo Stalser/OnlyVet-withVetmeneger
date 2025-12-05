@@ -131,13 +131,24 @@ export default function AccountPage() {
           </div>
 
           {/* Контент вкладки */}
-          {tab === "consultations" && <ConsultationsSection user={currentUser} />}
-          {tab === "pets" && <PetsSection user={currentUser} />}
-          {tab === "trusted" && <TrustedSection user={currentUser} />}
-          {tab === "notifications" && <NotificationsSection user={currentUser} />}
-          {tab === "profile" && <ProfileSection user={currentUser} />}
-        </div>
-      </main>
+{tab === "consultations" && <ConsultationsSection />}
+{tab === "pets" && <PetsSection />}
+{tab === "trusted" && (
+  <TrustedSection
+    currentUserName={currentUserName}
+    trustedPeople={mockTrustedPeople}
+    trustedForMe={mockTrustedForMe}
+  />
+)}
+{tab === "notifications" && (
+  <NotificationsSection settings={mockNotificationSettings} />
+)}
+{tab === "profile" && (
+  <ProfileSection
+    currentUserName={currentUserName}
+    currentUserEmail={currentUserEmail}
+  />
+)}
 
       <Footer />
     </>
