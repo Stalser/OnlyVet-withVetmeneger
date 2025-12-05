@@ -142,7 +142,7 @@ export async function findOrCreateClientByPhone(opts: {
   firstName?: string;
   lastName?: string;
   email?: string;
-}: Promise<VetmClient> {
+}): Promise<VetmClient> {
   const existing = await searchClientByPhone(opts.phone).catch(() => null);
   if (existing) return existing;
   return await createClient(opts);
