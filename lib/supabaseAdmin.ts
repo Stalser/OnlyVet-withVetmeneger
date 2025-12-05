@@ -1,30 +1,33 @@
 // lib/supabaseAdmin.ts
-// Серверный Supabase-клиент с service-role ключом.
-// Используем ТОЛЬКО на сервере (API routes, server components).
+// Админ-клиент Supabase (service role). Использовать ТОЛЬКО на сервере.
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!supabaseUrl || !serviceKey) {
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
   console.warn(
-    "[SupabaseAdmin] SUPABASE_URL или SUPABASE_SERVICE_ROLE_KEY не заданы в env."
+    "[SupabaseAdmin] SUPABASE_URL или SUPABASE_SERVICE_ROLE_KEY не заданы. Админ-клиент работать не будет."
   );
 }
 
 let adminClient: SupabaseClient | null = null;
 
 export function getSupabaseAdmin(): SupabaseClient {
-  if (!adminClient) {
-    if (!supabaseUrl || !serviceKey) {
-      throw new Error(
-        "Supabase admin client is not configured (no SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY)."
-      );
-    }
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error(
+      "Supabase admin client is not configured (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY)."
+    );
+  }
 
-    adminClient = createClient(supabaseUrl, serviceKey, {
-      auth: { persistSession: false },
+  if (!adminClient) {
+    adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: {
+        // на сервере сессии хранить не нужно
+        persistSession: false,
+      },
     });
   }
 
