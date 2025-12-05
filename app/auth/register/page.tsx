@@ -8,6 +8,7 @@ import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { getSupabaseClient } from "@/lib/supabaseClient";
+import { PhoneInput } from "@/components/PhoneInput";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -20,7 +21,7 @@ export default function RegisterPage() {
   const [noMiddleName, setNoMiddleName] = useState(false);
 
   // контакты
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState(""); // полный номер, например "+79829138405"
   const [email, setEmail] = useState("");
   const [telegram, setTelegram] = useState("");
 
@@ -39,12 +40,15 @@ export default function RegisterPage() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [serverSuccess, setServerSuccess] = useState<string | null>(null);
 
+  // вспомогательная функция для валидации телефона
+  const phoneDigits = phone.replace(/\D/g, "");
+
   // валидация
   const lastNameError = hasSubmitted && !lastName.trim();
   const firstNameError = hasSubmitted && !firstName.trim();
   const middleNameError =
     hasSubmitted && !noMiddleName && !middleName.trim();
-  const phoneError = hasSubmitted && !phone.trim();
+  const phoneError = hasSubmitted && phoneDigits.length < 7; // хотя бы 7 цифр
   const emailError = hasSubmitted && !email.trim();
   const passwordError = hasSubmitted && password.trim().length < 8;
   const password2Error =
@@ -58,7 +62,7 @@ export default function RegisterPage() {
     lastName.trim().length > 0 &&
     firstName.trim().length > 0 &&
     (noMiddleName || middleName.trim().length > 0) &&
-    phone.trim().length > 0 &&
+    phoneDigits.length >= 7 &&
     email.trim().length > 0 &&
     password.trim().length >= 8 &&
     password2 === password &&
@@ -110,19 +114,19 @@ export default function RegisterPage() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              userId: user.id,                     // <-- ключевое отличие
+              supabaseUserId: user.id,
               phone: phone.trim(),
               firstName,
-              middleName: noMiddleName
-                ? undefined
-                : middleName || undefined,
+              middleName: noMiddleName ? undefined : middleName || undefined,
               lastName,
               email: email.trim(),
+              noMiddleName,
+              telegram: telegram.trim() || undefined,
             }),
           });
         } catch (vmErr) {
           console.warn("[Vetmanager init] error", vmErr);
-          // Пользователю об этом ничего не говорим.
+          // Для пользователя это не блокирующая ошибка
         }
       }
 
@@ -185,7 +189,7 @@ export default function RegisterPage() {
                         className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
                           lastNameError
                             ? "border-rose-400 focus:ring-rose-300"
-                            : "border-slate-300 focus:ring-onlyvet-teал/40"
+                            : "border-slate-300 focus:ring-onlyvet-teal/40"
                         }`}
                         placeholder="Иванов"
                       />
@@ -208,7 +212,7 @@ export default function RegisterPage() {
                         className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
                           firstNameError
                             ? "border-rose-400 focus:ring-rose-300"
-                            : "border-slate-300 focus:ring-onlyvet-teал/40"
+                            : "border-slate-300 focus:ring-onlyvet-teal/40"
                         }`}
                         placeholder="Иван"
                       />
@@ -271,25 +275,18 @@ export default function RegisterPage() {
                   </h2>
                   <div className="grid md:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[12px] text-slate-600 mb-1">
-                        Телефон<span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="tel"
+                      <PhoneInput
+                        label="Телефон"
                         value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
+                        onChange={setPhone}
+                        required
+                        error={phoneError}
+                        helperText={
                           phoneError
-                            ? "border-rose-400 focus:ring-rose-300"
-                            : "border-slate-300 focus:ring-onlyvet-teал/40"
-                        }`}
-                        placeholder="+7 ..."
+                            ? "Укажите корректный номер телефона."
+                            : "Номер телефона нужен для связи с вами."
+                        }
                       />
-                      {phoneError && (
-                        <p className="mt-1 text-[11px] text-rose-600">
-                          Укажите телефон, чтобы мы могли связаться с вами.
-                        </p>
-                      )}
                     </div>
                     <div>
                       <label className="block text-[12px] text-slate-600 mb-1">
@@ -302,7 +299,7 @@ export default function RegisterPage() {
                         className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
                           emailError
                             ? "border-rose-400 focus:ring-rose-300"
-                            : "border-slate-300 focus:ring-onlyvet-teал/40"
+                            : "border-slate-300 focus:ring-onlyvet-teal/40"
                         }`}
                         placeholder="example@mail.ru"
                       />
@@ -323,7 +320,7 @@ export default function RegisterPage() {
                       type="text"
                       value={telegram}
                       onChange={(e) => setTelegram(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
                       placeholder="@username"
                     />
                   </div>
@@ -344,7 +341,7 @@ export default function RegisterPage() {
                         className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
                           passwordError
                             ? "border-rose-400 focus:ring-rose-300"
-                            : "border-slate-300 focus:ring-onlyvet-teал/40"
+                            : "border-slate-300 focus:ring-onlyvet-teal/40"
                         }`}
                         placeholder="Не менее 8 символов"
                       />
@@ -431,7 +428,7 @@ export default function RegisterPage() {
                         Я ознакомлен(а) и согласен(на) с{" "}
                         <Link
                           href="/docs/rules"
-                          className="text-onlyvet-cорал underline-offset-2 hover:underline"
+                          className="text-onlyvet-coral underline-offset-2 hover:underline"
                         >
                           правилами онлайн-клиники
                         </Link>
@@ -477,7 +474,7 @@ export default function RegisterPage() {
                   Уже есть аккаунт?{" "}
                   <Link
                     href="/auth/login"
-                    className="text-onlyvet-cорал hover:underline"
+                    className="text-onlyvet-coral hover:underline"
                   >
                     Войти
                   </Link>
