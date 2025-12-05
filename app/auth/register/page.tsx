@@ -8,12 +8,23 @@ import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { getSupabaseClient } from "@/lib/supabaseClient";
-import PhoneInput from "@/components/PhoneInput";
 
-function isPhoneValid(raw: string): boolean {
+/**
+ * Нормализация телефона для хранения и поиска.
+ * - убираем все нецифры
+ * - для РФ: 8XXXXXXXXXX / 7XXXXXXXXXX -> последние 10 цифр
+ * - для остальных стран пока просто возвращаем как есть
+ */
+function normalizePhoneForSearch(raw: string): string {
   const digits = raw.replace(/\D/g, "");
-  // Мягкая проверка: от 7 до 15 цифр (с учётом кода страны)
-  return digits.length >= 7 && digits.length <= 15;
+
+  // РФ: 11 цифр и начинается с 7 или 8 → оставляем последние 10
+  if (digits.length === 11 && (digits.startsWith("7") || digits.startsWith("8"))) {
+    return digits.slice(1);
+  }
+
+  // Всё остальное — как есть (дальше можем расширить под другие страны)
+  return digits;
 }
 
 export default function RegisterPage() {
@@ -27,10 +38,6 @@ export default function RegisterPage() {
   const [noMiddleName, setNoMiddleName] = useState(false);
 
   // контакты
-  /**
-   * phone хранится в нормализованном виде:
-   * только цифры, включая код страны (пример: "79829138405").
-   */
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [telegram, setTelegram] = useState("");
@@ -55,7 +62,7 @@ export default function RegisterPage() {
   const firstNameError = hasSubmitted && !firstName.trim();
   const middleNameError =
     hasSubmitted && !noMiddleName && !middleName.trim();
-  const phoneError = hasSubmitted && !isPhoneValid(phone);
+  const phoneError = hasSubmitted && !phone.trim();
   const emailError = hasSubmitted && !email.trim();
   const passwordError = hasSubmitted && password.trim().length < 8;
   const password2Error =
@@ -69,7 +76,7 @@ export default function RegisterPage() {
     lastName.trim().length > 0 &&
     firstName.trim().length > 0 &&
     (noMiddleName || middleName.trim().length > 0) &&
-    isPhoneValid(phone) &&
+    phone.trim().length > 0 &&
     email.trim().length > 0 &&
     password.trim().length >= 8 &&
     password2 === password &&
@@ -92,7 +99,32 @@ export default function RegisterPage() {
         .filter(Boolean)
         .join(" ");
 
-      // 1. Регистрация пользователя в Supabase
+      const normalizedPhone = normalizePhoneForSearch(phone);
+
+      // 1. Проверяем, нет ли уже профиля с таким телефоном
+      if (normalizedPhone) {
+        const { data: existingByPhone, error: phoneCheckError } =
+          await supabase
+            .from("profiles")
+            .select("id")
+            .eq("phone_normalized", normalizedPhone)
+            .maybeSingle();
+
+        if (phoneCheckError) {
+          console.error("[Register] phone check error:", phoneCheckError);
+        }
+
+        if (existingByPhone) {
+          setServerError(
+            "Аккаунт с таким номером телефона уже существует. " +
+              "Попробуйте войти или восстановить доступ."
+          );
+          setLoading(false);
+          return;
+        }
+      }
+
+      // 2. Регистрация пользователя в Supabase (email уникален на стороне Supabase)
       const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
         password: password.trim(),
@@ -102,46 +134,32 @@ export default function RegisterPage() {
             last_name: lastName || null,
             first_name: firstName || null,
             middle_name: noMiddleName ? null : middleName || null,
-            // phone здесь — только цифры; для отображения дальше будем форматировать.
-            phone: phone || null,
+            phone_raw: phone.trim(),
+            phone_normalized: normalizedPhone || null,
             telegram: telegram.trim() || null,
           },
         },
       });
 
       if (error) {
+        // здесь ловим в т.ч. "email уже используется"
         setServerError(error.message || "Не удалось создать аккаунт.");
+        setLoading(false);
         return;
       }
 
-      // 2. Мягкая инициализация связки Supabase ⇄ Vetmanager
-      if (data.user) {
-        try {
-          await fetch("/api/vetmanager/profile/init", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              supabaseUserId: data.user.id,
-              phone, // здесь тоже нормализованные цифры
-              firstName,
-              middleName: noMiddleName ? "" : middleName,
-              lastName,
-              email: email.trim(),
-            }),
-          });
-        } catch (vmErr) {
-          console.warn("[Vetmanager init] error", vmErr);
-          // Пользователю об этом ничего не говорим.
-        }
-      }
+      // 3. ВАЖНО: никакой инициализации Vetmanager здесь больше НЕ делаем.
+      //    Клиент в Vetmanager будет привязываться/создаваться отдельно,
+      //    уже после подтверждения почты и первого входа в ЛК.
 
       setServerSuccess(
-        "Аккаунт создан. Теперь вы можете войти в личный кабинет."
+        "Аккаунт создан. Чтобы завершить регистрацию, подтвердите email через письмо и затем войдите в личный кабинет."
       );
 
+      // Можно не редиректить сразу, а дать человеку дочитать сообщение.
       setTimeout(() => {
         router.push("/auth/login");
-      }, 1200);
+      }, 1500);
     } catch (err) {
       console.error(err);
       setServerError("Произошла техническая ошибка. Попробуйте позже.");
@@ -169,8 +187,8 @@ export default function RegisterPage() {
                   Регистрация в OnlyVet
                 </h1>
                 <p className="text-[13px] text-slate-600">
-                  Личный кабинет нужен для хранения данных о питомцах, заявок
-                  и доступа к заключениям. Ниже — минимальный набор данных для
+                  Личный кабинет нужен для хранения данных о питомцах, заявок и
+                  доступа к заключениям. Ниже — минимальный набор данных для
                   связи и безопасной работы с консультациями.
                 </p>
               </div>
@@ -278,46 +296,52 @@ export default function RegisterPage() {
                   <h2 className="text-[14px] font-semibold">
                     Контактные данные
                   </h2>
-
-                  {/* Телефон с кодом страны */}
-                  <PhoneInput
-                    label="Телефон"
-                    value={phone}
-                    onChange={setPhone}
-                    required
-                    error={phoneError}
-                    helperText={
-                      phoneError
-                        ? "Укажите корректный номер телефона."
-                        : "Номер телефона нужен для связи с вами."
-                    }
-                  />
-
-                  {/* Email */}
-                  <div className="mt-3">
-                    <label className="block text-[12px] text-slate-600 mb-1">
-                      Email<span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
-                        emailError
-                          ? "border-rose-400 focus:ring-rose-300"
-                          : "border-slate-300 focus:ring-onlyvet-teal/40"
-                      }`}
-                      placeholder="example@mail.ru"
-                    />
-                    {emailError && (
-                      <p className="mt-1 text-[11px] text-rose-600">
-                        Email нужен для отправки материалов консультации и
-                        уведомлений.
-                      </p>
-                    )}
+                  <div className="grid md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[12px] text-slate-600 mb-1">
+                        Телефон<span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
+                          phoneError
+                            ? "border-rose-400 focus:ring-rose-300"
+                            : "border-slate-300 focus:ring-onlyvet-teal/40"
+                        }`}
+                        placeholder="+7 999 123-45-67"
+                      />
+                      {phoneError && (
+                        <p className="mt-1 text-[11px] text-rose-600">
+                          Укажите телефон, чтобы мы могли связаться с вами.
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-[12px] text-slate-600 mb-1">
+                        Email<span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
+                          emailError
+                            ? "border-rose-400 focus:ring-rose-300"
+                            : "border-slate-300 focus:ring-onlyvet-teal/40"
+                        }`}
+                        placeholder="example@mail.ru"
+                      />
+                      {emailError && (
+                        <p className="mt-1 text-[11px] text-rose-600">
+                          Email нужен для отправки материалов консультации и
+                          уведомлений.
+                        </p>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Telegram */}
                   <div>
                     <label className="block text-[12px] text-slate-600 mb-1">
                       Telegram (необязательно)
