@@ -103,96 +103,124 @@ export default function RegisterPage() {
   // Сабмит формы
   // ==============================
   const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setHasSubmitted(true);
-    setServerError(null);
-    setServerSuccess(null);
+  e.preventDefault();
+  setHasSubmitted(true);
+  setServerError(null);
+  setServerSuccess(null);
 
-    if (!isValid || loading) return;
+  if (!isValid || loading) return;
+
+  try {
+    setLoading(true);
 
     const fullName = [lastName, firstName, !noMiddleName && middleName]
       .filter(Boolean)
       .join(" ");
 
-    const phoneNormalized = normalizePhoneForSearch(countryCode, phoneLocal);
-    const phoneRaw = `${countryCode} ${phoneLocal}`.trim();
+    const normalized = normalizePhoneForSearch(
+      country.dialCode,
+      localPhone
+    );
+    const fullPhoneDisplay = `${country.dialCode} ${localPhone.trim()}`.trim();
 
-    try {
-      setLoading(true);
-
-      // 1. Проверка на дубль по телефону (если он есть)
-      if (phoneNormalized) {
-        const { data: existingByPhone, error: phoneCheckError } =
-          await supabase
-            .from("profiles")
-            .select("id")
-            .eq("phone_normalized", phoneNormalized)
-            .maybeSingle();
-
-        if (phoneCheckError) {
-          console.error("[Register] phone check error:", phoneCheckError);
-        }
-
-        if (existingByPhone) {
-          setServerError(
-            "Аккаунт с таким номером телефона уже существует. " +
-              "Попробуйте войти или восстановить доступ."
-          );
-          setLoading(false);
-          return;
-        }
-      }
-
-      // 2. Регистрация пользователя в Supabase (email по умолчанию уникален)
-      const { data, error } = await supabase.auth.signUp({
+    // 🔹 ШАГ 1. Проверка дубликатов на сервере
+    const checkRes = await fetch("/api/auth/check-duplicate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
         email: email.trim(),
-        password: password.trim(),
-        options: {
-          data: {
-            full_name: fullName || null,
-            last_name: lastName || null,
-            first_name: firstName || null,
-            middle_name: noMiddleName ? null : middleName || null,
-            phone_raw: phoneRaw || null,
-            phone_normalized: phoneNormalized || null,
-            telegram: telegram.trim() || null,
-          },
-        },
-      });
+        phone_normalized: normalized || null,
+      }),
+    });
 
-      if (error) {
-        // здесь ловим "User already registered" и подобные
-        if (
-          typeof error.message === "string" &&
-          error.message.toLowerCase().includes("already")
-        ) {
+    if (!checkRes.ok) {
+      // если API лег, не блокируем регистрацию, но логируем
+      console.warn("[Register] check-duplicate failed:", await checkRes.text());
+    } else {
+      const check = await checkRes.json();
+
+      if (check.duplicate) {
+        const fields: string[] = check.fields || [];
+
+        if (fields.includes("email") && fields.includes("phone")) {
+          setServerError(
+            "Аккаунт с таким email и номером телефона уже существует. Попробуйте войти или восстановить доступ."
+          );
+        } else if (fields.includes("email")) {
           setServerError(
             "Аккаунт с таким email уже существует. Попробуйте войти или восстановить доступ."
           );
+        } else if (fields.includes("phone")) {
+          setServerError(
+            "Аккаунт с таким номером телефона уже существует. Попробуйте войти или восстановить доступ."
+          );
         } else {
-          setServerError(error.message || "Не удалось создать аккаунт.");
+          setServerError(
+            "Аккаунт с такими данными уже существует. Попробуйте войти или восстановить доступ."
+          );
         }
+
         setLoading(false);
-        return;
+        return; // ⛔ НЕ зовём Supabase, НЕ создаём дубликат
+      }
+    }
+
+    // 🔹 ШАГ 2. Регистрация в Supabase
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password: password.trim(),
+      options: {
+        data: {
+          full_name: fullName || null,
+          last_name: lastName || null,
+          first_name: firstName || null,
+          middle_name: noMiddleName ? null : middleName || null,
+          phone_raw: fullPhoneDisplay || null,
+          phone_normalized: normalized || null,
+          telegram: telegram.trim() || null,
+        },
+      },
+    });
+
+    if (error) {
+      const msg = (error.message || "").toLowerCase();
+
+      if (msg.includes("already registered")) {
+        setServerError(
+          "Аккаунт с таким email уже существует. Попробуйте войти или восстановить доступ."
+        );
+      } else if (
+        msg.includes("phone_normalized") ||
+        msg.includes("profiles_phone_normalized")
+      ) {
+        setServerError(
+          "Аккаунт с таким номером телефона уже существует. Попробуйте войти или восстановить доступ."
+        );
+      } else {
+        setServerError(
+          error.message || "Не удалось создать аккаунт. Попробуйте позже."
+        );
       }
 
-      // 3. НИКАКИХ вызовов Vetmanager здесь больше нет.
-      // Vetmanager инициализируется отдельно при входе в ЛК.
-
-      setServerSuccess(
-        "Аккаунт создан. Подтвердите email через письмо и затем войдите в личный кабинет."
-      );
-
-      setTimeout(() => {
-        router.push("/auth/login");
-      }, 1500);
-    } catch (err) {
-      console.error(err);
-      setServerError("Произошла техническая ошибка. Попробуйте позже.");
-    } finally {
       setLoading(false);
+      return;
     }
-  };
+
+    // Никакого Vetmanager здесь
+    setServerSuccess(
+      "Аккаунт создан. Подтвердите email через письмо и затем войдите в личный кабинет."
+    );
+
+    setTimeout(() => {
+      router.push("/auth/login");
+    }, 1500);
+  } catch (err) {
+    console.error(err);
+    setServerError("Произошла техническая ошибка. Попробуйте позже.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   // ==============================
   // UI
