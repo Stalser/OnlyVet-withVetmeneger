@@ -13,7 +13,7 @@ import { getSupabaseClient } from "@/lib/supabaseClient";
  * Нормализация телефона для хранения и поиска.
  * - убираем все нецифры
  * - для РФ: 8XXXXXXXXXX / 7XXXXXXXXXX -> последние 10 цифр
- * - для остальных стран пока просто возвращаем цифры как есть
+ * - для остальных стран пока возвращаем просто цифры
  */
 function normalizePhoneForSearch(raw: string): string {
   const digits = raw.replace(/\D/g, "");
@@ -60,8 +60,7 @@ export default function RegisterPage() {
   // валидация
   const lastNameError = hasSubmitted && !lastName.trim();
   const firstNameError = hasSubmitted && !firstName.trim();
-  const middleNameError =
-    hasSubmitted && !noMiddleName && !middleName.trim();
+  const middleNameError = hasSubmitted && !noMiddleName && !middleName.trim();
   const phoneError = hasSubmitted && !phone.trim();
   const emailError = hasSubmitted && !email.trim();
   const passwordError = hasSubmitted && password.trim().length < 8;
@@ -102,32 +101,33 @@ export default function RegisterPage() {
       const fullPhoneDisplay = phone.trim();
       const normalizedPhone = normalizePhoneForSearch(phone);
 
-      // 1. Проверка дубликатов на сервере (по email и по нормализованному телефону)
+      // 1. Проверка дубликатов на сервере (по email и нормализованному телефону)
       try {
         const checkRes = await fetch("/api/auth/check-duplicate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             email: email.trim(),
-            phone_normalized: normalizedPhone || null,
+            phoneNormalized: normalizedPhone || null,
           }),
         });
 
         if (checkRes.ok) {
           const check = await checkRes.json();
+          const exists: boolean = check.exists;
+          const emailExists: boolean = check.emailExists;
+          const phoneExists: boolean = check.phoneExists;
 
-          if (check.duplicate) {
-            const fields: string[] = check.fields || [];
-
-            if (fields.includes("email") && fields.includes("phone")) {
+          if (exists) {
+            if (emailExists && phoneExists) {
               setServerError(
                 "Аккаунт с таким email и номером телефона уже существует. Попробуйте войти или восстановить доступ."
               );
-            } else if (fields.includes("email")) {
+            } else if (emailExists) {
               setServerError(
                 "Аккаунт с таким email уже существует. Попробуйте войти или восстановить доступ."
               );
-            } else if (fields.includes("phone")) {
+            } else if (phoneExists) {
               setServerError(
                 "Аккаунт с таким номером телефона уже существует. Попробуйте войти или восстановить доступ."
               );
@@ -138,10 +138,9 @@ export default function RegisterPage() {
             }
 
             setLoading(false);
-            return; // ⛔ НЕ вызываем Supabase, НЕ создаём дубликат
+            return; // ⛔ НЕ вызываем signUp, чтобы не создать дубликат
           }
         } else {
-          // Если API проверки лег — не блокируем регистрацию, но логируем
           console.warn(
             "[Register] /api/auth/check-duplicate failed:",
             await checkRes.text()
@@ -193,7 +192,7 @@ export default function RegisterPage() {
       }
 
       // 3. Vetmanager здесь НЕ трогаем.
-      // Клиент в Vetmanager заводится / связывается уже после подтверждения email и первого входа в ЛК.
+      // Клиент в Vetmanager заводится / связывается после подтверждения email и первого входа в ЛК.
 
       setServerSuccess(
         "Аккаунт создан. Подтвердите email через письмо и затем войдите в личный кабинет."
@@ -309,7 +308,7 @@ export default function RegisterPage() {
                         }`}
                         placeholder={noMiddleName ? "Не указано" : "Иванович"}
                       />
-                      <div className="mt-1 flex items-center gap-2 text-[11px] text-сlate-600">
+                      <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-600">
                         <input
                           type="checkbox"
                           id="no-middle-name"
