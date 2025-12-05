@@ -13,13 +13,9 @@ type UiPet = {
   notes?: string;
 };
 
-type PetsSectionProps = {
-  // пока без пропсов — всё тянем сами по текущему юзеру
-};
-
 const supabase = getSupabaseClient();
 
-export function PetsSection(_props: PetsSectionProps) {
+function PetsSection() {
   const [loading, setLoading] = useState(true);
   const [pets, setPets] = useState<UiPet[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +32,9 @@ export function PetsSection(_props: PetsSectionProps) {
 
         const { data, error: authError } = await supabase.auth.getUser();
         if (authError || !data.user) {
-          setError("Не удалось получить данные пользователя. Авторизуйтесь ещё раз.");
+          setError(
+            "Не удалось получить данные пользователя. Авторизуйтесь ещё раз."
+          );
           setLoading(false);
           return;
         }
@@ -74,7 +72,9 @@ export function PetsSection(_props: PetsSectionProps) {
 
         if (!resp.ok) {
           const data = await resp.json().catch(() => ({}));
-          throw new Error(data.error || `Ошибка загрузки питомцев (HTTP ${resp.status})`);
+          throw new Error(
+            data.error || `Ошибка загрузки питомцев (HTTP ${resp.status})`
+          );
         }
 
         const json = (await resp.json()) as {
@@ -120,10 +120,15 @@ export function PetsSection(_props: PetsSectionProps) {
         </h2>
         <p className="text-[13px] text-slate-600 mb-3">
           Чтобы загрузить список питомцев из Vetmanager, укажите номер телефона
-          в разделе <Link href="/account?tab=profile" className="text-onlyvet-coral underline">
+          в разделе{" "}
+          <Link
+            href="/account?tab=profile"
+            className="text-onlyvet-coral underline"
+          >
             Профиль
-          </Link>. Телефон используется для поиска или создания карточки владельца
-          в вашей CRM.
+          </Link>
+          . Телефон используется для поиска или создания карточки владельца в
+          вашей CRM.
         </p>
       </section>
     );
@@ -133,13 +138,17 @@ export function PetsSection(_props: PetsSectionProps) {
     <section className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4 md:p-5 space-y-4">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
-          <h2 className="text-[15px] md:text-[16px] font-semibold">Ваши питомцы</h2>
+          <h2 className="text-[15px] md:text-[16px] font-semibold">
+            Ваши питомцы
+          </h2>
           <p className="text-[12px] text-slate-600 max-w-xl">
-            Список питомцев берётся напрямую из Vetmanager по вашему номеру телефона.
+            Список питомцев берётся напрямую из Vetmanager по вашему номеру
+            телефона.
           </p>
           {phone && (
             <p className="text-[11px] text-slate-500 mt-1">
-              Телефон для поиска в CRM: <span className="font-mono">{phone}</span>
+              Телефон для поиска в CRM:{" "}
+              <span className="font-mono">{phone}</span>
             </p>
           )}
         </div>
@@ -152,7 +161,9 @@ export function PetsSection(_props: PetsSectionProps) {
       </div>
 
       {loading && (
-        <p className="text-[13px] text-slate-600">Загружаем питомцев из Vetmanager…</p>
+        <p className="text-[13px] text-slate-600">
+          Загружаем питомцев из Vetmanager…
+        </p>
       )}
 
       {error && (
@@ -176,8 +187,12 @@ export function PetsSection(_props: PetsSectionProps) {
               className="rounded-2xl border border-slate-200 bg-onlyvet-bg p-3 space-y-1 text-[13px]"
             >
               <div className="flex items-center justify-between">
-                <div className="font-semibold text-slate-900">{pet.alias}</div>
-                <span className="text-[11px] text-slate-500">ID: {pet.id}</span>
+                <div className="font-semibold text-slate-900">
+                  {pet.alias || "Питомец без имени"}
+                </div>
+                <span className="text-[11px] text-slate-500">
+                  ID: {pet.id}
+                </span>
               </div>
               {pet.kind && (
                 <div className="text-slate-700">
@@ -210,10 +225,12 @@ export function PetsSection(_props: PetsSectionProps) {
 }
 
 function formatAgeFromBirthday(birthday: string): string {
-  // очень грубо, потом можно улучшить
   const d = new Date(birthday);
-  if (isNaN(d.getTime())) return "";
+  if (Number.isNaN(d.getTime())) return "";
   const now = new Date();
   const years = now.getFullYear() - d.getFullYear();
+  if (years <= 0) return "";
   return `${years} ${years === 1 ? "год" : years < 5 ? "года" : "лет"}`;
 }
+
+export default PetsSection;
