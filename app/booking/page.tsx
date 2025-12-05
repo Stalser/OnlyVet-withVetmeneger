@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState, useRef } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import Link from "next/link";
 
+import { getSupabaseClient } from "@/lib/supabaseClient";
+
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { doctors } from "@/data/doctors";
@@ -21,6 +23,8 @@ import { BookingFilesSection } from "./components/BookingFilesSection";
 import { BookingSummarySection } from "./components/BookingSummarySection";
 import { BookingConsentsSection } from "./components/BookingConsentsSection";
 import { BookingServiceSection } from "./components/BookingServiceSection";
+
+const supabase = getSupabaseClient();
 
 type BookingPageProps = {
   searchParams?: {
@@ -127,6 +131,9 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
   const [serverSuccess, setServerSuccess] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false); // флаг успешной отправки
 
+  // Supabase user id (для связи с consultations.owner_id)
+  const [supabaseUserId, setSupabaseUserId] = useState<string | null>(null);
+
   // refs для автоскролла
   const contactRef = useRef<HTMLDivElement | null>(null);
   const petRef = useRef<HTMLDivElement | null>(null);
@@ -146,6 +153,21 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
       }
     }
   }, [selectedPetId]);
+
+  // вытаскиваем user.id из Supabase (если пользователь залогинен)
+  useEffect(() => {
+    let cancelled = false;
+    const loadUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (!cancelled && data.user) {
+        setSupabaseUserId(data.user.id);
+      }
+    };
+    loadUser();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const selectedDoctor = doctors.find((d) => d.id === selectedDoctorId) || null;
   const selectedService =
@@ -328,6 +350,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
           showFull && timeMode === "choose" ? time || undefined : undefined,
         vmSlotId: showFull && selectedSlotId ? selectedSlotId : undefined,
         complaint: complaint || undefined,
+        supabaseUserId: supabaseUserId || undefined, // 🔹 привязка к owner_id в consultations
       };
 
       const res = await fetch("/api/booking", {
@@ -346,6 +369,7 @@ export default function BookingPage({ searchParams }: BookingPageProps) {
       setServerSuccess("Заявка отправлена. Мы свяжемся с вами.");
       setSubmitted(true);
     } catch (err) {
+      console.error("[booking] submit error:", err);
       setServerError("Произошла ошибка. Попробуйте позже.");
     } finally {
       setIsSubmitting(false);
