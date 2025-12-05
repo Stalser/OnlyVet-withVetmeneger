@@ -1,56 +1,55 @@
 // app/api/vetmanager/profile/init/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import {
-  findOrCreateClientByPhone,
+  searchClientByPhone,
+  createClient as createVetmClient,
+  type VetmClient,
 } from "@/lib/vetmanagerClient";
 
-/**
- * Этот endpoint:
- * 1) По supabaseUserId находит профиль в таблице profiles
- * 2) Берёт телефон из тела запроса (и из профиля как fallback)
- * 3) В Vetmanager ищет клиента по телефону, если нет — создаёт
- * 4) Записывает vetm_client_id в profiles
- *
- * Вызывается из:
- *   - /app/auth/register/page.tsx после успешного signUp
- */
-
+// Эти переменные ДОЛЖНЫ быть заданы в Vercel:
+// SUPABASE_URL
+// SUPABASE_SERVICE_ROLE_KEY
 const supabaseUrl = process.env.SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!supabaseUrl || !serviceRoleKey) {
-  console.warn(
-    "[Vetmanager init] Supabase service env vars are not set (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY)."
-  );
-}
+let supabaseAdmin: SupabaseClient | null = null;
 
-function getServiceSupabase() {
+function getSupabaseAdmin(): SupabaseClient {
   if (!supabaseUrl || !serviceRoleKey) {
     throw new Error(
-      "Supabase service role is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY."
+      "[Vetmanager init] SUPABASE_URL или SUPABASE_SERVICE_ROLE_KEY не заданы"
     );
   }
-  return createClient(supabaseUrl, serviceRoleKey, {
-    auth: {
-      persistSession: false,
-    },
-  });
+  if (!supabaseAdmin) {
+    supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false },
+    });
+  }
+  return supabaseAdmin;
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => ({}));
+    const supabase = getSupabaseAdmin();
 
+    const body = await req.json().catch(() => ({}));
     const {
       supabaseUserId,
-      phone: rawPhoneFromBody,
-      firstName,
-      middleName,
-      lastName,
-      email,
-    } = body || {};
+      phone: phoneFromBody,
+      firstName: firstNameFromBody,
+      middleName: middleNameFromBody,
+      lastName: lastNameFromBody,
+      email: emailFromBody,
+    } = body as {
+      supabaseUserId?: string;
+      phone?: string;
+      firstName?: string;
+      middleName?: string;
+      lastName?: string;
+      email?: string;
+    };
 
     if (!supabaseUserId) {
       return NextResponse.json(
@@ -59,95 +58,121 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const supabase = getServiceSupabase();
-
-    // 1. Находим профиль по user id
+    // 1. Берём профиль пользователя из таблицы profiles
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("id, phone, vetm_client_id")
+      .select("*")
       .eq("id", supabaseUserId)
       .maybeSingle();
 
     if (profileError) {
-      console.error("[Vetmanager init] load profile error:", profileError);
+      console.error("[Vetmanager init] profile select error:", profileError);
       return NextResponse.json(
-        { error: "Не удалось загрузить профиль пользователя." },
+        { error: "Ошибка чтения профиля" },
         { status: 500 }
       );
     }
 
     if (!profile) {
-      console.warn(
-        "[Vetmanager init] profile not found for user",
-        supabaseUserId
-      );
       return NextResponse.json(
-        { error: "Профиль пользователя не найден." },
+        { error: "Профиль не найден" },
         { status: 404 }
       );
     }
 
-    // 2. Если уже есть vetm_client_id — ничего не делаем (идемпотентность)
+    // Если уже привязан к Vetmanager – ничего не делаем
     if (profile.vetm_client_id) {
       return NextResponse.json(
-        {
-          ok: true,
-          vetm_client_id: profile.vetm_client_id,
-          skipped: true,
-          reason: "already_linked",
-        },
+        { ok: true, clientId: profile.vetm_client_id },
         { status: 200 }
       );
     }
 
-    // 3. Определяем телефон: приоритет — из тела запроса, затем из профиля
-    const phoneFromProfile: string | null = profile.phone ?? null;
-    const phone = (rawPhoneFromBody || phoneFromProfile || "").toString().trim();
+    // 2. Собираем исходные данные: что есть в профиле, что пришло из тела
+    const phoneRaw: string | null =
+      typeof phoneFromBody === "string" && phoneFromBody.trim()
+        ? phoneFromBody
+        : profile.phone ?? profile.phone_raw ?? null;
 
-    if (!phone) {
+    const email: string | null =
+      typeof emailFromBody === "string" && emailFromBody.trim()
+        ? emailFromBody
+        : profile.email ?? null;
+
+    const firstName: string =
+      firstNameFromBody ??
+      profile.first_name ??
+      profile.full_name?.split(" ")[1] ??
+      "";
+    const lastName: string =
+      lastNameFromBody ??
+      profile.last_name ??
+      profile.full_name?.split(" ")[0] ??
+      "";
+    const middleName: string =
+      middleNameFromBody ??
+      profile.middle_name ??
+      (profile.full_name?.split(" ")[2] ?? "");
+
+    if (!phoneRaw) {
       return NextResponse.json(
-        { error: "phone is required for Vetmanager linking" },
+        { error: "Нет телефона для связи с Vetmanager" },
         { status: 400 }
       );
     }
 
-    // 4. В Vetmanager ищем или создаём клиента по телефону
-    const vetmClient = await findOrCreateClientByPhone({
-      phone,
-      firstName,
-      middleName,
-      lastName,
-      email,
-    });
+    let vetmClient: VetmClient | null = null;
 
-    // 5. Записываем vetm_client_id в profiles
-    const { error: updateError } = await supabase
-      .from("profiles")
-      .update({ vetm_client_id: vetmClient.id })
-      .eq("id", supabaseUserId);
+    // 3. Пытаемся найти клиента по телефону
+    try {
+      vetmClient = await searchClientByPhone(phoneRaw);
+    } catch (err) {
+      console.warn("[Vetmanager init] searchClientByPhone error:", err);
+    }
 
-    if (updateError) {
-      console.error(
-        "[Vetmanager init] update profile.vetm_client_id error:",
-        updateError
-      );
-      return NextResponse.json(
-        { error: "Не удалось сохранить связку с Vetmanager." },
-        { status: 500 }
-      );
+    // 4. Если не нашли – создаём нового клиента
+    if (!vetmClient) {
+      try {
+        vetmClient = await createVetmClient({
+          phone: phoneRaw,
+          email: email ?? undefined,
+          firstName: firstName || undefined,
+          middleName: middleName || undefined,
+          lastName: lastName || undefined,
+        });
+      } catch (err) {
+        console.error("[Vetmanager init] createVetmClient error:", err);
+        return NextResponse.json(
+          { error: "Не удалось создать клиента в Vetmanager" },
+          { status: 500 }
+        );
+      }
+    }
+
+    // 5. Сохраняем привязку в Supabase (profiles.vetm_client_id)
+    if (vetmClient && vetmClient.id) {
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ vetm_client_id: vetmClient.id })
+        .eq("id", supabaseUserId);
+
+      if (updateError) {
+        console.error("[Vetmanager init] profiles update error:", updateError);
+        return NextResponse.json(
+          { error: "Не удалось сохранить привязку к Vetmanager" },
+          { status: 500 }
+        );
+      }
     }
 
     return NextResponse.json(
-      {
-        ok: true,
-        vetm_client_id: vetmClient.id,
-      },
+      { ok: true, clientId: vetmClient?.id ?? null },
       { status: 200 }
     );
-  } catch (err: any) {
+  } catch (err) {
     console.error("[Vetmanager init] unexpected error:", err);
     return NextResponse.json(
-      { error: "Internal error in Vetmanager init." },
+      { error: "Внутренняя ошибка Vetmanager init" },
       { status: 500 }
     );
   }
