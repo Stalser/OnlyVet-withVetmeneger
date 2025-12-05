@@ -1,6 +1,9 @@
 // lib/vetmanagerClient.ts
 // Клиент для Vetmanager REST API. Использовать ТОЛЬКО на сервере (API routes / server components).
 
+console.log("VETM_DOMAIN:", VETM_DOMAIN);
+console.log("VETM_API_KEY exists:", !!VETM_API_KEY);
+
 const VETM_DOMAIN = process.env.VETM_DOMAIN;        // например: https://onlyvet.vetmanager.ru
 const VETM_API_KEY = process.env.VETM_API_KEY;      // REST API key из настроек Vetmanager
 
