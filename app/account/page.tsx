@@ -18,7 +18,7 @@ import TrustedSection from "./components/TrustedSection";
 import NotificationsSection from "./components/NotificationsSection";
 import ProfileSection from "./components/ProfileSection";
 
-// Моки, которые используют секции (доверенные лица и уведомления)
+// Моки (пока Vetmanager не подключён по этим блокам)
 import {
   mockTrustedPeople,
   mockTrustedForMe,
@@ -32,10 +32,9 @@ type AccountTab =
   | "notifications"
   | "profile";
 
-type VmInitStatus = "idle" | "loading" | "ok" | "error";
-
 export default function AccountPage() {
   const router = useRouter();
+
   const [tab, setTab] = useState<AccountTab>("consultations");
 
   const [currentUserName, setCurrentUserName] =
@@ -43,18 +42,48 @@ export default function AccountPage() {
   const [currentUserEmail, setCurrentUserEmail] = useState<string>("");
   const [checkingAuth, setCheckingAuth] = useState(true);
 
-  // ID пользователя из Supabase (auth.users.id)
-  const [userId, setUserId] = useState<string | null>(null);
+  // чтобы не дёргать Vetmanager init бесконечно
+  const [vmInitCalled, setVmInitCalled] = useState(false);
 
-  // Статус инициализации связи с Vetmanager
-  const [vmInitStatus, setVmInitStatus] = useState<VmInitStatus>("idle");
-
-  // 1. Проверка сессии + базовые данные пользователя
   useEffect(() => {
     let cancelled = false;
+    const supabase = getSupabaseClient();
+
+    // Аккуратный INIT Vetmanager (вызывается только после успешной авторизации)
+    const initVetmanagerIfNeeded = async (user: any, meta: any) => {
+      if (cancelled) return;
+      if (vmInitCalled) return; // на всякий случай — чтобы не дёргать повторно в рамках одной сессии
+      setVmInitCalled(true);
+
+      try {
+        const email = user.email as string | null;
+        const phoneRaw =
+          (meta && (meta.phone_raw || meta.phone)) ??
+          ""; // phone_raw мы сохраняем при регистрации
+
+        if (!email || !phoneRaw) {
+          // Без этих данных инициализация не имеет смысла
+          return;
+        }
+
+        await fetch("/api/vetmanager/profile/init", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            supabaseUserId: user.id,
+            phone: phoneRaw,
+            firstName: meta.first_name || "",
+            lastName: meta.last_name || "",
+            email,
+          }),
+        });
+      } catch (err) {
+        // Важно: не ломаем личный кабинет, просто логируем.
+        console.warn("[Vetmanager init] error:", err);
+      }
+    };
 
     const checkAuth = async () => {
-      const supabase = getSupabaseClient();
       const { data, error } = await supabase.auth.getUser();
 
       if (cancelled) return;
@@ -67,6 +96,7 @@ export default function AccountPage() {
       const user = data.user;
       const meta = (user.user_metadata || {}) as any;
 
+      // ФИО для отображения
       const fullNameFromMeta =
         meta.full_name ||
         [meta.last_name, meta.first_name].filter(Boolean).join(" ");
@@ -77,7 +107,10 @@ export default function AccountPage() {
           : user.email || "Пользователь"
       );
       setCurrentUserEmail(user.email || "");
-      setUserId(user.id);
+
+      // Параллельно пробуем аккуратно подтянуть Vetmanager
+      initVetmanagerIfNeeded(user, meta);
+
       setCheckingAuth(false);
     };
 
@@ -86,53 +119,7 @@ export default function AccountPage() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
-
-  // 2. Мягкая инициализация клиента в Vetmanager
-  //    Вызывается ОДИН раз после того, как мы знаем userId.
-  useEffect(() => {
-    // нет пользователя или уже пытались инициализировать
-    if (!userId || vmInitStatus !== "idle") return;
-
-    let cancelled = false;
-
-    const initVetmanager = async () => {
-      try {
-        setVmInitStatus("loading");
-
-        const res = await fetch("/api/vetmanager/profile/init", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ supabaseUserId: userId }),
-        });
-
-        if (cancelled) return;
-
-        if (!res.ok) {
-          console.warn(
-            "[Vetmanager init] response not ok:",
-            res.status,
-            await res.text().catch(() => "")
-          );
-          setVmInitStatus("error");
-          return;
-        }
-
-        setVmInitStatus("ok");
-      } catch (err) {
-        if (!cancelled) {
-          console.error("[Vetmanager init] fetch error:", err);
-          setVmInitStatus("error");
-        }
-      }
-    };
-
-    initVetmanager();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [userId, vmInitStatus]);
+  }, [router, vmInitCalled]);
 
   // Пока идёт проверка сессии
   if (checkingAuth) {
@@ -211,8 +198,6 @@ export default function AccountPage() {
           {/* Контент вкладок */}
           <div className="space-y-4 md:space-y-5">
             {tab === "consultations" && <ConsultationsSection />}
-            {/* PetsSection сам будет ходить в API за списком питомцев.
-                vmInitStatus уже постарался создать/привязать клиента. */}
             {tab === "pets" && <PetsSection />}
             {tab === "trusted" && (
               <TrustedSection
