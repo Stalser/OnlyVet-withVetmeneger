@@ -10,6 +10,12 @@ import { Footer } from "@/components/Footer";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import PhoneInput from "@/components/PhoneInput";
 
+function isPhoneValid(raw: string): boolean {
+  const digits = raw.replace(/\D/g, "");
+  // Мягкая проверка: от 7 до 15 цифр (с учётом кода страны)
+  return digits.length >= 7 && digits.length <= 15;
+}
+
 export default function RegisterPage() {
   const router = useRouter();
   const supabase = getSupabaseClient();
@@ -21,6 +27,10 @@ export default function RegisterPage() {
   const [noMiddleName, setNoMiddleName] = useState(false);
 
   // контакты
+  /**
+   * phone хранится в нормализованном виде:
+   * только цифры, включая код страны (пример: "79829138405").
+   */
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [telegram, setTelegram] = useState("");
@@ -45,7 +55,7 @@ export default function RegisterPage() {
   const firstNameError = hasSubmitted && !firstName.trim();
   const middleNameError =
     hasSubmitted && !noMiddleName && !middleName.trim();
-  const phoneError = hasSubmitted && !phone.trim();
+  const phoneError = hasSubmitted && !isPhoneValid(phone);
   const emailError = hasSubmitted && !email.trim();
   const passwordError = hasSubmitted && password.trim().length < 8;
   const password2Error =
@@ -59,7 +69,7 @@ export default function RegisterPage() {
     lastName.trim().length > 0 &&
     firstName.trim().length > 0 &&
     (noMiddleName || middleName.trim().length > 0) &&
-    phone.trim().length > 0 &&
+    isPhoneValid(phone) &&
     email.trim().length > 0 &&
     password.trim().length >= 8 &&
     password2 === password &&
@@ -92,7 +102,8 @@ export default function RegisterPage() {
             last_name: lastName || null,
             first_name: firstName || null,
             middle_name: noMiddleName ? null : middleName || null,
-            phone: phone.trim(),
+            // phone здесь — только цифры; для отображения дальше будем форматировать.
+            phone: phone || null,
             telegram: telegram.trim() || null,
           },
         },
@@ -111,8 +122,9 @@ export default function RegisterPage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               supabaseUserId: data.user.id,
-              phone: phone.trim(),
+              phone, // здесь тоже нормализованные цифры
               firstName,
+              middleName: noMiddleName ? "" : middleName,
               lastName,
               email: email.trim(),
             }),
@@ -273,10 +285,11 @@ export default function RegisterPage() {
                     value={phone}
                     onChange={setPhone}
                     required
-                    error={
+                    error={phoneError}
+                    helperText={
                       phoneError
                         ? "Укажите корректный номер телефона."
-                        : null
+                        : "Номер телефона нужен для связи с вами."
                     }
                   />
 
