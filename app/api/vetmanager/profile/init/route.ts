@@ -31,7 +31,7 @@ const supabaseAdmin =
  *
  * Поведение:
  *  - если профайл уже привязан к Vetmanager (vetm_client_id не null) — ничего не делаем;
- *  - иначе ищем/создаём клиента в Vetmanager по телефону/email;
+ *  - иначе ищем/создаём клиента в Vetmanager по телефону;
  *  - записываем vetm_client_id в public.profiles.
  */
 export async function POST(req: NextRequest) {
@@ -85,27 +85,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3. Нужен хотя бы телефон или email, иначе — к регистратуре
-    const phoneDigits = (profile.phone_normalized as string | null)?.replace(
-      /\D/g,
-      ""
-    );
-    const hasPhone = !!phoneDigits && phoneDigits.length >= 7;
-    const hasEmail = !!profile.email;
+    // 3. Проверяем телефон
+    const phoneNormalized = (profile.phone_normalized as string | null) || null;
+    const hasPhone =
+      !!phoneNormalized && phoneNormalized.replace(/\D/g, "").length >= 7;
 
-    if (!hasPhone && !hasEmail) {
+    if (!hasPhone) {
+      // Без нормального телефона автоматическую привязку не делаем,
+      // чтобы не плодить дублей по email.
       return NextResponse.json(
         {
           error:
-            "Недостаточно данных для привязки к Vetmanager (нет телефона и email). Обратитесь в регистратуру.",
+            "Автоматическая привязка к Vetmanager невозможна (нет валидного телефона). Обратитесь в регистратуру.",
         },
         { status: 400 }
       );
     }
 
-    // 4. Найти или создать клиента в Vetmanager
+    // 4. Найти или создать клиента в Vetmanager по НОРМАЛИЗОВАННОМУ телефону
     const client = await findOrCreateClientByPhone({
-      phone: phoneDigits || "",
+      phone: phoneNormalized,
       firstName: profile.first_name || undefined,
       middleName: profile.middle_name || undefined,
       lastName: profile.last_name || undefined,
@@ -119,7 +118,10 @@ export async function POST(req: NextRequest) {
       .eq("id", profile.id);
 
     if (updateError) {
-      console.error("[Vetmanager init] update vetm_client_id error:", updateError);
+      console.error(
+        "[Vetmanager init] update vetm_client_id error:",
+        updateError
+      );
       return NextResponse.json(
         { error: "Не удалось сохранить связь с Vetmanager" },
         { status: 500 }
