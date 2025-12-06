@@ -22,7 +22,6 @@ export interface VetmClient {
   email?: string;
   cell_phone?: string;
   status?: string;
-  // остальное нам сейчас неважно
 }
 
 export interface VetmPet {
@@ -40,7 +39,9 @@ async function vetmFetch<T>(
   options: RequestInit = {}
 ): Promise<VetmResponse<T>> {
   if (!VETM_DOMAIN || !VETM_API_KEY) {
-    throw new Error("Vetmanager API не сконфигурирован (нет VETM_DOMAIN или VETM_API_KEY).");
+    throw new Error(
+      "Vetmanager API не сконфигурирован (нет VETM_DOMAIN или VETM_API_KEY)."
+    );
   }
 
   const url = `${VETM_DOMAIN}/rest/api/${path}`;
@@ -109,8 +110,7 @@ export function normalizePhoneForVetm(raw: string): string {
 // ========== клиент: поиск и создание ==========
 
 /**
- * Поиск клиента по телефону в Vetmanager.
- * Ищем по полю cell_phone.
+ * Поиск клиента по телефону в Vetmanager (поле cell_phone).
  */
 export async function searchClientByPhone(
   phoneDigits: string
@@ -173,9 +173,6 @@ export async function createClient(opts: {
 
 /**
  * Найти или создать клиента по телефону.
- * 1) normalizePhoneForVetm
- * 2) поиск по cell_phone
- * 3) если нет — создание
  */
 export async function findOrCreateClientByPhone(opts: {
   phone: string;
@@ -186,13 +183,9 @@ export async function findOrCreateClientByPhone(opts: {
 }): Promise<VetmClient> {
   const phoneDigits = normalizePhoneForVetm(opts.phone);
 
-  // 1. Пытаемся найти
   const existing = await searchClientByPhone(phoneDigits);
-  if (existing) {
-    return existing;
-  }
+  if (existing) return existing;
 
-  // 2. Создаём нового
   const created = await createClient({
     lastName: opts.lastName,
     firstName: opts.firstName,
@@ -204,10 +197,10 @@ export async function findOrCreateClientByPhone(opts: {
   return created;
 }
 
-// Для совместимости, если где-то вдруг используется другое имя:
+// Для совместимости
 export const findOrCreateClient = findOrCreateClientByPhone;
 
-// ========== питомцы (на будущее) ==========
+// ========== питомцы (пока на будущее) ==========
 
 export async function getPetsByClientId(clientId: number): Promise<VetmPet[]> {
   const filter = encodeURIComponent(
