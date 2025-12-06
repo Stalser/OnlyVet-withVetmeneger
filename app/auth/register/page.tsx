@@ -13,7 +13,7 @@ import { getSupabaseClient } from "@/lib/supabaseClient";
  * Нормализация телефона для хранения и поиска.
  * - убираем все нецифры
  * - для РФ: 8XXXXXXXXXX / 7XXXXXXXXXX -> последние 10 цифр
- * - для остальных стран возвращаем просто цифры
+ * - для остальных стран просто возвращаем цифры
  */
 function normalizePhoneForSearch(raw: string): string {
   const digits = raw.replace(/\D/g, "");
@@ -23,7 +23,7 @@ function normalizePhoneForSearch(raw: string): string {
     return digits.slice(1);
   }
 
-  // Всё остальное — как есть (цифры)
+  // Всё остальное — просто цифры
   return digits;
 }
 
@@ -101,34 +101,32 @@ export default function RegisterPage() {
       const fullPhoneDisplay = phone.trim();
       const normalizedPhone = normalizePhoneForSearch(phone);
 
-      // 1. Проверка дубликата по телефону (по email — доверяем Supabase)
+      // 1. Проверка дубликата по телефону через /api/auth/check-duplicate
       try {
-        if (normalizedPhone) {
-          const checkRes = await fetch("/api/auth/check-duplicate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              phoneNormalized: normalizedPhone,
-            }),
-          });
+        const checkRes = await fetch("/api/auth/check-duplicate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            phoneNormalized: normalizedPhone || null,
+          }),
+        });
 
-          if (checkRes.ok) {
-            const check = await checkRes.json();
-            const phoneExists: boolean = check.phoneExists;
+        if (checkRes.ok) {
+          const check = await checkRes.json();
+          const phoneExists: boolean = check.phoneExists;
 
-            if (phoneExists) {
-              setServerError(
-                "Аккаунт с таким номером телефона уже существует. Попробуйте войти или восстановить доступ."
-              );
-              setLoading(false);
-              return; // ⛔ НЕ вызываем signUp
-            }
-          } else {
-            console.warn(
-              "[Register] /api/auth/check-duplicate failed:",
-              await checkRes.text()
+          if (phoneExists) {
+            setServerError(
+              "Аккаунт с таким номером телефона уже существует. Попробуйте войти или восстановить доступ."
             );
+            setLoading(false);
+            return; // ⛔ дальше signUp не вызываем
           }
+        } else {
+          console.warn(
+            "[Register] /api/auth/check-duplicate failed:",
+            await checkRes.text()
+          );
         }
       } catch (checkErr) {
         console.warn("[Register] check-duplicate error:", checkErr);
@@ -154,7 +152,7 @@ export default function RegisterPage() {
       if (error) {
         const msg = (error.message || "").toLowerCase();
 
-        // Ошибка Supabase "User already registered"
+        // Supabase сам не даёт повторить email — ловим его сообщение
         if (msg.includes("already registered")) {
           setServerError(
             "Аккаунт с таким email уже существует. Попробуйте войти или восстановить доступ."
@@ -176,9 +174,8 @@ export default function RegisterPage() {
         return;
       }
 
-      // 3. Vetmanager здесь НЕ трогаем.
-      // Клиент в Vetmanager будет заводиться отдельно (после стабильной схемы),
-      // чтобы не плодить дубли.
+      // 3. Vetmanager сейчас ОТКЛЮЧЁН (pets 503), здесь его не трогаем.
+      // Клиент Vetmanager будем подключать отдельным шагом, когда логика регистрации стабильно работает.
 
       setServerSuccess(
         "Аккаунт создан. Подтвердите email через письмо и затем войдите в личный кабинет."
