@@ -6,7 +6,9 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  console.warn("[check-duplicate] SUPABASE_URL или SUPABASE_SERVICE_ROLE_KEY не заданы.");
+  console.warn(
+    "[check-duplicate] SUPABASE_URL или SUPABASE_SERVICE_ROLE_KEY не заданы в env."
+  );
 }
 
 const supabaseAdmin =
@@ -14,6 +16,10 @@ const supabaseAdmin =
     ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
     : null;
 
+/**
+ * POST /api/auth/check-duplicate
+ * Body: { email?: string; phoneNormalized?: string | null }
+ */
 export async function POST(req: NextRequest) {
   try {
     if (!supabaseAdmin) {
@@ -23,51 +29,73 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = await req.json().catch(() => ({}));
-    const rawEmail = (body.email as string | undefined) || "";
-    const rawPhone = (body.phoneNormalized as string | undefined) || "";
+    const body = (await req.json().catch(() => ({}))) as {
+      email?: string;
+      phoneNormalized?: string | null;
+    };
 
-    const email = rawEmail.trim().toLowerCase();
-    const phoneNormalized = rawPhone.replace(/\D/g, "");
+    const email = body.email?.trim().toLowerCase() || "";
+    const phoneNormalized = (body.phoneNormalized || "").trim();
+
+    console.log("[check-duplicate] incoming", {
+      email,
+      phoneNormalized,
+    });
 
     let emailExists = false;
     let phoneExists = false;
 
-    // 1. Проверка email в profiles
+    // 1. Проверяем email в auth.users
     if (email) {
-      const { count, error } = await supabaseAdmin
-        .from("profiles")
-        .select("id", { count: "exact", head: true })
-        .ilike("email", email);
+      const { data, error } = await supabaseAdmin
+        .from("auth.users") // системная таблица
+        .select("id")
+        .ilike("email", email)
+        .maybeSingle();
 
-      if (error) {
-        console.warn("[check-duplicate] email check error:", error);
-      } else if ((count ?? 0) > 0) {
+      if (error && error.code !== "PGRST116") {
+        // PGRST116 = no rows
+        console.error("[check-duplicate] email check error:", error);
+      }
+
+      if (data) {
         emailExists = true;
       }
     }
 
-    // 2. Проверка телефона в profiles.phone_normalized
+    // 2. Проверяем телефон в public.profiles.phone_normalized
     if (phoneNormalized) {
-      const { count, error } = await supabaseAdmin
+      const { data, error } = await supabaseAdmin
         .from("profiles")
-        .select("id", { count: "exact", head: true })
-        .eq("phone_normalized", phoneNormalized);
+        .select("id")
+        .eq("phone_normalized", phoneNormalized)
+        .maybeSingle();
 
-      if (error) {
-        console.warn("[check-duplicate] phone check error:", error);
-      } else if ((count ?? 0) > 0) {
+      if (error && error.code !== "PGRST116") {
+        console.error("[check-duplicate] phone check error:", error);
+      }
+
+      if (data) {
         phoneExists = true;
       }
     }
 
-    const duplicate = emailExists || phoneExists;
+    const exists = emailExists || phoneExists;
 
-    return NextResponse.json({
-      duplicate,
+    console.log("[check-duplicate] result", {
+      exists,
       emailExists,
       phoneExists,
     });
+
+    return NextResponse.json(
+      {
+        exists,
+        emailExists,
+        phoneExists,
+      },
+      { status: 200 }
+    );
   } catch (err) {
     console.error("[check-duplicate] unexpected error:", err);
     return NextResponse.json(
