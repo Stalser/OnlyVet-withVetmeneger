@@ -32,16 +32,14 @@ export interface VetmPet {
   sex?: string;
 }
 
-// ========== базовый fetch ==========
+// ========= базовый fetch =========
 
 async function vetmFetch<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<VetmResponse<T>> {
   if (!VETM_DOMAIN || !VETM_API_KEY) {
-    throw new Error(
-      "Vetmanager API не сконфигурирован (нет VETM_DOMAIN или VETM_API_KEY)."
-    );
+    throw new Error("Vetmanager API не сконфигурирован (нет VETM_DOMAIN или VETM_API_KEY).");
   }
 
   const url = `${VETM_DOMAIN}/rest/api/${path}`;
@@ -80,7 +78,7 @@ async function vetmFetch<T>(
   return json;
 }
 
-// ========== нормализация телефона ==========
+// ========= нормализация телефона =========
 
 /**
  * Нормализация телефона для Vetmanager:
@@ -107,10 +105,10 @@ export function normalizePhoneForVetm(raw: string): string {
   return digits;
 }
 
-// ========== клиент: поиск и создание ==========
+// ========= клиент: поиск и создание =========
 
 /**
- * Поиск клиента по телефону в Vetmanager (поле cell_phone).
+ * Поиск клиента по телефону в Vetmanager (по cell_phone).
  */
 export async function searchClientByPhone(
   phoneDigits: string
@@ -173,6 +171,9 @@ export async function createClient(opts: {
 
 /**
  * Найти или создать клиента по телефону.
+ * 1) нормализуем телефон
+ * 2) ищем по cell_phone
+ * 3) если нет — создаём
  */
 export async function findOrCreateClientByPhone(opts: {
   phone: string;
@@ -183,9 +184,13 @@ export async function findOrCreateClientByPhone(opts: {
 }): Promise<VetmClient> {
   const phoneDigits = normalizePhoneForVetm(opts.phone);
 
+  // 1. Пытаемся найти
   const existing = await searchClientByPhone(phoneDigits);
-  if (existing) return existing;
+  if (existing) {
+    return existing;
+  }
 
+  // 2. Создаём нового
   const created = await createClient({
     lastName: opts.lastName,
     firstName: opts.firstName,
@@ -200,7 +205,7 @@ export async function findOrCreateClientByPhone(opts: {
 // Для совместимости
 export const findOrCreateClient = findOrCreateClientByPhone;
 
-// ========== питомцы (пока на будущее) ==========
+// ========= питомцы (на будущее) =========
 
 export async function getPetsByClientId(clientId: number): Promise<VetmPet[]> {
   const filter = encodeURIComponent(
