@@ -13,7 +13,7 @@ import { getSupabaseClient } from "@/lib/supabaseClient";
  * Нормализация телефона для хранения и поиска.
  * - убираем все нецифры
  * - для РФ: 8XXXXXXXXXX / 7XXXXXXXXXX -> последние 10 цифр
- * - для остальных стран пока возвращаем просто цифры
+ * - для остальных стран возвращаем просто цифры
  */
 function normalizePhoneForSearch(raw: string): string {
   const digits = raw.replace(/\D/g, "");
@@ -60,8 +60,7 @@ export default function RegisterPage() {
   // валидация
   const lastNameError = hasSubmitted && !lastName.trim();
   const firstNameError = hasSubmitted && !firstName.trim();
-  const middleNameError =
-    hasSubmitted && !noMiddleName && !middleName.trim();
+  const middleNameError = hasSubmitted && !noMiddleName && !middleName.trim();
   const phoneError = hasSubmitted && !phone.trim();
   const emailError = hasSubmitted && !email.trim();
   const passwordError = hasSubmitted && password.trim().length < 8;
@@ -102,50 +101,34 @@ export default function RegisterPage() {
       const fullPhoneDisplay = phone.trim();
       const normalizedPhone = normalizePhoneForSearch(phone);
 
-      // 1. Проверка дубликатов по email и телефону через наш API
+      // 1. Проверка дубликата по телефону (по email — доверяем Supabase)
       try {
-        const checkRes = await fetch("/api/auth/check-duplicate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: email.trim(),
-            phoneNormalized: normalizedPhone || null,
-          }),
-        });
+        if (normalizedPhone) {
+          const checkRes = await fetch("/api/auth/check-duplicate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              phoneNormalized: normalizedPhone,
+            }),
+          });
 
-        if (checkRes.ok) {
-          const check = await checkRes.json();
-          const exists: boolean = check.exists;
-          const emailExists: boolean = check.emailExists;
-          const phoneExists: boolean = check.phoneExists;
+          if (checkRes.ok) {
+            const check = await checkRes.json();
+            const phoneExists: boolean = check.phoneExists;
 
-          if (exists) {
-            if (emailExists && phoneExists) {
-              setServerError(
-                "Аккаунт с таким email и номером телефона уже существует. Попробуйте войти или восстановить доступ."
-              );
-            } else if (emailExists) {
-              setServerError(
-                "Аккаунт с таким email уже существует. Попробуйте войти или восстановить доступ."
-              );
-            } else if (phoneExists) {
+            if (phoneExists) {
               setServerError(
                 "Аккаунт с таким номером телефона уже существует. Попробуйте войти или восстановить доступ."
               );
-            } else {
-              setServerError(
-                "Аккаунт с такими данными уже существует. Попробуйте войти или восстановить доступ."
-              );
+              setLoading(false);
+              return; // ⛔ НЕ вызываем signUp
             }
-
-            setLoading(false);
-            return; // ⛔ НЕ вызываем signUp, чтобы не создать дубликат
+          } else {
+            console.warn(
+              "[Register] /api/auth/check-duplicate failed:",
+              await checkRes.text()
+            );
           }
-        } else {
-          console.warn(
-            "[Register] /api/auth/check-duplicate failed:",
-            await checkRes.text()
-          );
         }
       } catch (checkErr) {
         console.warn("[Register] check-duplicate error:", checkErr);
@@ -171,6 +154,7 @@ export default function RegisterPage() {
       if (error) {
         const msg = (error.message || "").toLowerCase();
 
+        // Ошибка Supabase "User already registered"
         if (msg.includes("already registered")) {
           setServerError(
             "Аккаунт с таким email уже существует. Попробуйте войти или восстановить доступ."
@@ -193,6 +177,9 @@ export default function RegisterPage() {
       }
 
       // 3. Vetmanager здесь НЕ трогаем.
+      // Клиент в Vetmanager будет заводиться отдельно (после стабильной схемы),
+      // чтобы не плодить дубли.
+
       setServerSuccess(
         "Аккаунт создан. Подтвердите email через письмо и затем войдите в личный кабинет."
       );
@@ -390,7 +377,7 @@ export default function RegisterPage() {
                       type="text"
                       value={telegram}
                       onChange={(e) => setTelegram(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
                       placeholder="@username"
                     />
                   </div>
@@ -432,7 +419,7 @@ export default function RegisterPage() {
                         className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
                           password2Error
                             ? "border-rose-400 focus:ring-rose-300"
-                            : "border-сlate-300 focus:ring-onlyvet-teal/40"
+                            : "border-slate-300 focus:ring-onlyvet-teal/40"
                         }`}
                         placeholder="Ещё раз пароль"
                       />
@@ -480,7 +467,7 @@ export default function RegisterPage() {
                         Я принимаю условия{" "}
                         <Link
                           href="/docs/offer"
-                          className="text-onlyvet-cорал underline-offset-2 hover:underline"
+                          className="text-onlyvet-coral underline-offset-2 hover:underline"
                         >
                           публичной оферты
                         </Link>{" "}
