@@ -9,6 +9,17 @@ type Props = {
   currentUserEmail: string;
 };
 
+type ProfileRow = {
+  id: string;
+  email: string | null;
+  full_name: string | null;
+  last_name: string | null;
+  first_name: string | null;
+  middle_name: string | null;
+  phone: string | null;
+  telegram: string | null;
+};
+
 export default function ProfileSection({
   currentUserName,
   currentUserEmail,
@@ -35,29 +46,87 @@ export default function ProfileSection({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
 
-  // Подгружаем свежие данные пользователя из Supabase
+  // Технический: id пользователя
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // ===== Загрузка профиля из Supabase =====
   useEffect(() => {
     let cancelled = false;
 
     const load = async () => {
-      const { data } = await supabase.auth.getUser();
-      if (cancelled || !data.user) return;
+      try {
+        // 1. Текущий пользователь
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
 
-      const meta = (data.user.user_metadata || {}) as any;
+        if (cancelled) return;
 
-      // ФИО
-      if (meta.last_name) setLastName(meta.last_name);
-      if (meta.first_name) setFirstName(meta.first_name);
-      if (meta.middle_name) setMiddleName(meta.middle_name);
-      if (!meta.middle_name) setNoMiddleName(true);
+        if (userError) {
+          console.error("[Profile] getUser error:", userError);
+          return;
+        }
+        if (!user) {
+          console.warn("[Profile] no auth user");
+          return;
+        }
 
-      // Аватар
-      if (meta.avatar_url) setAvatarUrl(meta.avatar_url);
+        setUserId(user.id);
 
-      // Контакты
-      if (meta.phone) setPhone(meta.phone);
-      if (meta.telegram) setTelegram(meta.telegram);
-      if (data.user.email) setEmail(data.user.email);
+        const meta = (user.user_metadata || {}) as any;
+
+        // 2. Берём профиль из public.profiles
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select(
+            "id, email, full_name, last_name, first_name, middle_name, phone, telegram"
+          )
+          .eq("id", user.id)
+          .maybeSingle<ProfileRow>();
+
+        if (profileError) {
+          console.error("[Profile] load profile error:", profileError);
+        }
+
+        // 3. ФИО / контакты — приоритет у profiles, fallback к meta / user
+        const last =
+          profile?.last_name ??
+          meta.last_name ??
+          (profile?.full_name || "").split(" ")[0] ??
+          "";
+        const first =
+          profile?.first_name ??
+          meta.first_name ??
+          (profile?.full_name || "").split(" ")[1] ??
+          "";
+        const middle =
+          profile?.middle_name ??
+          meta.middle_name ??
+          (profile?.full_name || "").split(" ")[2] ??
+          "";
+
+        setLastName(last);
+        setFirstName(first);
+        setMiddleName(middle);
+        setNoMiddleName(!middle);
+
+        const phoneFromProfile = profile?.phone ?? meta.phone ?? "";
+        setPhone(phoneFromProfile || "");
+
+        const tg = profile?.telegram ?? meta.telegram ?? "";
+        setTelegram(tg || "");
+
+        const emailFromProfile = profile?.email ?? user.email ?? "";
+        setEmail(emailFromProfile);
+
+        // Аватар — только из мета
+        if (meta.avatar_url) setAvatarUrl(meta.avatar_url);
+      } catch (err) {
+        if (!cancelled) {
+          console.error("[Profile] unexpected load error:", err);
+        }
+      }
     };
 
     load();
@@ -66,6 +135,7 @@ export default function ProfileSection({
     };
   }, [supabase]);
 
+  // ===== Аватар =====
   const displayName =
     [lastName, firstName, !noMiddleName && middleName]
       .filter(Boolean)
@@ -85,18 +155,19 @@ export default function ProfileSection({
     setAvatarLoading(true);
 
     try {
-      const { data: userData, error: userError } =
-        await supabase.auth.getUser();
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
 
-      if (userError || !userData.user) {
+      if (userError || !user) {
         setAvatarError("Не удалось определить пользователя.");
         setAvatarLoading(false);
         return;
       }
 
-      const authUser = userData.user;
       const ext = file.name.split(".").pop() || "jpg";
-      const filePath = `${authUser.id}/${Date.now()}.${ext}`;
+      const filePath = `${user.id}/${Date.now()}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from("avatars")
@@ -138,46 +209,78 @@ export default function ProfileSection({
     }
   };
 
+  // ===== Сохранение профиля =====
   const handleSave = async () => {
     setSaving(true);
     setSaveError(null);
     setSaveSuccess(null);
 
     try {
+      if (!userId) {
+        setSaveError("Не удалось определить пользователя.");
+        setSaving(false);
+        return;
+      }
+
       const fullName = [lastName, firstName, !noMiddleName && middleName]
         .filter(Boolean)
         .join(" ");
 
-      const { error } = await supabase.auth.updateUser({
-        // email сознательно не меняем здесь,
-        // чтобы не ломать подтверждённый доступ к аккаунту
+      const phoneTrimmed = phone.trim() || null;
+      const telegramTrimmed = telegram.trim() || null;
+
+      // 1. Обновляем public.profiles
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          full_name: fullName || null,
+          last_name: lastName || null,
+          first_name: firstName || null,
+          middle_name: noMiddleName ? null : middleName || null,
+          phone: phoneTrimmed,
+          telegram: telegramTrimmed,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", userId);
+
+      if (profileError) {
+        console.error("[Profile] update profiles error:", profileError);
+        setSaveError("Не удалось сохранить изменения в профиле.");
+        setSaving(false);
+        return;
+      }
+
+      // 2. Обновляем user_metadata в auth (но НЕ email)
+      const { error: authError } = await supabase.auth.updateUser({
         data: {
           full_name: fullName || null,
           last_name: lastName || null,
           first_name: firstName || null,
           middle_name: noMiddleName ? null : middleName || null,
-          phone: phone || null,
-          telegram: telegram || null,
+          phone: phoneTrimmed,
+          telegram: telegramTrimmed,
         },
       });
 
-      if (error) {
-        setSaveError(
-          error.message || "Не удалось сохранить изменения профиля."
-        );
+      if (authError) {
+        console.error("[Profile] update auth user error:", authError);
+        setSaveError("Не удалось обновить данные аккаунта.");
+        setSaving(false);
         return;
       }
 
       setSaveSuccess("Изменения сохранены.");
+      // сбросим сообщение через пару секунд
+      setTimeout(() => setSaveSuccess(null), 2500);
     } catch (err) {
       console.error("[Profile] save error:", err);
       setSaveError("Техническая ошибка при сохранении профиля.");
     } finally {
       setSaving(false);
-      setTimeout(() => setSaveSuccess(null), 2500);
     }
   };
 
+  // ===== Рендер =====
   return (
     <section className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4 md:p-5 space-y-4">
       <div>
@@ -273,7 +376,7 @@ export default function ProfileSection({
                   ? "border-slate-200 bg-slate-50 text-slate-400"
                   : "border-slate-300 focus:ring-onlyvet-teal/40"
               }`}
-              placeholder={noMiddleName ? "Не указано" : "Иванович"}
+              placeholder={noMiddleName ? "Не указано" : "Игоревич"}
             />
             <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-600">
               <input
