@@ -1,19 +1,26 @@
 // lib/vetmanagerClient.ts
 // Клиент для Vetmanager REST API. Использовать ТОЛЬКО на сервере (API routes / server components).
 
-const VETM_DOMAIN = process.env.VETM_DOMAIN;        // например: https://onlyvet.vetmanager.ru
-const VETM_API_KEY = process.env.VETM_API_KEY;      // REST API key из настроек Vetmanager
+const VETM_DOMAIN = process.env.VETM_DOMAIN; // например: https://onlyvet.vetmanager.ru
+const VETM_API_KEY = process.env.VETM_API_KEY; // REST API key из настроек Vetmanager
 
 if (!VETM_DOMAIN || !VETM_API_KEY) {
   console.warn("[Vetmanager] VETM_DOMAIN или VETM_API_KEY не заданы в env.");
 }
 
-type VetmResponse<T> = {
+export type VetmResponse<T> = {
   success: boolean;
   message?: string;
   data?: T;
 };
 
+/**
+ * Базовый вызов Vetmanager API.
+ * Здесь добавлены логи, чтобы видеть:
+ *  - какой URL дергаем;
+ *  - что реально прилетает в ответе (JSON);
+ *  - если происходит HTTP-ошибка или ошибка success=false.
+ */
 async function vetmFetch<T>(
   path: string,
   options: RequestInit = {}
@@ -26,7 +33,7 @@ async function vetmFetch<T>(
 
   const url = `${VETM_DOMAIN}/rest/api/${path}`;
 
-  const res = await fetch(url, {
+  const requestOptions: RequestInit = {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -35,18 +42,59 @@ async function vetmFetch<T>(
       "X-REST-TIME-ZONE": "Europe/Moscow",
       ...(options.headers || {}),
     },
+  };
+
+  console.log("[Vetmanager] FETCH →", {
+    url,
+    method: requestOptions.method || "GET",
+    // body выводим только если есть и это строка (чтобы не засветить ничего лишнего)
+    body:
+      typeof requestOptions.body === "string"
+        ? requestOptions.body
+        : undefined,
   });
 
+  const res = await fetch(url, requestOptions);
+
+  const rawText = await res.text();
+
   if (!res.ok) {
-    const text = await res.text();
-    console.error("[Vetmanager] HTTP error", res.status, text);
-    throw new Error(`Vetmanager API error: ${res.status} ${text}`);
+    console.error("[Vetmanager] HTTP error", {
+      url,
+      status: res.status,
+      statusText: res.statusText,
+      body: rawText,
+    });
+    throw new Error(`Vetmanager API error: ${res.status} ${res.statusText}`);
   }
 
-  const json = (await res.json()) as VetmResponse<T>;
-  if (!json.success) {
-    console.error("[Vetmanager] API response not success", json);
+  let json: VetmResponse<T>;
+  try {
+    json = rawText ? (JSON.parse(rawText) as VetmResponse<T>) : ({} as any);
+  } catch (e) {
+    console.error("[Vetmanager] JSON parse error", {
+      url,
+      error: e,
+      rawText,
+    });
+    throw new Error("Vetmanager API вернул невалидный JSON");
   }
+
+  console.log("[Vetmanager] RESPONSE ←", {
+    url,
+    status: res.status,
+    success: json.success,
+    message: json.message,
+    // data: json.data, // если нужно — можно временно раскомментировать
+  });
+
+  if (!json.success) {
+    console.error("[Vetmanager] API response not success", {
+      url,
+      json,
+    });
+  }
+
   return json;
 }
 
@@ -68,7 +116,7 @@ export interface VetmClient {
 
 export interface VetmPet {
   id: number;
-  alias: string;        // кличка
+  alias: string; // кличка
   owner_id: number;
   birthday?: string;
   sex?: string;
@@ -79,13 +127,11 @@ export interface VetmPet {
    =========== */
 
 /**
- * Нормализация телефона для Vetmanager-поиска.
- * Здесь мы используем простую стратегию:
- *  - убираем все нецифры
- *  - если 11 цифр и начинается с 7 или 8 → оставляем последние 10 (локальный номер)
- *  - иначе возвращаем все цифры как есть
+ * Нормализация телефона под формат поиска в Vetmanager:
+ *  - оставляем только цифры;
+ *  - для РФ: если 11 цифр и начинается с 7 или 8 → берём последние 10.
  */
-export function normalizePhone(raw: string): string {
+function normalizePhone(raw: string): string {
   const digits = raw.replace(/\D/g, "");
 
   if (digits.length === 11 && (digits.startsWith("7") || digits.startsWith("8"))) {
@@ -99,20 +145,17 @@ export function normalizePhone(raw: string): string {
    Клиенты
    =========== */
 
-// Поиск клиента по телефону.
-// ВАЖНО: property может отличаться в зависимости от версии API;
-// при необходимости поправим по документации.
 export async function searchClientByPhone(
   phone: string
 ): Promise<VetmClient | null> {
-  const normalized = normalizePhone(phone);
+  const digits = normalizePhone(phone);
 
   const filter = encodeURIComponent(
     JSON.stringify([
       {
-        property: "cell_phone", // в большинстве инсталляций так Vetmanager ищет по телефону
-        value: normalized,
-        operator: "=",
+        property: "cell_phone", // в большинстве схем Vetmanager это поле для мобильного
+        value: digits,
+        operator: "=", // при необходимости поменяем по докам
       },
     ])
   );
@@ -132,7 +175,6 @@ export async function searchClientByPhone(
   return list[0] as VetmClient;
 }
 
-// Создание клиента
 export async function createClient(opts: {
   firstName?: string;
   middleName?: string;
@@ -155,6 +197,7 @@ export async function createClient(opts: {
   });
 
   if (!resp.success || !resp.data) {
+    console.error("[Vetmanager] createClient failed:", resp);
     throw new Error("Не удалось создать клиента в Vetmanager");
   }
 
@@ -162,7 +205,10 @@ export async function createClient(opts: {
   return client as VetmClient;
 }
 
-// Найти или создать клиента по телефону
+/**
+ * Найти или создать клиента по телефону.
+ * Если телефон пустой — всё равно попробуем createClient, чтобы не дублировать логику.
+ */
 export async function findOrCreateClientByPhone(opts: {
   phone: string;
   firstName?: string;
@@ -170,10 +216,44 @@ export async function findOrCreateClientByPhone(opts: {
   lastName?: string;
   email?: string;
 }): Promise<VetmClient> {
-  const existing = await searchClientByPhone(opts.phone);
-  if (existing) return existing;
+  const normalized = normalizePhone(opts.phone);
 
-  return await createClient(opts);
+  console.log("[Vetmanager] findOrCreateClientByPhone", {
+    raw: opts.phone,
+    normalized,
+    firstName: opts.firstName,
+    lastName: opts.lastName,
+    middleName: opts.middleName,
+    email: opts.email,
+  });
+
+  let existing: VetmClient | null = null;
+
+  if (normalized) {
+    existing = await searchClientByPhone(normalized);
+  }
+
+  if (existing) {
+    console.log("[Vetmanager] findOrCreateClientByPhone → FOUND", {
+      id: existing.id,
+      name: `${existing.last_name} ${existing.first_name} ${existing.middle_name}`,
+    });
+    return existing;
+  }
+
+  const created = await createClient({
+    phone: normalized || opts.phone,
+    firstName: opts.firstName,
+    middleName: opts.middleName,
+    lastName: opts.lastName,
+    email: opts.email,
+  });
+
+  console.log("[Vetmanager] findOrCreateClientByPhone → CREATED", {
+    id: created.id,
+  });
+
+  return created;
 }
 
 /* ===========
@@ -186,6 +266,7 @@ export async function getPetsByClientId(clientId: number): Promise<VetmPet[]> {
   );
 
   const resp = await vetmFetch<{ data: VetmPet[] }>(`pet?filter=${filter}`);
+
   if (!resp.success || !resp.data) return [];
 
   const list = (resp.data as any).data || (resp.data as any);
@@ -195,6 +276,7 @@ export async function getPetsByClientId(clientId: number): Promise<VetmPet[]> {
 // Получить питомца по ID
 export async function getPetById(id: number): Promise<VetmPet | null> {
   const resp = await vetmFetch<{ pet: VetmPet }>(`pet/${id}`);
+
   if (!resp.success || !resp.data) return null;
 
   const pet = (resp.data as any).pet || (resp.data as any);
@@ -222,17 +304,33 @@ export async function getPersonalAccountLinkByClientId(
     },
   });
 
+  const rawText = await res.text();
+
   if (!res.ok) {
-    console.error("[Vetmanager] VmLink error", res.status);
+    console.error("[Vetmanager] VmLink error", {
+      status: res.status,
+      statusText: res.statusText,
+      body: rawText,
+    });
     return null;
   }
 
-  const json = (await res.json()) as {
+  let json: {
     success: boolean;
     data?: {
       vetmanagerLink?: { personal_link?: string };
     };
   };
+
+  try {
+    json = rawText ? JSON.parse(rawText) : ({} as any);
+  } catch (e) {
+    console.error("[Vetmanager] VmLink JSON parse error", {
+      error: e,
+      rawText,
+    });
+    return null;
+  }
 
   if (!json.success || !json.data?.vetmanagerLink?.personal_link) return null;
   return json.data.vetmanagerLink.personal_link;
