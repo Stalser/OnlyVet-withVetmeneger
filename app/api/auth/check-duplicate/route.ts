@@ -6,9 +6,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  console.warn(
-    "[check-duplicate] SUPABASE_URL или SUPABASE_SERVICE_ROLE_KEY не заданы."
-  );
+  console.warn("[check-duplicate] SUPABASE_URL или SUPABASE_SERVICE_ROLE_KEY не заданы.");
 }
 
 const supabaseAdmin =
@@ -26,59 +24,54 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json().catch(() => ({}));
-    const email = (body.email as string | undefined)?.trim().toLowerCase();
-    const phoneNormalized = (body.phone_normalized as string | null) ?? null;
+    const rawEmail = (body.email as string | undefined) || "";
+    const rawPhone = (body.phoneNormalized as string | undefined) || "";
 
-    if (!email && !phoneNormalized) {
-      return NextResponse.json(
-        { error: "email или phone_normalized обязательны" },
-        { status: 400 }
-      );
-    }
+    const email = rawEmail.trim().toLowerCase();
+    const phoneNormalized = rawPhone.replace(/\D/g, "");
 
-    const duplicateFields: string[] = [];
+    let emailExists = false;
+    let phoneExists = false;
 
-    // 1) проверка email в auth.users
+    // 1. Проверка email в profiles
     if (email) {
-      const { data, error } = await supabaseAdmin
-        .from("auth.users")
-        .select("id")
-        .eq("email", email)
-        .limit(1);
+      const { count, error } = await supabaseAdmin
+        .from("profiles")
+        .select("id", { count: "exact", head: true })
+        .ilike("email", email);
 
       if (error) {
         console.warn("[check-duplicate] email check error:", error);
-      } else if (data && data.length > 0) {
-        duplicateFields.push("email");
+      } else if ((count ?? 0) > 0) {
+        emailExists = true;
       }
     }
 
-    // 2) проверка телефона в public.profiles.phone_normalized
+    // 2. Проверка телефона в profiles.phone_normalized
     if (phoneNormalized) {
-      const { data, error } = await supabaseAdmin
+      const { count, error } = await supabaseAdmin
         .from("profiles")
-        .select("id")
-        .eq("phone_normalized", phoneNormalized)
-        .maybeSingle();
+        .select("id", { count: "exact", head: true })
+        .eq("phone_normalized", phoneNormalized);
 
       if (error) {
         console.warn("[check-duplicate] phone check error:", error);
-      } else if (data) {
-        duplicateFields.push("phone");
+      } else if ((count ?? 0) > 0) {
+        phoneExists = true;
       }
     }
 
-    return NextResponse.json(
-      {
-        duplicate: duplicateFields.length > 0,
-        fields: duplicateFields,
-      },
-      { status: 200 }
-    );
+    const duplicate = emailExists || phoneExists;
+
+    return NextResponse.json({
+      duplicate,
+      emailExists,
+      phoneExists,
+    });
   } catch (err) {
     console.error("[check-duplicate] unexpected error:", err);
     return NextResponse.json(
-      { error: "Internal error" },
+      { error: "Internal error in check-duplicate" },
       { status: 500 }
     );
   }
