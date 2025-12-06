@@ -1,38 +1,27 @@
 // lib/vetmanagerClient.ts
 // Клиент для Vetmanager REST API. Использовать ТОЛЬКО на сервере (API routes / server components).
 
-const VETM_DOMAIN = process.env.VETM_DOMAIN;
-const VETM_API_KEY = process.env.VETM_API_KEY;
+const VETM_DOMAIN = process.env.VETM_DOMAIN; // например: https://onlyvet.vetmanager.ru
+const VETM_API_KEY = process.env.VETM_API_KEY; // REST API key из настроек Vetmanager
 
 if (!VETM_DOMAIN || !VETM_API_KEY) {
-  console.warn(
-    "[Vetmanager] VETM_DOMAIN или VETM_API_KEY не заданы в env. Интеграция с клиникой отключена."
-  );
+  console.warn("[Vetmanager] VETM_DOMAIN или VETM_API_KEY не заданы в env.");
 }
 
-export interface VetmClient {
-  id: number;
-  last_name?: string;
-  first_name?: string;
-  middle_name?: string;
-  cell_phone?: string;
-  email?: string;
-  status?: string;
-}
-
-interface VetmResponse<T> {
+type VetmResponse<T> = {
   success: boolean;
   message?: string;
   data?: T;
-}
+};
 
-// Внутренний помощник для запросов
 async function vetmFetch<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<VetmResponse<T>> {
   if (!VETM_DOMAIN || !VETM_API_KEY) {
-    throw new Error("Vetmanager API не сконфигурирован (нет VETM_DOMAIN или VETM_API_KEY).");
+    throw new Error(
+      "Vetmanager API не сконфигурирован (нет VETM_DOMAIN или VETM_API_KEY)."
+    );
   }
 
   const url = `${VETM_DOMAIN}/rest/api/${path}`;
@@ -52,171 +41,278 @@ async function vetmFetch<T>(
   let json: VetmResponse<T>;
 
   try {
-    json = JSON.parse(text);
+    json = JSON.parse(text) as VetmResponse<T>;
   } catch {
-    console.error("[Vetmanager] Не удалось разобрать JSON:", text);
-    throw new Error(`Vetmanager: invalid JSON (${res.status})`);
+    console.error("[Vetmanager] invalid JSON:", text);
+    throw new Error(`Vetmanager invalid JSON: ${text}`);
   }
 
-  if (!res.ok || !json.success) {
-    console.error("[Vetmanager] HTTP/API error", res.status, json);
+  if (!res.ok) {
+    console.error("[Vetmanager] HTTP error", res.status, json);
     throw new Error(
-      `Vetmanager API error: HTTP ${res.status}, success=${json.success}, message=${json.message}`
+      `Vetmanager HTTP ${res.status}: ${json.message || "unknown error"}`
     );
+  }
+
+  if (!json.success) {
+    console.error("[Vetmanager] API not success:", json);
+    throw new Error(`Vetmanager API error: ${json.message || "unknown"}`);
   }
 
   return json;
 }
 
-/**
- * Вспомогательная нормализация телефона для Vetmanager:
- * - берём только цифры;
- * - если 10 цифр → добавляем '7' спереди (делаем 11);
- * - если 11 цифр → оставляем как есть;
- * - всё остальное → кидаем ошибку.
- */
-function normalizePhoneForVetmanager(rawDigits: string): string {
-  const digits = rawDigits.replace(/\D/g, "");
+/* ===========
+   Типы
+   =========== */
 
+export interface VetmClient {
+  id: number;
+  last_name?: string;
+  first_name?: string;
+  middle_name?: string;
+  cell_phone?: string;
+  email?: string;
+  [key: string]: any;
+}
+
+export interface VetmPet {
+  id: number;
+  alias: string;
+  owner_id: number;
+  birthday?: string;
+  sex?: string;
+  [key: string]: any;
+}
+
+/* ===========
+   Вспомогательные
+   =========== */
+
+function normalizePhoneDigits(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  return digits;
+}
+
+/**
+ * Для записи в Vetmanager: делаем вид "7" + 10 цифр, если это РФ.
+ */
+function normalizePhoneForVetmanager(raw: string): string {
+  const digits = normalizePhoneDigits(raw);
+
+  // 10 цифр → считаем локальным номером РФ
   if (digits.length === 10) {
     return "7" + digits;
   }
 
-  if (digits.length === 11) {
-    return digits;
+  // 11 цифр, начинается с 7 или 8 → приводим к 7XXXXXXXXXX
+  if (digits.length === 11 && (digits.startsWith("7") || digits.startsWith("8"))) {
+    return "7" + digits.slice(1);
   }
 
-  throw new Error(
-    `[Vetmanager] Некорректное количество цифр телефона для Vetmanager: "${rawDigits}" -> "${digits}"`
-  );
+  // всё остальное — что есть
+  return digits;
 }
 
-/* ===========================================================================
-   Поиск клиента по телефону
-   =========================================================================== */
-
-type ClientListPayload = {
-  totalCount: number;
-  client: VetmClient[];
-};
+/* ===========
+   Поиск клиента
+   =========== */
 
 /**
- * Ищем клиента по cell_phone.
- * ВАЖНО: property = "cell_phone" (в таблице client НЕТ колонки phone).
+ * Ищем клиента по телефону и/или email.
+ * Если найден — возвращаем первого.
+ * Если нет — null.
  */
-async function searchClientByPhone(
-  phoneDigits: string
+export async function searchClient(
+  opts: { phone?: string; email?: string }
 ): Promise<VetmClient | null> {
-  const filter = encodeURIComponent(
-    JSON.stringify([
-      {
+  const filters: any[] = [];
+
+  if (opts.phone) {
+    const ph = normalizePhoneForVetmanager(opts.phone);
+    if (ph) {
+      filters.push({
         property: "cell_phone",
-        value: phoneDigits,
+        value: ph,
         operator: "=",
-      },
-    ])
-  );
+      });
+    }
+  }
 
-  const resp = await vetmFetch<ClientListPayload>(`client?filter=${filter}`);
+  if (opts.email) {
+    const em = opts.email.trim();
+    if (em) {
+      filters.push({
+        property: "email",
+        value: em,
+        operator: "=",
+      });
+    }
+  }
 
-  const list = resp.data?.client || [];
+  if (filters.length === 0) {
+    return null;
+  }
+
+  const filterParam = encodeURIComponent(JSON.stringify(filters));
+
+  const resp = await vetmFetch<{
+    totalCount: number;
+    client: VetmClient[];
+  }>(`client?filter=${filterParam}`);
+
+  const list =
+    (resp.data as any)?.client ||
+    (resp.data as any)?.data ||
+    (resp.data as any);
+
   if (!Array.isArray(list) || list.length === 0) return null;
 
-  return list[0];
+  return list[0] as VetmClient;
 }
 
-/* ===========================================================================
+/* ===========
    Создание клиента
-   =========================================================================== */
+   =========== */
 
-async function createClient(opts: {
-  phoneDigits: string;
-  lastName?: string;
+export async function createClient(opts: {
   firstName?: string;
   middleName?: string;
+  lastName?: string;
+  phone?: string;
   email?: string;
 }): Promise<VetmClient> {
   const body: any = {
     last_name: opts.lastName || "",
     first_name: opts.firstName || "",
     middle_name: opts.middleName || "",
-    cell_phone: opts.phoneDigits,
     email: opts.email || "",
     status: "ACTIVE",
   };
 
-  const resp = await vetmFetch<ClientListPayload>("client", {
+  if (opts.phone) {
+    body.cell_phone = normalizePhoneForVetmanager(opts.phone);
+  }
+
+  const resp = await vetmFetch<{
+    totalCount: number;
+    client: VetmClient[];
+  }>("client", {
     method: "POST",
     body: JSON.stringify(body),
   });
 
-  const list = resp.data?.client || [];
+  const list =
+    (resp.data as any)?.client ||
+    (resp.data as any)?.data ||
+    (resp.data as any);
+
   if (!Array.isArray(list) || list.length === 0) {
-    console.error("[Vetmanager] createClient: пустой ответ", resp);
-    throw new Error("Vetmanager: не удалось создать клиента (пустой ответ)");
+    throw new Error("Vetmanager: пустой ответ при создании клиента");
   }
 
-  const client = list[0];
-  console.log("[Vetmanager] createClient -> CREATED", {
+  const client = list[0] as VetmClient;
+  console.log("[Vetmanager] createClient CREATED", {
     id: client.id,
     last_name: client.last_name,
     first_name: client.first_name,
     cell_phone: client.cell_phone,
+    email: client.email,
   });
 
   return client;
 }
 
-/* ===========================================================================
-   Публичная функция: найти или создать клиента по телефону
-   =========================================================================== */
+/* ===========
+   Найти или создать (основная точка входа)
+   =========== */
 
-export async function findOrCreateClientByPhone(opts: {
-  phone: string; // может быть в любом виде: "+7 982..." / "7982..." / "982..."
+export async function findOrCreateClient(opts: {
+  phone?: string;
+  email?: string;
   firstName?: string;
   middleName?: string;
   lastName?: string;
-  email?: string;
 }): Promise<VetmClient> {
-  // 1. Нормализуем под Vetmanager (11 цифр, начинается с 7)
-  const digits = opts.phone.replace(/\D/g, "");
-  if (!digits) {
-    throw new Error("[Vetmanager] findOrCreateClientByPhone: телефон пустой");
-  }
-
-  const vetmPhone = normalizePhoneForVetmanager(
-    digits.length > 11 ? digits.slice(-11) : digits
-  );
-
-  // 2. Пытаемся найти по полному номеру
-  const existing = await searchClientByPhone(vetmPhone);
-  if (existing) {
-    console.log("[Vetmanager] findOrCreateClientByPhone -> FOUND", {
-      id: existing.id,
-      cell_phone: existing.cell_phone,
+  // 1. Пытаемся найти
+  try {
+    const existing = await searchClient({
+      phone: opts.phone,
+      email: opts.email,
     });
-    return existing;
+
+    if (existing) {
+      console.log("[Vetmanager] findOrCreateClient FOUND", {
+        id: existing.id,
+        cell_phone: existing.cell_phone,
+        email: existing.email,
+      });
+      return existing;
+    }
+  } catch (e) {
+    console.warn("[Vetmanager] searchClient error, продолжаем с create:", e);
   }
 
-  // 3. На всякий случай пробуем только по последним 10 цифрам (под старые записи)
-  const last10 = vetmPhone.slice(-10);
-  const existingAlt = await searchClientByPhone(last10).catch(() => null);
-  if (existingAlt) {
-    console.log("[Vetmanager] findOrCreateClientByPhone -> FOUND (alt)", {
-      id: existingAlt.id,
-      cell_phone: existingAlt.cell_phone,
-    });
-    return existingAlt;
-  }
-
-  // 4. Не нашли — создаём нового клиента
+  // 2. Не нашли — создаём
   const created = await createClient({
-    phoneDigits: vetmPhone,
-    lastName: opts.lastName,
     firstName: opts.firstName,
     middleName: opts.middleName,
+    lastName: opts.lastName,
+    phone: opts.phone,
     email: opts.email,
   });
 
   return created;
+}
+
+/* ===========
+   Питомцы
+   =========== */
+
+/**
+ * Список питомцев по ID клиента.
+ */
+export async function getPetsByClientId(clientId: number): Promise<VetmPet[]> {
+  const filterParam = encodeURIComponent(
+    JSON.stringify([
+      {
+        property: "owner_id",
+        value: clientId,
+        operator: "=",
+      },
+    ])
+  );
+
+  const resp = await vetmFetch<{ totalCount: number; pet: VetmPet[] }>(
+    `pet?filter=${filterParam}`
+  );
+
+  const list =
+    (resp.data as any)?.pet ||
+    (resp.data as any)?.data ||
+    (resp.data as any);
+
+  if (!Array.isArray(list)) return [];
+
+  return list as VetmPet[];
+}
+
+/**
+ * Питомец по ID — для страницы /account/pets/[id].
+ */
+export async function getPetById(id: number): Promise<VetmPet | null> {
+  const resp = await vetmFetch<{ pet: VetmPet[] | VetmPet }>(`pet/${id}`);
+
+  const data = resp.data as any;
+  if (!data) return null;
+
+  if (Array.isArray(data.pet) && data.pet.length > 0) {
+    return data.pet[0] as VetmPet;
+  }
+
+  if (data.pet && !Array.isArray(data.pet)) {
+    return data.pet as VetmPet;
+  }
+
+  return null;
 }
