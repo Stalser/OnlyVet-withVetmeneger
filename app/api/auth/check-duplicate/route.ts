@@ -17,36 +17,66 @@ const supabaseAdmin =
     : null;
 
 export async function POST(req: NextRequest) {
-  if (!supabaseAdmin) {
+  try {
+    if (!supabaseAdmin) {
+      return NextResponse.json(
+        { error: "Supabase admin client is not configured" },
+        { status: 500 }
+      );
+    }
+
+    const body = await req.json().catch(() => ({}));
+    const email = (body.email as string | undefined)?.trim().toLowerCase();
+    const phoneNormalized = (body.phoneNormalized as string | undefined)?.trim();
+
+    let emailExists = false;
+    let phoneExists = false;
+
+    // 1. Проверяем email в profiles (можно добавить check и по auth.users, если нужно)
+    if (email) {
+      const { data, error } = await supabaseAdmin
+        .from("profiles")
+        .select("id")
+        .eq("email", email)
+        .maybeSingle();
+
+      if (error) {
+        console.warn("[check-duplicate] email check error:", error);
+      } else if (data) {
+        emailExists = true;
+      }
+    }
+
+    // 2. Проверяем телефон в profiles
+    if (phoneNormalized) {
+      const { data, error } = await supabaseAdmin
+        .from("profiles")
+        .select("id")
+        .eq("phone_normalized", phoneNormalized)
+        .maybeSingle();
+
+      if (error) {
+        console.warn("[check-duplicate] phone check error:", error);
+      } else if (data) {
+        phoneExists = true;
+      }
+    }
+
+    const exists = emailExists || phoneExists;
+
     return NextResponse.json(
-      { error: "Supabase admin client is not configured" },
+      {
+        exists,
+        emailExists,
+        phoneExists,
+      },
+      { status: 200 }
+    );
+  } catch (err) {
+    console.error("[check-duplicate] unexpected error:", err);
+    return NextResponse.json(
+      { error: "Internal error in check-duplicate" },
       { status: 500 }
     );
   }
-
-  const body = await req.json().catch(() => ({}));
-  const phoneNormalized = body.phoneNormalized as string | null;
-
-  let phoneExists = false;
-
-  if (phoneNormalized) {
-    const { data, error } = await supabaseAdmin
-      .from("profiles")
-      .select("id")
-      .eq("phone_normalized", phoneNormalized)
-      .maybeSingle();
-
-    if (error) {
-      console.warn("[check-duplicate] phone check error:", error);
-    }
-    if (data) {
-      phoneExists = true;
-    }
-  }
-
-  return NextResponse.json({
-    exists: phoneExists,
-    emailExists: false, // email ловим по ошибке signUp
-    phoneExists,
-  });
 }
