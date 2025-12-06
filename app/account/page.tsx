@@ -18,7 +18,7 @@ import TrustedSection from "./components/TrustedSection";
 import NotificationsSection from "./components/NotificationsSection";
 import ProfileSection from "./components/ProfileSection";
 
-// Моки (пока Vetmanager не подключён по этим блокам)
+// Моки
 import {
   mockTrustedPeople,
   mockTrustedForMe,
@@ -42,46 +42,9 @@ export default function AccountPage() {
   const [currentUserEmail, setCurrentUserEmail] = useState<string>("");
   const [checkingAuth, setCheckingAuth] = useState(true);
 
-  // чтобы не дёргать Vetmanager init бесконечно
-  const [vmInitCalled, setVmInitCalled] = useState(false);
-
   useEffect(() => {
     let cancelled = false;
     const supabase = getSupabaseClient();
-
-    // Аккуратный INIT Vetmanager (вызывается только после успешной авторизации)
-    const initVetmanagerIfNeeded = async (user: any, meta: any) => {
-      if (cancelled) return;
-      if (vmInitCalled) return; // на всякий случай — чтобы не дёргать повторно в рамках одной сессии
-      setVmInitCalled(true);
-
-      try {
-        const email = user.email as string | null;
-        const phoneRaw =
-          (meta && (meta.phone_raw || meta.phone)) ??
-          ""; // phone_raw мы сохраняем при регистрации
-
-        if (!email || !phoneRaw) {
-          // Без этих данных инициализация не имеет смысла
-          return;
-        }
-
-        await fetch("/api/vetmanager/profile/init", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            supabaseUserId: user.id,
-            phone: phoneRaw,
-            firstName: meta.first_name || "",
-            lastName: meta.last_name || "",
-            email,
-          }),
-        });
-      } catch (err) {
-        // Важно: не ломаем личный кабинет, просто логируем.
-        console.warn("[Vetmanager init] error:", err);
-      }
-    };
 
     const checkAuth = async () => {
       const { data, error } = await supabase.auth.getUser();
@@ -96,7 +59,6 @@ export default function AccountPage() {
       const user = data.user;
       const meta = (user.user_metadata || {}) as any;
 
-      // ФИО для отображения
       const fullNameFromMeta =
         meta.full_name ||
         [meta.last_name, meta.first_name].filter(Boolean).join(" ");
@@ -108,9 +70,6 @@ export default function AccountPage() {
       );
       setCurrentUserEmail(user.email || "");
 
-      // Параллельно пробуем аккуратно подтянуть Vetmanager
-      initVetmanagerIfNeeded(user, meta);
-
       setCheckingAuth(false);
     };
 
@@ -119,9 +78,8 @@ export default function AccountPage() {
     return () => {
       cancelled = true;
     };
-  }, [router, vmInitCalled]);
+  }, [router]);
 
-  // Пока идёт проверка сессии
   if (checkingAuth) {
     return (
       <>
@@ -143,7 +101,7 @@ export default function AccountPage() {
       <Header />
       <main className="flex-1 bg-slate-50/60">
         <div className="container mx-auto max-w-5xl px-4 py-6 md:py-8">
-          {/* Заголовок страницы */}
+          {/* Заголовок */}
           <div className="mb-5 md:mb-6">
             <nav className="text-[11px] text-slate-500 mb-1">
               <Link href="/" className="hover:text-onlyvet-coral">
@@ -223,9 +181,6 @@ export default function AccountPage() {
   );
 }
 
-// ============================
-// Вспомогательная кнопка вкладки
-// ============================
 function AccountTabButton({
   tab,
   current,
