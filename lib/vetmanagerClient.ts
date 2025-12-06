@@ -21,7 +21,7 @@ export interface VetmClient {
   middle_name?: string;
   email?: string;
   cell_phone?: string;
-  status?: string;
+  status?: string; // ACTIVE / DISABLED / ...
 }
 
 export interface VetmPet {
@@ -32,7 +32,7 @@ export interface VetmPet {
   sex?: string;
 }
 
-// ========= базовый fetch =========
+// ========== базовый fetch ==========
 
 async function vetmFetch<T>(
   path: string,
@@ -78,7 +78,7 @@ async function vetmFetch<T>(
   return json;
 }
 
-// ========= нормализация телефона =========
+// ========== нормализация телефона ==========
 
 /**
  * Нормализация телефона для Vetmanager:
@@ -105,14 +105,15 @@ export function normalizePhoneForVetm(raw: string): string {
   return digits;
 }
 
-// ========= клиент: поиск и создание =========
+// ========== поиск клиентов по телефону ==========
 
 /**
- * Поиск клиента по телефону в Vetmanager (по cell_phone).
+ * Возвращает ВСЕХ клиентов с таким номером телефона (cell_phone),
+ * вне зависимости от статуса.
  */
-export async function searchClientByPhone(
+export async function searchClientsByPhone(
   phoneDigits: string
-): Promise<VetmClient | null> {
+): Promise<VetmClient[]> {
   const filter = encodeURIComponent(
     JSON.stringify([
       {
@@ -129,14 +130,11 @@ export async function searchClientByPhone(
   }>(`client?filter=${filter}`);
 
   const list = resp.data?.client || [];
-  if (!Array.isArray(list) || list.length === 0) return null;
-
-  return list[0];
+  return Array.isArray(list) ? list : [];
 }
 
-/**
- * Создание клиента в Vetmanager.
- */
+// ========== создание клиента ==========
+
 export async function createClient(opts: {
   lastName: string;
   firstName?: string;
@@ -170,10 +168,63 @@ export async function createClient(opts: {
 }
 
 /**
+ * Убедиться, что клиент ACTIVE.
+ * Если DISABLED — аккуратно поднимаем статус через PUT /client/{id}.
+ */
+async function ensureClientActive(client: VetmClient): Promise<VetmClient> {
+  const status = (client.status || "").toUpperCase();
+  if (status === "ACTIVE") return client;
+
+  try {
+    const resp = await vetmFetch<{
+      totalCount: number;
+      client: VetmClient[];
+    }>(`client/${client.id}`, {
+      method: "PUT",
+      body: JSON.stringify({ status: "ACTIVE" }),
+    });
+
+    const updated = resp.data?.client?.[0];
+    if (updated) return updated;
+  } catch (e) {
+    console.warn("[Vetmanager] не удалось перевести клиента в ACTIVE:", client.id, e);
+  }
+
+  // если апдейт не удался — возвращаем исходного, но лог уже есть
+  return client;
+}
+
+// ========== выбор "правильного" клиента среди кандидатов ==========
+
+function normalizeStr(str?: string | null): string {
+  return (str || "").trim().toLowerCase();
+}
+
+function pickBestClient(candidates: VetmClient[]): VetmClient | null {
+  if (!candidates.length) return null;
+
+  const active = candidates.filter(
+    (c) => (c.status || "").toUpperCase() === "ACTIVE"
+  );
+  const source = active.length ? active : candidates;
+
+  // Берём клиента с максимальным id (условно "самый новый")
+  return source.reduce((best, c) => (c.id > best.id ? c : best), source[0]);
+}
+
+// ========== findOrCreateClientByPhone (НОВАЯ ЛОГИКА) ==========
+
+/**
  * Найти или создать клиента по телефону.
- * 1) нормализуем телефон
- * 2) ищем по cell_phone
- * 3) если нет — создаём
+ *
+ * Алгоритм:
+ * 1) Нормализуем телефон.
+ * 2) Берём всех клиентов с таким cell_phone.
+ * 3) Среди них:
+ *    - сначала ищем по email (если есть),
+ *    - если не нашли — по ФИО (фамилия+имя+отчество),
+ *    - выбираем лучшего (ACTIVE > DISABLED, потом по id).
+ * 4) Если ничего подходящего не нашли — создаём нового.
  */
 export async function findOrCreateClientByPhone(opts: {
   phone: string;
@@ -184,13 +235,57 @@ export async function findOrCreateClientByPhone(opts: {
 }): Promise<VetmClient> {
   const phoneDigits = normalizePhoneForVetm(opts.phone);
 
-  // 1. Пытаемся найти
-  const existing = await searchClientByPhone(phoneDigits);
-  if (existing) {
-    return existing;
+  // 1. Все клиенты с таким телефоном
+  const all = await searchClientsByPhone(phoneDigits);
+
+  // 2. Фильтр по email (если есть)
+  let byEmail: VetmClient[] = [];
+  if (opts.email) {
+    const emailNorm = normalizeStr(opts.email);
+    byEmail = all.filter(
+      (c) => normalizeStr(c.email) === emailNorm
+    );
   }
 
-  // 2. Создаём нового
+  // 3. Фильтр по ФИО
+  const ln = normalizeStr(opts.lastName);
+  const fn = normalizeStr(opts.firstName);
+  const mn = normalizeStr(opts.middleName);
+
+  const byName = all.filter(
+    (c) =>
+      normalizeStr(c.last_name) === ln &&
+      normalizeStr(c.first_name) === fn &&
+      normalizeStr(c.middle_name) === mn
+  );
+
+  // 4. Выбор приоритета: сначала по email, потом по ФИО
+  let chosen: VetmClient | null = null;
+
+  if (byEmail.length) {
+    chosen = pickBestClient(byEmail);
+  } else if (byName.length) {
+    chosen = pickBestClient(byName);
+  }
+
+  // 5. Если нашёлся подходящий кандидат — используем его (и поднимаем в ACTIVE при необходимости)
+  if (chosen) {
+    const activeClient = await ensureClientActive(chosen);
+    return activeClient;
+  }
+
+  // 6. Если клиентов по телефону много, но ни один не совпадает по email/ФИО — это телефон-дубликат.
+  if (all.length > 0) {
+    console.warn(
+      "[Vetmanager] phone collision: ни один клиент по телефону не совпал по email/FIO. Создаём нового.",
+      {
+        phone: phoneDigits,
+        totalCandidates: all.length,
+      }
+    );
+  }
+
+  // 7. Создаём нового клиента
   const created = await createClient({
     lastName: opts.lastName,
     firstName: opts.firstName,
@@ -199,13 +294,14 @@ export async function findOrCreateClientByPhone(opts: {
     phoneDigits,
   });
 
-  return created;
+  const activeCreated = await ensureClientActive(created);
+  return activeCreated;
 }
 
-// Для совместимости
+// Для совместимости, если где-то вдруг используется другое имя:
 export const findOrCreateClient = findOrCreateClientByPhone;
 
-// ========= питомцы (на будущее) =========
+// ========== питомцы (на будущее) ==========
 
 export async function getPetsByClientId(clientId: number): Promise<VetmPet[]> {
   const filter = encodeURIComponent(
