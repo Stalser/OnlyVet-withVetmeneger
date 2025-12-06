@@ -1,4 +1,3 @@
-// app/account/page.tsx
 "use client";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +17,7 @@ import TrustedSection from "./components/TrustedSection";
 import NotificationsSection from "./components/NotificationsSection";
 import ProfileSection from "./components/ProfileSection";
 
-// Моки
+// Моки (пока доверенные лица и уведомления не связаны с Vetmanager)
 import {
   mockTrustedPeople,
   mockTrustedForMe,
@@ -34,6 +33,7 @@ type AccountTab =
 
 export default function AccountPage() {
   const router = useRouter();
+  const supabase = getSupabaseClient();
 
   const [tab, setTab] = useState<AccountTab>("consultations");
 
@@ -42,9 +42,26 @@ export default function AccountPage() {
   const [currentUserEmail, setCurrentUserEmail] = useState<string>("");
   const [checkingAuth, setCheckingAuth] = useState(true);
 
+  // чтобы init Vetmanager не дёргался по сто раз
+  const [vmInitDone, setVmInitDone] = useState(false);
+
   useEffect(() => {
     let cancelled = false;
-    const supabase = getSupabaseClient();
+
+    const initVetmanager = async (supabaseUserId: string) => {
+      if (vmInitDone) return;
+      setVmInitDone(true);
+
+      try {
+        await fetch("/api/vetmanager/profile/init", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ supabaseUserId }),
+        });
+      } catch (err) {
+        console.warn("[Account] Vetmanager init error:", err);
+      }
+    };
 
     const checkAuth = async () => {
       const { data, error } = await supabase.auth.getUser();
@@ -59,6 +76,7 @@ export default function AccountPage() {
       const user = data.user;
       const meta = (user.user_metadata || {}) as any;
 
+      // ФИО для отображения
       const fullNameFromMeta =
         meta.full_name ||
         [meta.last_name, meta.first_name].filter(Boolean).join(" ");
@@ -70,6 +88,9 @@ export default function AccountPage() {
       );
       setCurrentUserEmail(user.email || "");
 
+      // Аккуратно инициируем связку с Vetmanager
+      initVetmanager(user.id);
+
       setCheckingAuth(false);
     };
 
@@ -78,7 +99,7 @@ export default function AccountPage() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [router, supabase, vmInitDone]);
 
   if (checkingAuth) {
     return (
@@ -101,7 +122,7 @@ export default function AccountPage() {
       <Header />
       <main className="flex-1 bg-slate-50/60">
         <div className="container mx-auto max-w-5xl px-4 py-6 md:py-8">
-          {/* Заголовок */}
+          {/* Заголовок страницы */}
           <div className="mb-5 md:mb-6">
             <nav className="text-[11px] text-slate-500 mb-1">
               <Link href="/" className="hover:text-onlyvet-coral">
