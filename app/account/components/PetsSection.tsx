@@ -1,101 +1,19 @@
 // app/account/components/PetsSection.tsx
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { getSupabaseClient } from "@/lib/supabaseClient";
-
-type VetmPet = {
-  id: number;
-  alias: string;
-  owner_id: number;
-  birthday?: string;
-  sex?: string;
-};
-
-type PetsState =
-  | { status: "idle" }
-  | { status: "loading" }
-  | { status: "error"; message: string }
-  | { status: "ready"; pets: VetmPet[]; vetmClientId: number };
-
-const supabase = getSupabaseClient();
+/**
+ * ВРЕМЕННЫЙ вариант секции "Питомцы".
+ *
+ * ВАЖНО:
+ *  - НИКУДА не ходит (ни в Vetmanager, ни в Supabase),
+ *  - Просто показывает информативный текст,
+ *  - Никаких запросов, ошибок и дублей клиентов.
+ *
+ * Как только будет готова стабильная интеграция с Vetmanager,
+ * сюда вернём реальную загрузку питомцев.
+ */
 
 export default function PetsSection() {
-  const [state, setState] = useState<PetsState>({ status: "idle" });
-
-  const loadPets = async () => {
-    try {
-      setState({ status: "loading" });
-
-      // 1. Получаем текущего пользователя из Supabase (клиентский SDK)
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-
-      if (userError) {
-        console.error("[PetsSection] getUser error:", userError);
-        setState({
-          status: "error",
-          message:
-            "Не удалось определить пользователя. Попробуйте выйти и войти снова.",
-        });
-        return;
-      }
-
-      if (!user) {
-        setState({
-          status: "error",
-          message: "Чтобы увидеть питомцев, нужно войти в личный кабинет.",
-        });
-        return;
-      }
-
-      // 2. Запрашиваем питомцев через наш API, передаём supabaseUserId
-      const res = await fetch("/api/vetmanager/pets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ supabaseUserId: user.id }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || !data.ok) {
-        setState({
-          status: "error",
-          message:
-            data?.error ||
-            "Не удалось загрузить список питомцев. Попробуйте позже.",
-        });
-        return;
-      }
-
-      const pets: VetmPet[] = data.pets || [];
-
-      setState({
-        status: "ready",
-        pets,
-        vetmClientId: data.vetmClientId,
-      });
-    } catch (err) {
-      console.error("[PetsSection] unexpected error:", err);
-      setState({
-        status: "error",
-        message:
-          "Произошла техническая ошибка при загрузке питомцев. Попробуйте позже.",
-      });
-    }
-  };
-
-  useEffect(() => {
-    loadPets();
-  }, []);
-
-  const isLoading = state.status === "loading";
-  const hasError = state.status === "error";
-  const isReady = state.status === "ready";
-
   return (
     <section className="bg-white rounded-3xl border border-slate-200 shadow-soft p-4 md:p-5 space-y-3">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
@@ -104,82 +22,29 @@ export default function PetsSection() {
             Ваши питомцы
           </h2>
           <p className="text-[12px] text-slate-600 max-w-xl">
-            Список питомцев берётся из карты клиента в клинике и синхронизируется
-            с данными врачей. Здесь отображаются только те животные, которые заведены
-            в системе клиники.
+            В этом разделе будут отображаться питомцы из вашей карты клиента в
+            клинике: имя, вид, возраст и основная медицинская информация.
+            Список будет синхронизироваться с данными врачей в Vetmanager.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={loadPets}
-          disabled={isLoading}
-          className="px-3 py-1.5 rounded-full border border-slate-300 bg-white text-[12px] hover:bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed transition"
-        >
-          {isLoading ? "Обновляем..." : "Обновить список"}
-        </button>
       </div>
 
-      {/* Ошибка загрузки */}
-      {hasError && state.status === "error" && (
-        <div className="text-[12px] text-rose-700 bg-rose-50 border border-rose-100 rounded-2xl px-3 py-2">
-          {state.message}
-        </div>
-      )}
-
-      {/* Пустое состояние */}
-      {isReady && state.status === "ready" && state.pets.length === 0 && (
-        <div className="bg-onlyvet-bg border border-slate-200 rounded-2xl px-4 py-4 text-[12px] text-slate-600">
-          Для вашего аккаунта пока нет питомцев в системе клиники. Как только
-          в клинике заведут карточку питомца, он появится здесь автоматически.
-        </div>
-      )}
-
-      {/* Список питомцев */}
-      {isReady && state.status === "ready" && state.pets.length > 0 && (
-        <div className="grid gap-3 md:grid-cols-2">
-          {state.pets.map((pet) => (
-            <article
-              key={pet.id}
-              className="bg-onlyvet-bg rounded-2xl border border-slate-200 p-3 space-y-1 text-[13px]"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <div className="font-semibold text-slate-900">
-                    {pet.alias}
-                  </div>
-                  <div className="text-[12px] text-slate-500">
-                    ID в клинике: {pet.id}
-                  </div>
-                </div>
-                <Link
-                  href={`/account/pets/${pet.id}`}
-                  className="px-3 py-1 rounded-full bg-white border border-slate-300 text-[12px] text-onlyvet-navy hover:bg-slate-50 transition"
-                >
-                  Открыть карточку
-                </Link>
-              </div>
-
-              {pet.birthday && (
-                <div className="text-[12px] text-slate-600">
-                  Дата рождения: {pet.birthday}
-                </div>
-              )}
-              {pet.sex && (
-                <div className="text-[12px] text-slate-600">
-                  Пол: {pet.sex}
-                </div>
-              )}
-            </article>
-          ))}
-        </div>
-      )}
-
-      {/* Стартовое состояние / очень быстрый рендер */}
-      {state.status === "idle" && (
-        <div className="text-[12px] text-slate-500">
-          Загрузка списка питомцев...
-        </div>
-      )}
+      {/* Информационный блок вместо реальной загрузки */}
+      <div className="bg-onlyvet-bg border border-dashed border-slate-300 rounded-2xl px-4 py-4 text-[12px] text-slate-700 space-y-2">
+        <p className="font-medium text-slate-800">
+          Связка с клиникой ещё настраивается.
+        </p>
+        <p>
+          Сейчас этот раздел работает в демонстрационном режиме. Как только
+          интеграция с медицинской системой клиники будет включена, здесь
+          автоматически появятся ваши питомцы из карты клиента.
+        </p>
+        <p className="text-[11px] text-slate-500">
+          Если вам нужно уточнить информацию по питомцу или добавить новые
+          данные уже сейчас — просто напишите администратору клиники, как
+          обычно.
+        </p>
+      </div>
     </section>
   );
 }
