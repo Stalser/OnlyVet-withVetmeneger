@@ -18,12 +18,10 @@ import { getSupabaseClient } from "@/lib/supabaseClient";
 function normalizePhoneForSearch(raw: string): string {
   const digits = raw.replace(/\D/g, "");
 
-  // РФ: 11 цифр и начинается с 7 или 8 → оставляем последние 10
   if (digits.length === 11 && (digits.startsWith("7") || digits.startsWith("8"))) {
     return digits.slice(1);
   }
 
-  // Всё остальное — как есть (цифры)
   return digits;
 }
 
@@ -100,38 +98,34 @@ export default function RegisterPage() {
 
       const fullPhoneDisplay = phone.trim();
       const normalizedPhone = normalizePhoneForSearch(phone);
-      const emailLower = email.trim().toLowerCase();
 
-      // 1. Проверка дубликатов на сервере (по email и нормализованному телефону)
+      // 1. Проверка дублей через наш API
       try {
         const checkRes = await fetch("/api/auth/check-duplicate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            email: emailLower,
-            phone_normalized: normalizedPhone || null,
+            email: email.trim(),
+            phoneNormalized: normalizedPhone || null,
           }),
         });
 
         if (checkRes.ok) {
           const check = await checkRes.json();
-          // ожидаем форму: { duplicate: boolean, fields: string[] }
-          const duplicate: boolean = !!check.duplicate;
-          const fields: string[] = Array.isArray(check.fields) ? check.fields : [];
+          const exists: boolean = check.exists;
+          const emailExists: boolean = check.emailExists;
+          const phoneExists: boolean = check.phoneExists;
 
-          if (duplicate) {
-            const byEmail = fields.includes("email");
-            const byPhone = fields.includes("phone");
-
-            if (byEmail && byPhone) {
+          if (exists) {
+            if (emailExists && phoneExists) {
               setServerError(
                 "Аккаунт с таким email и номером телефона уже существует. Попробуйте войти или восстановить доступ."
               );
-            } else if (byEmail) {
+            } else if (emailExists) {
               setServerError(
                 "Аккаунт с таким email уже существует. Попробуйте войти или восстановить доступ."
               );
-            } else if (byPhone) {
+            } else if (phoneExists) {
               setServerError(
                 "Аккаунт с таким номером телефона уже существует. Попробуйте войти или восстановить доступ."
               );
@@ -142,7 +136,7 @@ export default function RegisterPage() {
             }
 
             setLoading(false);
-            return; // ⛔ НЕ вызываем signUp, чтобы не создать дубликат
+            return;
           }
         } else {
           console.warn(
@@ -154,9 +148,9 @@ export default function RegisterPage() {
         console.warn("[Register] check-duplicate error:", checkErr);
       }
 
-      // 2. Регистрация пользователя в Supabase (email уникален на стороне Supabase)
+      // 2. Реальная регистрация в Supabase
       const { data, error } = await supabase.auth.signUp({
-        email: emailLower,
+        email: email.trim(),
         password: password.trim(),
         options: {
           data: {
@@ -195,9 +189,7 @@ export default function RegisterPage() {
         return;
       }
 
-      // 3. Vetmanager здесь НЕ трогаем.
-      // Клиент в Vetmanager заводится / связывается после подтверждения email и первого входа в ЛК.
-
+      // 3. Vetmanager тут не трогаем.
       setServerSuccess(
         "Аккаунт создан. Подтвердите email через письмо и затем войдите в личный кабинет."
       );
