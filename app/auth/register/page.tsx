@@ -18,10 +18,12 @@ import { getSupabaseClient } from "@/lib/supabaseClient";
 function normalizePhoneForSearch(raw: string): string {
   const digits = raw.replace(/\D/g, "");
 
+  // РФ: 11 цифр и начинается с 7 или 8 → оставляем последние 10
   if (digits.length === 11 && (digits.startsWith("7") || digits.startsWith("8"))) {
     return digits.slice(1);
   }
 
+  // Всё остальное — как есть (цифры)
   return digits;
 }
 
@@ -58,7 +60,8 @@ export default function RegisterPage() {
   // валидация
   const lastNameError = hasSubmitted && !lastName.trim();
   const firstNameError = hasSubmitted && !firstName.trim();
-  const middleNameError = hasSubmitted && !noMiddleName && !middleName.trim();
+  const middleNameError =
+    hasSubmitted && !noMiddleName && !middleName.trim();
   const phoneError = hasSubmitted && !phone.trim();
   const emailError = hasSubmitted && !email.trim();
   const passwordError = hasSubmitted && password.trim().length < 8;
@@ -99,7 +102,7 @@ export default function RegisterPage() {
       const fullPhoneDisplay = phone.trim();
       const normalizedPhone = normalizePhoneForSearch(phone);
 
-      // 1. Проверка дублей через наш API
+      // 1. Проверка дубликатов по email и телефону через наш API
       try {
         const checkRes = await fetch("/api/auth/check-duplicate", {
           method: "POST",
@@ -136,7 +139,7 @@ export default function RegisterPage() {
             }
 
             setLoading(false);
-            return;
+            return; // ⛔ НЕ вызываем signUp, чтобы не создать дубликат
           }
         } else {
           console.warn(
@@ -148,7 +151,7 @@ export default function RegisterPage() {
         console.warn("[Register] check-duplicate error:", checkErr);
       }
 
-      // 2. Реальная регистрация в Supabase
+      // 2. Регистрация пользователя в Supabase
       const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
         password: password.trim(),
@@ -189,7 +192,7 @@ export default function RegisterPage() {
         return;
       }
 
-      // 3. Vetmanager тут не трогаем.
+      // 3. Vetmanager здесь НЕ трогаем.
       setServerSuccess(
         "Аккаунт создан. Подтвердите email через письмо и затем войдите в личный кабинет."
       );
@@ -387,7 +390,7 @@ export default function RegisterPage() {
                       type="text"
                       value={telegram}
                       onChange={(e) => setTelegram(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
                       placeholder="@username"
                     />
                   </div>
@@ -429,7 +432,7 @@ export default function RegisterPage() {
                         className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
                           password2Error
                             ? "border-rose-400 focus:ring-rose-300"
-                            : "border-slate-300 focus:ring-onlyvet-teal/40"
+                            : "border-сlate-300 focus:ring-onlyvet-teal/40"
                         }`}
                         placeholder="Ещё раз пароль"
                       />
@@ -477,7 +480,7 @@ export default function RegisterPage() {
                         Я принимаю условия{" "}
                         <Link
                           href="/docs/offer"
-                          className="text-onlyvet-coral underline-offset-2 hover:underline"
+                          className="text-onlyvet-cорал underline-offset-2 hover:underline"
                         >
                           публичной оферты
                         </Link>{" "}
