@@ -18,12 +18,10 @@ import { getSupabaseClient } from "@/lib/supabaseClient";
 function normalizePhoneForSearch(raw: string): string {
   const digits = raw.replace(/\D/g, "");
 
-  // РФ: 11 цифр и начинается с 7 или 8 → оставляем последние 10
   if (digits.length === 11 && (digits.startsWith("7") || digits.startsWith("8"))) {
-    return digits.slice(1);
+    return digits.slice(1); // последние 10
   }
 
-  // Всё остальное — просто цифры
   return digits;
 }
 
@@ -101,7 +99,7 @@ export default function RegisterPage() {
       const fullPhoneDisplay = phone.trim();
       const normalizedPhone = normalizePhoneForSearch(phone);
 
-      // 1. Проверка дубликата по телефону через /api/auth/check-duplicate
+      // 1. Проверка дубликата по телефону
       try {
         const checkRes = await fetch("/api/auth/check-duplicate", {
           method: "POST",
@@ -120,7 +118,7 @@ export default function RegisterPage() {
               "Аккаунт с таким номером телефона уже существует. Попробуйте войти или восстановить доступ."
             );
             setLoading(false);
-            return; // ⛔ дальше signUp не вызываем
+            return;
           }
         } else {
           console.warn(
@@ -152,7 +150,6 @@ export default function RegisterPage() {
       if (error) {
         const msg = (error.message || "").toLowerCase();
 
-        // Supabase сам не даёт повторить email — ловим его сообщение
         if (msg.includes("already registered")) {
           setServerError(
             "Аккаунт с таким email уже существует. Попробуйте войти или восстановить доступ."
@@ -174,7 +171,7 @@ export default function RegisterPage() {
         return;
       }
 
-      // 3. Vetmanager сейчас ОТКЛЮЧЁН (pets 503), здесь его не трогаем.
+      // Vetmanager сейчас отключен — не трогаем.
 
       setServerSuccess(
         "Аккаунт создан. Подтвердите email через письмо и затем войдите в личный кабинет."
@@ -235,15 +232,10 @@ export default function RegisterPage() {
                         className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
                           lastNameError
                             ? "border-rose-400 focus:ring-rose-300"
-                            : "border-slate-300 focus:ring-onlyvet-teal/40"
+                            : "border-slate-300 focus:ring-onlyvet-teал/40"
                         }`}
                         placeholder="Иванов"
                       />
-                      {lastNameError && (
-                        <p className="mt-1 text-[11px] text-rose-600">
-                          Укажите фамилию.
-                        </p>
-                      )}
                     </div>
 
                     {/* Имя */}
@@ -258,15 +250,10 @@ export default function RegisterPage() {
                         className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
                           firstNameError
                             ? "border-rose-400 focus:ring-rose-300"
-                            : "border-slate-300 focus:ring-onlyvet-teal/40"
+                            : "border-slate-300 focus:ring-onlyvet-teал/40"
                         }`}
                         placeholder="Иван"
                       />
-                      {firstNameError && (
-                        <p className="mt-1 text-[11px] text-rose-600">
-                          Укажите имя.
-                        </p>
-                      )}
                     </div>
 
                     {/* Отчество */}
@@ -286,7 +273,7 @@ export default function RegisterPage() {
                             ? "border-slate-200 bg-slate-50 text-slate-400"
                             : middleNameError
                             ? "border-rose-400 focus:ring-rose-300"
-                            : "border-slate-300 focus:ring-onlyvet-teal/40"
+                            : "border-slate-300 focus:ring-onlyvet-teал/40"
                         }`}
                         placeholder={noMiddleName ? "Не указано" : "Иванович"}
                       />
@@ -305,11 +292,6 @@ export default function RegisterPage() {
                           Нет отчества
                         </label>
                       </div>
-                      {middleNameError && !noMiddleName && (
-                        <p className="mt-1 text-[11px] text-rose-600">
-                          Укажите отчество или отметьте «Нет отчества».
-                        </p>
-                      )}
                     </div>
                   </div>
                 </section>
@@ -331,15 +313,10 @@ export default function RegisterPage() {
                         className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
                           phoneError
                             ? "border-rose-400 focus:ring-rose-300"
-                            : "border-slate-300 focus:ring-onlyvet-teal/40"
+                            : "border-slate-300 focus:ring-onlyvet-teал/40"
                         }`}
                         placeholder="+7 999 123-45-67"
                       />
-                      {phoneError && (
-                        <p className="mt-1 text-[11px] text-rose-600">
-                          Укажите телефон, чтобы мы могли связаться с вами.
-                        </p>
-                      )}
                     </div>
                     <div>
                       <label className="block text-[12px] text-slate-600 mb-1">
@@ -352,16 +329,10 @@ export default function RegisterPage() {
                         className={`w-full rounded-xl border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 ${
                           emailError
                             ? "border-rose-400 focus:ring-rose-300"
-                            : "border-slate-300 focus:ring-onlyvet-teal/40"
+                            : "border-slate-300 focus:ring-onlyvet-teал/40"
                         }`}
                         placeholder="example@mail.ru"
                       />
-                      {emailError && (
-                        <p className="mt-1 text-[11px] text-rose-600">
-                          Email нужен для отправки материалов консультации и
-                          уведомлений.
-                        </p>
-                      )}
                     </div>
                   </div>
 
@@ -373,7 +344,7 @@ export default function RegisterPage() {
                       type="text"
                       value={telegram}
                       onChange={(e) => setTelegram(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teal/40"
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-onlyvet-teал/40"
                       placeholder="@username"
                     />
                   </div>
